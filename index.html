@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>HDB Agent HQ</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,650&family=Archivo:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--palm:#14312a;--palm2:#1b3f36;--sand:#f5eedf;--teak:#7a5a38;--ink:#22301f;--brass:#c29a3d;--coral:#c94f3d;--leaf:#3f8f5f;--line:rgba(194,154,61,.55);--r:14px}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--palm);color:var(--sand);font-family:Archivo,system-ui,sans-serif;min-height:100vh}
+a{color:inherit}
+.wrap{max-width:1180px;margin:0 auto;padding:28px 20px 80px}
+.hq-header{display:flex;align-items:baseline;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:6px}
+.hq-title{font-family:Fraunces,serif;font-weight:650;font-size:clamp(26px,4vw,38px)}
+.hq-title em{font-style:normal;color:var(--brass)}
+.hq-meta{font-size:13px;color:rgba(245,238,223,.65)}
+.legend{display:flex;gap:18px;flex-wrap:wrap;font-size:12.5px;color:rgba(245,238,223,.75);margin:10px 0 26px}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.dot{width:9px;height:9px;border-radius:50%;display:inline-block}
+.dot.ok{background:var(--leaf)}.dot.late{background:var(--brass)}.dot.failed{background:var(--coral)}.dot.unknown{background:rgba(245,238,223,.35)}
+.hq-node{width:min(420px,100%);margin:0 auto;background:var(--sand);color:var(--ink);border-radius:var(--r);padding:18px 22px;text-align:center;box-shadow:0 10px 30px rgba(0,0,0,.35);position:relative;z-index:1}
+.hq-node h2{font-family:Fraunces,serif;font-size:21px;font-weight:650}
+.hq-stats{display:flex;justify-content:center;gap:22px;margin-top:10px;font-size:13px;color:var(--teak)}
+.hq-stats b{color:var(--ink);font-size:17px;display:block;font-variant-numeric:tabular-nums}
+.trunk{width:2px;height:34px;background:var(--line);margin:0 auto}
+.crossbar{height:2px;background:var(--line);margin:0 6.5%}
+.branches{display:grid;grid-template-columns:repeat(4,1fr);gap:18px}
+.branch{display:flex;flex-direction:column}
+.branch::before{content:"";width:2px;height:22px;background:var(--line);margin:0 auto}
+.branch-label{font-family:Fraunces,serif;font-size:15px;font-weight:650;color:var(--brass);text-align:center;letter-spacing:.4px;margin-bottom:12px}
+.agents{display:flex;flex-direction:column;gap:10px}
+.agent{background:var(--sand);color:var(--ink);border-radius:var(--r);padding:12px 14px;border:0;border-left:5px solid var(--leaf);cursor:pointer;text-align:left;width:100%;font:inherit;transition:transform .12s ease,box-shadow .12s ease}
+.agent:hover,.agent:focus-visible{transform:translateY(-2px);box-shadow:0 8px 22px rgba(0,0,0,.3);outline:none}
+.agent:focus-visible{box-shadow:0 0 0 3px var(--brass)}
+.agent.late{border-left-color:var(--brass)}.agent.failed{border-left-color:var(--coral)}.agent.unknown{border-left-color:rgba(34,48,31,.25)}
+.agent .name{font-weight:700;font-size:14px;display:flex;align-items:center;gap:7px}
+.agent .sub{font-size:12px;color:var(--teak);margin-top:2px}
+.agent .last{font-size:11.5px;color:rgba(34,48,31,.6);margin-top:6px;font-variant-numeric:tabular-nums}
+.spark{display:flex;gap:3px;margin-top:7px}
+.spark i{width:10px;height:10px;border-radius:3px;background:rgba(34,48,31,.12)}
+.spark i.ok{background:var(--leaf)}.spark i.failed{background:var(--coral)}
+.panel{margin-top:26px;background:var(--palm2);border:1px solid rgba(194,154,61,.3);border-radius:var(--r);padding:18px 20px}
+.panel h3{font-family:Fraunces,serif;font-size:18px;color:var(--brass);margin-bottom:4px}
+.panel-sub{font-size:13px;color:rgba(245,238,223,.7);margin-bottom:12px}
+.panel table{width:100%;border-collapse:collapse;font-size:13px}
+.panel td{padding:7px 8px;border-top:1px solid rgba(245,238,223,.12);vertical-align:top}
+.panel td.t{white-space:nowrap;color:rgba(245,238,223,.65);font-variant-numeric:tabular-nums}
+.badge{font-size:11px;padding:2px 8px;border-radius:20px;font-weight:700}
+.badge.ok{background:rgba(63,143,95,.25);color:#9fd8b4}
+.badge.failed{background:rgba(201,79,61,.25);color:#f0a89c}
+.n8n-link{display:inline-block;margin-top:12px;font-size:13px;color:var(--brass)}
+.section{margin-top:46px}
+.section>h2{font-family:Fraunces,serif;font-size:22px;font-weight:650;margin-bottom:4px}
+.section-sub{font-size:13.5px;color:rgba(245,238,223,.65);margin-bottom:18px}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px}
+.creative{background:var(--sand);color:var(--ink);border-radius:var(--r);overflow:hidden;display:flex;flex-direction:column}
+.creative video,.creative img{width:100%;aspect-ratio:16/10;object-fit:cover;background:#000}
+.creative .body{padding:12px 14px 14px;display:flex;flex-direction:column;gap:8px}
+.creative .title{font-weight:700;font-size:14.5px}
+.creative .meta{font-size:12px;color:var(--teak)}
+.creative .note{font-size:11.5px;color:rgba(34,48,31,.6)}
+.empty{border:1.5px dashed rgba(245,238,223,.3);border-radius:var(--r);padding:26px;text-align:center;font-size:13.5px;color:rgba(245,238,223,.65)}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px}
+.kpi{background:var(--palm2);border:1px solid rgba(194,154,61,.3);border-radius:var(--r);padding:14px 16px}
+.kpi b{font-family:Fraunces,serif;font-size:26px;font-weight:650;color:var(--sand);display:block;font-variant-numeric:tabular-nums}
+.kpi span{font-size:12px;color:rgba(245,238,223,.65)}
+.gate{display:grid;place-items:center;min-height:100vh;text-align:center;padding:20px}
+.err{background:rgba(201,79,61,.18);border:1px solid var(--coral);border-radius:var(--r);padding:12px 16px;font-size:13px;margin-bottom:20px}
+@media(max-width:900px){.branches{grid-template-columns:repeat(2,1fr)}.crossbar{margin:0 25%}}
+@media(max-width:540px){.branches{grid-template-columns:1fr}.crossbar{display:none}.branch::before{height:14px}}
+@media(prefers-reduced-motion:reduce){.agent{transition:none}}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+/* ════════════════════════════════════════════════════════════
+   Alle instellingen en agents staan in config.json (zelfde repo).
+   Nieuwe agent? Alleen config.json aanpassen — dit bestand niet.
+   ════════════════════════════════════════════════════════════ */
+let SUPABASE_URL, SUPABASE_ANON, TOKEN, N8N, SLA, BRANCHES;
+
+async function boot() {
+  try {
+    const res = await fetch('./config.json?v=' + Date.now());
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const cfg = await res.json();
+    SUPABASE_URL = cfg.supabase_url;
+    SUPABASE_ANON = cfg.supabase_anon_key;
+    TOKEN = cfg.dashboard_token;
+    N8N = cfg.n8n_base;
+    SLA = cfg.sla_hours;
+    BRANCHES = cfg.branches;
+  } catch (e) {
+    document.getElementById('app').innerHTML =
+      '<div class="gate"><div><h1 class="hq-title">HDB <em>Agent HQ</em></h1>' +
+      '<p style="margin-top:10px;font-size:14px">config.json kon niet geladen worden (' + e.message + '). Staat hij in dezelfde map als index.html?</p></div></div>';
+    return;
+  }
+  gate();
+}
+
+/* ── token-gate (client-side) ── */
+const app = document.getElementById("app");
+function gate() {
+  const params = new URLSearchParams(location.search);
+  if (params.get("token") === TOKEN) sessionStorage.setItem("hdb_ok","1");
+  const authed = sessionStorage.getItem("hdb_ok") === "1";
+  if (!authed) {
+    app.innerHTML = `<div class="gate"><div><h1 class="hq-title">HDB <em>Agent HQ</em></h1><p style="margin-top:10px;font-size:14px">Geen toegang. Open de link met <code>?token=…</code></p></div></div>`;
+    return;
+  }
+  render();
+  setInterval(render, 60000); // ververst elke 60s
+}
+boot();
+
+/* ── Supabase REST helpers ── */
+async function sb(path, opts={}) {
+  const res = await fetch(SUPABASE_URL + "/rest/v1/" + path, {
+    headers: { apikey: SUPABASE_ANON, Authorization: "Bearer " + SUPABASE_ANON, ...(opts.headers||{}) }
+  });
+  if (!res.ok) throw new Error(path.split("?")[0] + " → HTTP " + res.status);
+  return opts.head ? res : res.json();
+}
+async function sbCount(table, filter="") {
+  try {
+    const res = await fetch(SUPABASE_URL + "/rest/v1/" + table + "?select=id" + filter, {
+      method: "HEAD",
+      headers: { apikey: SUPABASE_ANON, Authorization: "Bearer " + SUPABASE_ANON, Prefer: "count=exact" }
+    });
+    if (!res.ok) return null;
+    const cr = res.headers.get("content-range");
+    return cr ? parseInt(cr.split("/")[1], 10) : null;
+  } catch { return null; }
+}
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const ago = iso => {
+  if (!iso) return "nog geen run gelogd";
+  const m = Math.round((Date.now() - new Date(iso)) / 60000);
+  if (m < 60) return m + " min geleden";
+  const h = Math.round(m / 60);
+  return h < 48 ? h + " uur geleden" : Math.round(h/24) + " dagen geleden";
+};
+
+let selected = null;
+
+async function render() {
+  let runs = [], creatives = [], errMsg = "";
+  try { runs = await sb("runs?select=workflow_name,summary,success,created_at&order=created_at.desc&limit=400"); }
+  catch(e){ errMsg = e.message; }
+  try { creatives = await sb("ad_creatives?select=*&order=created_at.desc&limit=30"); } catch(e){}
+  const [worklist, keywords] = await Promise.all([ sbCount("seo_enrichment_worklist"), sbCount("seo_keywords") ]);
+
+  const statuses = {};
+  const now = Date.now();
+  for (const b of BRANCHES) for (const a of b.agents) {
+    const hist = runs.filter(r => a.match.some(p => (r.workflow_name||"").toLowerCase().includes(p))).slice(0,7);
+    const last = hist[0] || null;
+    let health = "unknown";
+    if (last) {
+      if (last.success === false) health = "failed";
+      else if (SLA[a.cadence] === null) health = "ok";
+      else health = (now - new Date(last.created_at)) / 36e5 <= SLA[a.cadence] ? "ok" : "late";
+    }
+    statuses[a.key] = { health, last, hist };
+  }
+  const all = Object.values(statuses);
+  const ok = all.filter(s=>s.health==="ok").length, late = all.filter(s=>s.health==="late").length, failed = all.filter(s=>s.health==="failed").length;
+  const pending = creatives.filter(c=>c.status==="pending_approval");
+  const HC = { ok:"var(--leaf)", late:"var(--brass)", failed:"var(--coral)", unknown:"rgba(34,48,31,.35)" };
+
+  app.innerHTML = `
+  <main class="wrap">
+    <header class="hq-header">
+      <h1 class="hq-title">HDB <em>Agent HQ</em></h1>
+      <div class="hq-meta">bijgewerkt ${new Date().toLocaleString("nl-NL",{timeZone:"Europe/Madrid",dateStyle:"medium",timeStyle:"short"})} · ververst elke 60s</div>
+    </header>
+    ${errMsg ? `<div class="err">Kon Supabase niet lezen (${esc(errMsg)}). Controleer de anon key in dit bestand, of dat de tabel bestaat.</div>` : ""}
+    <div class="legend">
+      <span><i class="dot ok"></i> op schema</span><span><i class="dot late"></i> te laat</span>
+      <span><i class="dot failed"></i> gefaald</span><span><i class="dot unknown"></i> geen runs gevonden</span>
+    </div>
+    <div class="hq-node">
+      <h2>Home Deco Bali · HQ</h2>
+      <div class="hq-stats">
+        <div><b>${ok}</b> op schema</div><div><b>${late}</b> te laat</div>
+        <div><b>${failed}</b> gefaald</div><div><b>${pending.length}</b> wacht op akkoord</div>
+      </div>
+    </div>
+    <div class="trunk"></div><div class="crossbar"></div>
+    <div class="branches">
+      ${BRANCHES.map(b => `
+        <div class="branch"><div class="branch-label">${esc(b.label)}</div><div class="agents">
+          ${b.agents.map(a => { const s = statuses[a.key]; return `
+            <button class="agent ${s.health}" data-key="${a.key}">
+              <div class="name"><span style="color:${HC[s.health]};font-size:11px">${s.health==="unknown"?"○":"●"}</span>${esc(a.label)}</div>
+              <div class="sub">${esc(a.sub)}</div>
+              <div class="last">${ago(s.last && s.last.created_at)}</div>
+              <div class="spark">${s.hist.slice().reverse().map(r=>`<i class="${r.success===false?"failed":"ok"}"></i>`).join("")}</div>
+            </button>`; }).join("")}
+        </div></div>`).join("")}
+    </div>
+    <div id="detail"></div>
+    <section class="section">
+      <h2>Wachtrij · goedkeuringen</h2>
+      <p class="section-sub">Creatives met status <b>pending_approval</b>. Goedkeuren/afkeuren loopt in deze versie nog via de e-mail van n8n; dit is het live overzicht.</p>
+      ${pending.length === 0 ? `<div class="empty">Geen creatives die op goedkeuring wachten.</div>` : `
+      <div class="cards">${pending.map(c => `
+        <div class="creative">
+          ${c.video_url ? `<video src="${esc(c.video_url)}" controls preload="metadata" ${c.scene_image_url?`poster="${esc(c.scene_image_url)}"`:""}></video>` : c.scene_image_url ? `<img src="${esc(c.scene_image_url)}" alt="">` : ""}
+          <div class="body">
+            <div class="title">${esc(c.title||"Zonder titel")}</div>
+            <div class="meta">${c.price!=null?`€ ${esc(c.price)}`:""} ${c.product_url?` · <a href="${esc(c.product_url)}" target="_blank" rel="noreferrer">productpagina ↗</a>`:""}</div>
+            <div class="note">Beslissen kan via de approve-mail in je inbox.</div>
+          </div>
+        </div>`).join("")}</div>`}
+    </section>
+    <section class="section">
+      <h2>SEO-pijplijn</h2>
+      <div class="kpis">
+        <div class="kpi"><b>${worklist ?? "—"}</b><span>producten in enrichment-worklist</span></div>
+        <div class="kpi"><b>${keywords ?? "—"}</b><span>keyword-mappings totaal</span></div>
+      </div>
+    </section>
+  </main>`;
+
+  document.querySelectorAll(".agent").forEach(btn => btn.addEventListener("click", () => {
+    selected = selected === btn.dataset.key ? null : btn.dataset.key;
+    drawDetail(statuses);
+  }));
+  drawDetail(statuses);
+}
+
+function drawDetail(statuses) {
+  const el = document.getElementById("detail");
+  if (!selected || !statuses[selected]) { el.innerHTML = ""; return; }
+  const def = BRANCHES.flatMap(b=>b.agents).find(a=>a.key===selected);
+  const s = statuses[selected];
+  el.innerHTML = `<div class="panel">
+    <h3>${esc(def.label)}</h3>
+    <div class="panel-sub">cadans: ${def.cadence==="daily"?"dagelijks":def.cadence==="weekly"?"wekelijks":"event-gedreven"}</div>
+    ${s.hist.length===0 ? `<p style="font-size:13px;color:rgba(245,238,223,.7)">Geen regels in de <code>runs</code>-tabel voor deze agent. Voeg de twee log-nodes uit SEO ① toe aan deze workflow.</p>` : `
+    <table><tbody>${s.hist.map(r=>`
+      <tr><td class="t">${new Date(r.created_at).toLocaleString("nl-NL",{timeZone:"Europe/Madrid"})}</td>
+      <td><span class="badge ${r.success===false?"failed":"ok"}">${r.success===false?"gefaald":"gelukt"}</span></td>
+      <td>${esc(r.summary||"—")}</td></tr>`).join("")}</tbody></table>`}
+    <a class="n8n-link" href="${N8N}${def.n8n}" target="_blank" rel="noreferrer">Open in n8n ↗</a>
+  </div>`;
+}
+</script>
+</body>
+</html>
