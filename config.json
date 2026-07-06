@@ -15,7 +15,8 @@
     ]},
     { "label": "Content Factory", "agents": [
       { "key": "build", "label": "Build Factory", "sub": "unboxing reels (9:16)", "match": ["build factory", "unboxing"], "cadence": "daily", "n8n": "omVY6w6xNGHhHiCp" },
-      { "key": "news", "label": "Newsletter", "sub": "5 producten · do 09:00", "match": ["newsletter"], "cadence": "weekly", "n8n": "wv7IA0IMKKpdRMsq" }
+      { "key": "news", "label": "Newsletter", "sub": "5 producten · do 09:00", "match": ["newsletter"], "cadence": "weekly", "n8n": "wv7IA0IMKKpdRMsq" },
+      { "key": "social", "label": "Social Posts", "sub": "2 producten · zo + wo 09:00", "match": ["social posts", "hdb · social"], "cadence": "weekly", "n8n": "GswDTHv7SP1HoRTb" }
     ]},
     { "label": "Meta Ads", "agents": [
       { "key": "pub", "label": "Publish Campaign", "sub": "ES + PT ad sets", "match": ["publish — meta", "meta campaign"], "cadence": "daily", "n8n": "zcJG5aRNnArEeo66" },
