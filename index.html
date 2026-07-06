@@ -31,6 +31,10 @@ a{color:inherit}
 .branch::before{content:"";width:2px;height:22px;background:var(--line);margin:0 auto}
 .branch-label{font-family:Fraunces,serif;font-size:15px;font-weight:650;color:var(--brass);text-align:center;letter-spacing:.4px;margin-bottom:12px}
 .agents{display:flex;flex-direction:column;gap:10px}
+.agroup{display:flex;flex-direction:column;gap:10px}
+.agroup + .agroup{margin-top:14px}
+.agroup-label{font-size:10px;letter-spacing:1.6px;text-transform:uppercase;color:var(--brass);opacity:.9;margin:2px 2px 0;display:flex;align-items:center;gap:8px}
+.agroup-label::after{content:"";flex:1;height:1px;background:var(--line);opacity:.45}
 .agent{background:var(--sand);color:var(--ink);border-radius:var(--r);padding:12px 14px;border:0;border-left:5px solid var(--leaf);cursor:pointer;text-align:left;width:100%;font:inherit;transition:transform .12s ease,box-shadow .12s ease}
 .agent:hover,.agent:focus-visible{transform:translateY(-2px);box-shadow:0 8px 22px rgba(0,0,0,.3);outline:none}
 .agent:focus-visible{box-shadow:0 0 0 3px var(--brass)}
@@ -79,6 +83,9 @@ a{color:inherit}
 /* ════════════════════════════════════════════════════════════
    Alle instellingen en agents staan in config.json (zelfde repo).
    Nieuwe agent? Alleen config.json aanpassen — dit bestand niet.
+   Sub-groep binnen een tak? Geef agents in config.json hetzelfde
+   optionele "group"-label; agents met dezelfde group verschijnen
+   samen onder een kopje. Geen "group" = geen groepskop (als vanouds).
    ════════════════════════════════════════════════════════════ */
 let SUPABASE_URL, SUPABASE_ANON, TOKEN, N8N, SLA, BRANCHES;
 
@@ -172,6 +179,33 @@ async function render() {
   const pending = creatives.filter(c=>c.status==="pending_approval");
   const HC = { ok:"var(--leaf)", late:"var(--brass)", failed:"var(--coral)", unknown:"rgba(34,48,31,.35)" };
 
+  const agentCard = a => { const s = statuses[a.key]; return `
+            <button class="agent ${s.health}" data-key="${a.key}">
+              <div class="name"><span style="color:${HC[s.health]};font-size:11px">${s.health==="unknown"?"○":"●"}</span>${esc(a.label)}</div>
+              <div class="sub">${esc(a.sub)}</div>
+              <div class="last">${ago(s.last && s.last.created_at)}</div>
+              <div class="spark">${s.hist.slice().reverse().map(r=>`<i class="${r.success===false?"failed":"ok"}"></i>`).join("")}</div>
+            </button>`; };
+
+  const branchHtml = b => {
+    // Groepeer opeenvolgende agents op hun optionele .group-label (volgorde behouden).
+    const groups = [];
+    for (const a of b.agents) {
+      const g = a.group || "";
+      const last = groups[groups.length - 1];
+      if (!last || last.key !== g) groups.push({ key: g, items: [a] });
+      else last.items.push(a);
+    }
+    const anyGroup = b.agents.some(a => a.group);
+    const inner = groups.map(g => {
+      const cards = g.items.map(agentCard).join("");
+      return (anyGroup && g.key)
+        ? `<div class="agroup"><div class="agroup-label">${esc(g.key)}</div>${cards}</div>`
+        : `<div class="agroup">${cards}</div>`;
+    }).join("");
+    return `<div class="branch"><div class="branch-label">${esc(b.label)}</div><div class="agents">${inner}</div></div>`;
+  };
+
   app.innerHTML = `
   <main class="wrap">
     <header class="hq-header">
@@ -192,16 +226,7 @@ async function render() {
     </div>
     <div class="trunk"></div><div class="crossbar"></div>
     <div class="branches">
-      ${BRANCHES.map(b => `
-        <div class="branch"><div class="branch-label">${esc(b.label)}</div><div class="agents">
-          ${b.agents.map(a => { const s = statuses[a.key]; return `
-            <button class="agent ${s.health}" data-key="${a.key}">
-              <div class="name"><span style="color:${HC[s.health]};font-size:11px">${s.health==="unknown"?"○":"●"}</span>${esc(a.label)}</div>
-              <div class="sub">${esc(a.sub)}</div>
-              <div class="last">${ago(s.last && s.last.created_at)}</div>
-              <div class="spark">${s.hist.slice().reverse().map(r=>`<i class="${r.success===false?"failed":"ok"}"></i>`).join("")}</div>
-            </button>`; }).join("")}
-        </div></div>`).join("")}
+      ${BRANCHES.map(branchHtml).join("")}
     </div>
     <div id="detail"></div>
     <section class="section">
