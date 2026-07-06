@@ -30,13 +30,21 @@ a{color:inherit}
 .legend span{display:inline-flex;align-items:center;gap:6px}
 .dot{width:9px;height:9px;border-radius:50%;display:inline-block}
 .dot.ok{background:var(--leaf)}.dot.late{background:var(--brass)}.dot.failed{background:var(--coral)}.dot.unknown{background:rgba(59,47,36,.3)}
+.flowdash{width:24px;height:0;border-top:2px dashed var(--clay);display:inline-block;opacity:.7}
 .hq-node{width:min(420px,100%);margin:0 auto;background:var(--palm);color:#f2ead9;border-radius:var(--r);padding:18px 22px;text-align:center;box-shadow:0 12px 30px rgba(59,47,36,.22);position:relative;z-index:1}
 .hq-node h2{font-family:Fraunces,serif;font-size:21px;font-weight:650}
 .hq-stats{display:flex;justify-content:center;gap:22px;margin-top:10px;font-size:13px;color:rgba(242,234,217,.75)}
 .hq-stats b{color:#f2ead9;font-size:17px;display:block;font-variant-numeric:tabular-nums}
-.trunk{width:2px;height:34px;background:var(--line);margin:0 auto}
-.crossbar{height:2px;background:var(--line);margin:0 6.5%}
-.branches{display:grid;grid-template-columns:repeat(4,1fr);gap:18px}
+.map{position:relative}
+#flowlayer{position:absolute;top:0;left:0;pointer-events:none;z-index:0}
+.flow-line{fill:none;stroke:var(--clay);stroke-width:2;stroke-dasharray:6 5;stroke-linecap:round;opacity:.5;transition:opacity .15s ease,stroke-width .15s ease}
+.flow-line.hot{opacity:.95;stroke-width:2.6}
+.flow-line.dim{opacity:.1}
+.flow-label{font-family:Archivo,system-ui,sans-serif;font-size:10.5px;font-weight:600;letter-spacing:.4px;fill:var(--teak);opacity:.9;paint-order:stroke;stroke:var(--sand);stroke-width:4px;stroke-linejoin:round;transition:opacity .15s ease}
+.flow-label.dim{opacity:.12}
+.trunk{width:2px;height:34px;background:var(--line);margin:0 auto;position:relative;z-index:1}
+.crossbar{height:2px;background:var(--line);margin:0 6.5%;position:relative;z-index:1}
+.branches{display:grid;grid-template-columns:repeat(4,1fr);gap:18px;position:relative;z-index:1}
 .branch{display:flex;flex-direction:column}
 .branch::before{content:"";width:2px;height:22px;background:var(--line);margin:0 auto}
 .branch-label{font-family:Fraunces,serif;font-size:15px;font-weight:650;color:var(--clay);text-align:center;letter-spacing:.4px;margin-bottom:12px}
@@ -45,7 +53,7 @@ a{color:inherit}
 .agroup + .agroup{margin-top:14px}
 .agroup-label{font-size:10px;letter-spacing:1.6px;text-transform:uppercase;color:var(--teak);margin:2px 2px 0;display:flex;align-items:center;gap:8px}
 .agroup-label::after{content:"";flex:1;height:1px;background:var(--line);opacity:.6}
-.agent{background:var(--card);color:var(--ink);border-radius:var(--r);padding:12px 14px;border:1px solid rgba(138,106,74,.22);border-left:5px solid var(--leaf);cursor:pointer;text-align:left;width:100%;font:inherit;box-shadow:0 2px 8px rgba(59,47,36,.06);transition:transform .12s ease,box-shadow .12s ease}
+.agent{background:var(--card);color:var(--ink);border-radius:var(--r);padding:12px 14px;border:1px solid rgba(138,106,74,.22);border-left:5px solid var(--leaf);cursor:pointer;text-align:left;width:100%;font:inherit;box-shadow:0 2px 8px rgba(59,47,36,.06);transition:transform .12s ease,box-shadow .12s ease;position:relative;z-index:1}
 .agent:hover,.agent:focus-visible{transform:translateY(-2px);box-shadow:0 10px 22px rgba(59,47,36,.16);outline:none}
 .agent:focus-visible{box-shadow:0 0 0 3px var(--clay)}
 .agent.late{border-left-color:var(--brass)}.agent.failed{border-left-color:var(--coral)}.agent.unknown{border-left-color:rgba(59,47,36,.2)}
@@ -58,6 +66,8 @@ a{color:inherit}
 .panel{margin-top:26px;background:var(--card);border:1px solid rgba(138,106,74,.35);border-radius:var(--r);padding:18px 20px;box-shadow:0 4px 14px rgba(59,47,36,.08)}
 .panel h3{font-family:Fraunces,serif;font-size:18px;color:var(--clay);margin-bottom:4px}
 .panel-sub{font-size:13px;color:var(--teak);margin-bottom:12px}
+.panel .feeds{font-size:12.5px;color:var(--teak);margin:-6px 0 12px}
+.panel .feeds b{color:var(--clay)}
 .panel table{width:100%;border-collapse:collapse;font-size:13px}
 .panel td{padding:7px 8px;border-top:1px solid rgba(138,106,74,.2);vertical-align:top}
 .panel td.t{white-space:nowrap;color:rgba(59,47,36,.6);font-variant-numeric:tabular-nums}
@@ -83,8 +93,8 @@ a{color:inherit}
 .gate{display:grid;place-items:center;min-height:100vh;text-align:center;padding:20px}
 .err{background:rgba(184,67,47,.1);border:1px solid var(--coral);color:#7c2c19;border-radius:var(--r);padding:12px 16px;font-size:13px;margin-bottom:20px}
 @media(max-width:900px){.branches{grid-template-columns:repeat(2,1fr)}.crossbar{margin:0 25%}}
-@media(max-width:540px){.branches{grid-template-columns:1fr}.crossbar{display:none}.branch::before{height:14px}}
-@media(prefers-reduced-motion:reduce){.agent{transition:none}}
+@media(max-width:540px){.branches{grid-template-columns:1fr}.crossbar{display:none}.branch::before{height:14px}#flowlayer{display:none}}
+@media(prefers-reduced-motion:reduce){.agent,.flow-line,.flow-label{transition:none}}
 </style>
 </head>
 <body>
@@ -96,8 +106,30 @@ a{color:inherit}
    Sub-groep binnen een tak? Geef agents in config.json hetzelfde
    optionele "group"-label; agents met dezelfde group verschijnen
    samen onder een kopje. Geen "group" = geen groepskop (als vanouds).
+
+   DATASTROMEN (de stippellijnen tussen agents):
+   Standaard tekent het dashboard de ingebouwde lijnen hieronder
+   (DEFAULT_FLOWS). Wil je ze zelf beheren, zet dan in config.json:
+     "flows": [
+       { "from": "agent-key of tekst-match", "to": "…", "label": "…" }
+     ]
+   "from"/"to" mag een exacte agent-key zijn, een stukje tekst dat
+   in key/label/sub voorkomt, of een lijst van kandidaten (eerste
+   die uniek matcht wint). Klik of hover op een agent om alleen
+   zíjn lijnen op te lichten.
    ════════════════════════════════════════════════════════════ */
-let SUPABASE_URL, SUPABASE_ANON, TOKEN, N8N, SLA, BRANCHES;
+let SUPABASE_URL, SUPABASE_ANON, TOKEN, N8N, SLA, BRANCHES, FLOWS;
+
+/* Ingebouwde datastromen — overschrijfbaar via "flows" in config.json.
+   Bron van de patronen: Supabase-tabellen ad_research_playbook,
+   ad_creatives en de Meta-campagnes. */
+const DEFAULT_FLOWS = [
+  { from: ["playbook","viral"], to: ["build","unboxing","factory"],        label: "hooks & CTA's" },
+  { from: ["playbook","viral"], to: ["social"],                            label: "hooks & CTA's" },
+  { from: ["playbook","viral"], to: ["highlights","weekly 5","newsletter","nieuwsbrief"], label: "hooks & CTA's" },
+  { from: ["build","unboxing","factory"], to: ["publish","meta campaign"], label: "creatives" },
+  { from: ["publish","meta campaign"], to: ["manage","scale","pause"],     label: "campagnes" }
+];
 
 async function boot() {
   try {
@@ -110,6 +142,7 @@ async function boot() {
     N8N = cfg.n8n_base;
     SLA = cfg.sla_hours;
     BRANCHES = cfg.branches;
+    FLOWS = (Array.isArray(cfg.flows) && cfg.flows.length) ? cfg.flows : DEFAULT_FLOWS;
   } catch (e) {
     document.getElementById('app').innerHTML =
       '<div class="gate"><div><h1 class="hq-title">HDB <em>Agent HQ</em></h1>' +
@@ -133,6 +166,7 @@ function gate() {
   setInterval(render, 60000); // ververst elke 60s
 }
 boot();
+window.addEventListener("resize", () => requestAnimationFrame(drawFlows));
 
 /* ── Supabase REST helpers ── */
 async function sb(path, opts={}) {
@@ -163,6 +197,105 @@ const ago = iso => {
 };
 
 let selected = null;
+let hoverKey = null;
+
+/* ── datastromen: matchers → agent-keys ── */
+function agentDefs() { return (BRANCHES || []).flatMap(b => b.agents); }
+function resolveAgent(matcher) {
+  const defs = agentDefs();
+  const list = Array.isArray(matcher) ? matcher : [matcher];
+  let fallback = null;
+  for (const m of list) {
+    const exact = defs.find(a => a.key === m);
+    if (exact) return exact.key;
+    const q = String(m).toLowerCase();
+    const hits = defs.filter(a => (a.key + " " + (a.label || "") + " " + (a.sub || "")).toLowerCase().includes(q));
+    if (hits.length === 1) return hits[0].key;
+    if (hits.length > 1 && !fallback) fallback = hits[0].key;
+  }
+  return fallback;
+}
+function resolvedFlows() {
+  return (FLOWS || []).map(f => ({ from: resolveAgent(f.from), to: resolveAgent(f.to), label: f.label || "" }))
+    .filter(f => f.from && f.to && f.from !== f.to);
+}
+function flowsFor(key) {
+  return resolvedFlows().filter(f => f.from === key || f.to === key);
+}
+
+/* ── datastromen: SVG-laag tekenen over de agent-boom ── */
+function drawFlows() {
+  const map = document.getElementById("map");
+  if (!map || !BRANCHES) return;
+  const old = document.getElementById("flowlayer");
+  if (old) old.remove();
+  const W = map.scrollWidth, H = map.scrollHeight;
+  if (!W || !H) return;
+  const NS = "http://www.w3.org/2000/svg";
+  const svg = document.createElementNS(NS, "svg");
+  svg.setAttribute("id", "flowlayer");
+  svg.setAttribute("viewBox", "0 0 " + W + " " + H);
+  svg.setAttribute("width", W);
+  svg.setAttribute("height", H);
+  svg.setAttribute("aria-hidden", "true");
+  const defs = document.createElementNS(NS, "defs");
+  defs.innerHTML = '<marker id="flowArrow" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#b4602f"/></marker>';
+  svg.appendChild(defs);
+  const mapRect = map.getBoundingClientRect();
+  const rectOf = key => {
+    const el = map.querySelector('.agent[data-key="' + (window.CSS && CSS.escape ? CSS.escape(key) : key) + '"]');
+    if (!el) return null;
+    const r = el.getBoundingClientRect();
+    return { x: r.left - mapRect.left, y: r.top - mapRect.top, w: r.width, h: r.height };
+  };
+  for (const f of resolvedFlows()) {
+    const a = rectOf(f.from), b = rectOf(f.to);
+    if (!a || !b) continue;
+    const acx = a.x + a.w / 2, bcx = b.x + b.w / 2;
+    let sx, sy, ex, ey, d;
+    if (Math.abs(acx - bcx) < 60) {
+      // zelfde kolom → verticale S-bocht via de rand, zodat kaarten ertussen vrij blijven
+      const off = 14;
+      if (a.y < b.y) { sx = a.x; sy = a.y + a.h / 2; ex = b.x; ey = b.y + b.h / 2; }
+      else { sx = b.x; sy = b.y + b.h / 2; ex = a.x; ey = a.y + a.h / 2; [sx, sy, ex, ey] = [a.x, a.y + a.h / 2, b.x, b.y + b.h / 2]; }
+      d = "M" + sx + "," + sy + " C" + (sx - off * 2.4) + "," + sy + " " + (ex - off * 2.4) + "," + ey + " " + (ex - 4) + "," + ey;
+    } else if (acx < bcx) {
+      sx = a.x + a.w; sy = a.y + a.h / 2; ex = b.x - 4; ey = b.y + b.h / 2;
+      const mx = (sx + ex) / 2;
+      d = "M" + sx + "," + sy + " C" + mx + "," + sy + " " + mx + "," + ey + " " + ex + "," + ey;
+    } else {
+      sx = a.x; sy = a.y + a.h / 2; ex = b.x + b.w + 4; ey = b.y + b.h / 2;
+      const mx = (sx + ex) / 2;
+      d = "M" + sx + "," + sy + " C" + mx + "," + sy + " " + mx + "," + ey + " " + ex + "," + ey;
+    }
+    const p = document.createElementNS(NS, "path");
+    p.setAttribute("d", d);
+    p.setAttribute("class", "flow-line");
+    p.setAttribute("marker-end", "url(#flowArrow)");
+    p.dataset.from = f.from; p.dataset.to = f.to;
+    svg.appendChild(p);
+    if (f.label) {
+      const t = document.createElementNS(NS, "text");
+      t.setAttribute("x", (sx + ex) / 2);
+      t.setAttribute("y", (sy + ey) / 2 - 7);
+      t.setAttribute("text-anchor", "middle");
+      t.setAttribute("class", "flow-label");
+      t.dataset.from = f.from; t.dataset.to = f.to;
+      t.textContent = f.label;
+      svg.appendChild(t);
+    }
+  }
+  map.prepend(svg);
+  updateFlowEmphasis(hoverKey || selected);
+}
+function updateFlowEmphasis(key) {
+  document.querySelectorAll("#flowlayer .flow-line, #flowlayer .flow-label").forEach(el => {
+    el.classList.remove("hot", "dim");
+    if (!key) return;
+    if (el.dataset.from === key || el.dataset.to === key) el.classList.add("hot");
+    else el.classList.add("dim");
+  });
+}
 
 async function render() {
   let runs = [], creatives = [], errMsg = "";
@@ -226,17 +359,20 @@ async function render() {
     <div class="legend">
       <span><i class="dot ok"></i> op schema</span><span><i class="dot late"></i> te laat</span>
       <span><i class="dot failed"></i> gefaald</span><span><i class="dot unknown"></i> geen runs gevonden</span>
+      <span><i class="flowdash"></i> datastroom (bron → gebruiker) · hover/klik een agent om zijn lijnen op te lichten</span>
     </div>
-    <div class="hq-node">
-      <h2>Home Deco Bali · HQ</h2>
-      <div class="hq-stats">
-        <div><b>${ok}</b> op schema</div><div><b>${late}</b> te laat</div>
-        <div><b>${failed}</b> gefaald</div><div><b>${pending.length}</b> wacht op akkoord</div>
+    <div class="map" id="map">
+      <div class="hq-node">
+        <h2>Home Deco Bali · HQ</h2>
+        <div class="hq-stats">
+          <div><b>${ok}</b> op schema</div><div><b>${late}</b> te laat</div>
+          <div><b>${failed}</b> gefaald</div><div><b>${pending.length}</b> wacht op akkoord</div>
+        </div>
       </div>
-    </div>
-    <div class="trunk"></div><div class="crossbar"></div>
-    <div class="branches">
-      ${BRANCHES.map(branchHtml).join("")}
+      <div class="trunk"></div><div class="crossbar"></div>
+      <div class="branches">
+        ${BRANCHES.map(branchHtml).join("")}
+      </div>
     </div>
     <div id="detail"></div>
     <section class="section">
@@ -262,21 +398,37 @@ async function render() {
     </section>
   </main>`;
 
-  document.querySelectorAll(".agent").forEach(btn => btn.addEventListener("click", () => {
-    selected = selected === btn.dataset.key ? null : btn.dataset.key;
-    drawDetail(statuses);
-  }));
+  document.querySelectorAll(".agent").forEach(btn => {
+    btn.addEventListener("click", () => {
+      selected = selected === btn.dataset.key ? null : btn.dataset.key;
+      drawDetail(statuses);
+      updateFlowEmphasis(selected);
+    });
+    btn.addEventListener("mouseenter", () => { hoverKey = btn.dataset.key; updateFlowEmphasis(hoverKey); });
+    btn.addEventListener("mouseleave", () => { hoverKey = null; updateFlowEmphasis(selected); });
+  });
   drawDetail(statuses);
+  requestAnimationFrame(drawFlows);
+  setTimeout(drawFlows, 500); // herteken zodra de webfonts geladen zijn (layout kan iets schuiven)
 }
 
 function drawDetail(statuses) {
   const el = document.getElementById("detail");
   if (!selected || !statuses[selected]) { el.innerHTML = ""; return; }
-  const def = BRANCHES.flatMap(b=>b.agents).find(a=>a.key===selected);
+  const def = agentDefs().find(a=>a.key===selected);
   const s = statuses[selected];
+  const defsAll = agentDefs();
+  const labelOf = k => { const d = defsAll.find(a => a.key === k); return d ? d.label : k; };
+  const rel = flowsFor(selected);
+  const feeds = rel.filter(f => f.from === selected).map(f => "→ " + labelOf(f.to));
+  const eats  = rel.filter(f => f.to === selected).map(f => "← " + labelOf(f.from));
+  const flowLine = (feeds.length || eats.length)
+    ? `<div class="feeds">${eats.length ? "gebruikt data van <b>" + eats.map(esc).join("</b>, <b>") + "</b>" : ""}${eats.length && feeds.length ? " · " : ""}${feeds.length ? "levert data aan <b>" + feeds.map(esc).join("</b>, <b>") + "</b>" : ""}</div>`
+    : "";
   el.innerHTML = `<div class="panel">
     <h3>${esc(def.label)}</h3>
     <div class="panel-sub">cadans: ${def.cadence==="daily"?"dagelijks":def.cadence==="weekly"?"wekelijks":"event-gedreven"}</div>
+    ${flowLine}
     ${s.hist.length===0 ? `<p style="font-size:13px;color:rgba(59,47,36,.7)">Geen regels in de <code>runs</code>-tabel voor deze agent. Voeg de twee log-nodes uit SEO ① toe aan deze workflow.</p>` : `
     <table><tbody>${s.hist.map(r=>`
       <tr><td class="t">${new Date(r.created_at).toLocaleString("nl-NL",{timeZone:"Europe/Madrid"})}</td>
