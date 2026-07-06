@@ -16,17 +16,16 @@
     { "label": "Content Factory", "agents": [
       { "key": "build", "label": "Build Factory", "sub": "unboxing reels (9:16)", "match": ["build factory", "unboxing"], "cadence": "daily", "n8n": "omVY6w6xNGHhHiCp" },
       { "key": "news", "label": "Newsletter", "sub": "5 producten · do 09:00", "match": ["newsletter"], "cadence": "weekly", "n8n": "wv7IA0IMKKpdRMsq" },
-      { "key": "social", "label": "Social Posts", "sub": "2 producten · zo + wo 09:00", "match": ["social posts", "hdb · social"], "cadence": "weekly", "n8n": "GswDTHv7SP1HoRTb" },
-      { "key": "assetprep", "label": "Daily Asset Prep", "sub": "content_calendar → social-assets", "match": ["asset prep", "daily asset"], "cadence": "daily", "n8n": "kYzW3MvVIoDdbfAg" }
+      { "key": "social", "label": "Social Posts", "sub": "2 producten · zo + wo 09:00", "match": ["social posts", "hdb · social"], "cadence": "weekly", "n8n": "GswDTHv7SP1HoRTb" }
     ]},
     { "label": "Meta Ads", "agents": [
-      { "key": "adsresearch", "label": "Ad Research", "sub": "always-on · playbook uit Ad Library", "match": ["research — ad", "viral playbook", "ad research"], "cadence": "weekly", "n8n": "6nF0nPgISHRuPBKd" },
-      { "key": "adsbuild", "label": "Ads Builder (gepauzeerd)", "sub": "always-on · gestopt — set loopt permanent", "match": ["ads - builder", "ads builder"], "cadence": "weekly", "n8n": "4QzFa0QkW9dHjKb6" },
-      { "key": "adsman", "label": "Ads Manager", "sub": "always-on · ROAS-budget, wekelijks", "match": ["ads - manager", "ads manager"], "cadence": "weekly", "n8n": "BP7tm0lI3bN5z1MK" },
-      { "key": "adspub", "label": "Ads Publisher", "sub": "always-on · verwerkt approvals", "match": ["ads - publisher", "ads publisher"], "cadence": "event", "n8n": "ws35yB85YAMg1Tku" },
-      { "key": "pub", "label": "Publish Campaign", "sub": "video · unboxing → Meta", "match": ["publish — meta", "meta campaign"], "cadence": "daily", "n8n": "zcJG5aRNnArEeo66" },
-      { "key": "man", "label": "Scale / Pause", "sub": "video · ROAS scale/pause", "match": ["scale/pause", "scale"], "cadence": "daily", "n8n": "lPCaWG8WBjffUueS" },
-      { "key": "ga4", "label": "GA4 Pull", "sub": "metrics · omzet per creative", "match": ["ga4"], "cadence": "daily", "n8n": "1zLWq51JJ4R3hORf" }
+      { "key": "research", "label": "Ad Playbook Research", "sub": "concurrent-ads → playbook · ma 06:00", "match": ["research — ad", "ad playbook"], "cadence": "weekly", "n8n": "6nF0nPgISHRuPBKd", "group": "Paid Ads" },
+      { "key": "adsbuild", "label": "Ads Builder (gepauzeerd)", "sub": "gestopt — set loopt permanent door", "match": ["ads - builder", "ads builder"], "cadence": "weekly", "n8n": "4QzFa0QkW9dHjKb6", "group": "Paid Ads" },
+      { "key": "adsman", "label": "Ads Manager", "sub": "ROAS-budget, wekelijks", "match": ["ads - manager", "ads manager"], "cadence": "weekly", "n8n": "BP7tm0lI3bN5z1MK", "group": "Paid Ads" },
+      { "key": "adspub", "label": "Ads Publisher", "sub": "verwerkt approvals", "match": ["ads - publisher", "ads publisher"], "cadence": "event", "n8n": "ws35yB85YAMg1Tku", "group": "Paid Ads" },
+      { "key": "pub", "label": "Publish Campaign", "sub": "unboxing → Meta campagne", "match": ["publish — meta", "meta campaign"], "cadence": "daily", "n8n": "zcJG5aRNnArEeo66", "group": "Paid Vids" },
+      { "key": "man", "label": "Scale / Pause", "sub": "ROAS scale/pause", "match": ["scale/pause", "scale"], "cadence": "daily", "n8n": "lPCaWG8WBjffUueS", "group": "Paid Vids" },
+      { "key": "ga4", "label": "GA4 Pull", "sub": "omzet per creative → ads_metrics", "match": ["ga4"], "cadence": "daily", "n8n": "1zLWq51JJ4R3hORf", "group": "Metrics" }
     ]}
   ]
 }
