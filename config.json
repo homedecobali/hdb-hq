@@ -19,6 +19,7 @@
       { "key": "social", "label": "Social Posts", "sub": "2 producten · zo + wo 09:00", "match": ["social posts", "hdb · social"], "cadence": "weekly", "n8n": "GswDTHv7SP1HoRTb" }
     ]},
     { "label": "Meta Ads", "agents": [
+      { "key": "research", "label": "Ad Playbook Research", "sub": "concurrent-ads → playbook · ma 06:00", "match": ["research — ad", "ad playbook"], "cadence": "weekly", "n8n": "6nF0nPgISHRuPBKd" },
       { "key": "pub", "label": "Publish Campaign", "sub": "ES + PT ad sets", "match": ["publish — meta", "meta campaign"], "cadence": "daily", "n8n": "zcJG5aRNnArEeo66" },
       { "key": "man", "label": "Scale / Pause", "sub": "ROAS-regels, approval-gated", "match": ["manage", "scale"], "cadence": "daily", "n8n": "lPCaWG8WBjffUueS" },
       { "key": "ga4", "label": "GA4 Pull", "sub": "omzet per creative → ads_metrics", "match": ["ga4"], "cadence": "daily", "n8n": "1zLWq51JJ4R3hORf" }
