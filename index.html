@@ -7,71 +7,81 @@
 <title>HDB Agent HQ</title>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,650&family=Archivo:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-:root{--palm:#14312a;--palm2:#1b3f36;--sand:#f5eedf;--teak:#7a5a38;--ink:#22301f;--brass:#c29a3d;--coral:#c94f3d;--leaf:#3f8f5f;--line:rgba(194,154,61,.55);--r:14px}
+/* ── HDB huisstijl: licht, warm, natuurlijk (homedecobali.es) ──
+   sand   = pagina-achtergrond (licht crème)
+   card   = kaarten (gebroken wit)
+   ink    = warm donkerbruin, primaire tekst
+   teak   = middenbruin, secundaire tekst
+   palm   = diep palmgroen, alleen voor de HQ-node (anker)
+   clay   = terracotta, merkkleur/accenten
+   brass  = warm goud → status "te laat"
+   leaf   = natuurgroen → status "op schema"
+   coral  = gebrande rood → status "gefaald"                       */
+:root{--sand:#f6efe3;--card:#fffdf8;--ink:#3b2f24;--teak:#8a6a4a;--palm:#1f3a30;--clay:#b4602f;--brass:#b98a3e;--leaf:#4c8a5f;--coral:#b8432f;--line:rgba(138,106,74,.45);--r:14px}
 *{box-sizing:border-box;margin:0;padding:0}
-body{background:var(--palm);color:var(--sand);font-family:Archivo,system-ui,sans-serif;min-height:100vh}
+body{background:var(--sand);color:var(--ink);font-family:Archivo,system-ui,sans-serif;min-height:100vh}
 a{color:inherit}
 .wrap{max-width:1180px;margin:0 auto;padding:28px 20px 80px}
 .hq-header{display:flex;align-items:baseline;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:6px}
-.hq-title{font-family:Fraunces,serif;font-weight:650;font-size:clamp(26px,4vw,38px)}
-.hq-title em{font-style:normal;color:var(--brass)}
-.hq-meta{font-size:13px;color:rgba(245,238,223,.65)}
-.legend{display:flex;gap:18px;flex-wrap:wrap;font-size:12.5px;color:rgba(245,238,223,.75);margin:10px 0 26px}
+.hq-title{font-family:Fraunces,serif;font-weight:650;font-size:clamp(26px,4vw,38px);color:var(--ink)}
+.hq-title em{font-style:normal;color:var(--clay)}
+.hq-meta{font-size:13px;color:rgba(59,47,36,.6)}
+.legend{display:flex;gap:18px;flex-wrap:wrap;font-size:12.5px;color:rgba(59,47,36,.7);margin:10px 0 26px}
 .legend span{display:inline-flex;align-items:center;gap:6px}
 .dot{width:9px;height:9px;border-radius:50%;display:inline-block}
-.dot.ok{background:var(--leaf)}.dot.late{background:var(--brass)}.dot.failed{background:var(--coral)}.dot.unknown{background:rgba(245,238,223,.35)}
-.hq-node{width:min(420px,100%);margin:0 auto;background:var(--sand);color:var(--ink);border-radius:var(--r);padding:18px 22px;text-align:center;box-shadow:0 10px 30px rgba(0,0,0,.35);position:relative;z-index:1}
+.dot.ok{background:var(--leaf)}.dot.late{background:var(--brass)}.dot.failed{background:var(--coral)}.dot.unknown{background:rgba(59,47,36,.3)}
+.hq-node{width:min(420px,100%);margin:0 auto;background:var(--palm);color:#f2ead9;border-radius:var(--r);padding:18px 22px;text-align:center;box-shadow:0 12px 30px rgba(59,47,36,.22);position:relative;z-index:1}
 .hq-node h2{font-family:Fraunces,serif;font-size:21px;font-weight:650}
-.hq-stats{display:flex;justify-content:center;gap:22px;margin-top:10px;font-size:13px;color:var(--teak)}
-.hq-stats b{color:var(--ink);font-size:17px;display:block;font-variant-numeric:tabular-nums}
+.hq-stats{display:flex;justify-content:center;gap:22px;margin-top:10px;font-size:13px;color:rgba(242,234,217,.75)}
+.hq-stats b{color:#f2ead9;font-size:17px;display:block;font-variant-numeric:tabular-nums}
 .trunk{width:2px;height:34px;background:var(--line);margin:0 auto}
 .crossbar{height:2px;background:var(--line);margin:0 6.5%}
 .branches{display:grid;grid-template-columns:repeat(4,1fr);gap:18px}
 .branch{display:flex;flex-direction:column}
 .branch::before{content:"";width:2px;height:22px;background:var(--line);margin:0 auto}
-.branch-label{font-family:Fraunces,serif;font-size:15px;font-weight:650;color:var(--brass);text-align:center;letter-spacing:.4px;margin-bottom:12px}
+.branch-label{font-family:Fraunces,serif;font-size:15px;font-weight:650;color:var(--clay);text-align:center;letter-spacing:.4px;margin-bottom:12px}
 .agents{display:flex;flex-direction:column;gap:10px}
 .agroup{display:flex;flex-direction:column;gap:10px}
 .agroup + .agroup{margin-top:14px}
-.agroup-label{font-size:10px;letter-spacing:1.6px;text-transform:uppercase;color:var(--brass);opacity:.9;margin:2px 2px 0;display:flex;align-items:center;gap:8px}
-.agroup-label::after{content:"";flex:1;height:1px;background:var(--line);opacity:.45}
-.agent{background:var(--sand);color:var(--ink);border-radius:var(--r);padding:12px 14px;border:0;border-left:5px solid var(--leaf);cursor:pointer;text-align:left;width:100%;font:inherit;transition:transform .12s ease,box-shadow .12s ease}
-.agent:hover,.agent:focus-visible{transform:translateY(-2px);box-shadow:0 8px 22px rgba(0,0,0,.3);outline:none}
-.agent:focus-visible{box-shadow:0 0 0 3px var(--brass)}
-.agent.late{border-left-color:var(--brass)}.agent.failed{border-left-color:var(--coral)}.agent.unknown{border-left-color:rgba(34,48,31,.25)}
+.agroup-label{font-size:10px;letter-spacing:1.6px;text-transform:uppercase;color:var(--teak);margin:2px 2px 0;display:flex;align-items:center;gap:8px}
+.agroup-label::after{content:"";flex:1;height:1px;background:var(--line);opacity:.6}
+.agent{background:var(--card);color:var(--ink);border-radius:var(--r);padding:12px 14px;border:1px solid rgba(138,106,74,.22);border-left:5px solid var(--leaf);cursor:pointer;text-align:left;width:100%;font:inherit;box-shadow:0 2px 8px rgba(59,47,36,.06);transition:transform .12s ease,box-shadow .12s ease}
+.agent:hover,.agent:focus-visible{transform:translateY(-2px);box-shadow:0 10px 22px rgba(59,47,36,.16);outline:none}
+.agent:focus-visible{box-shadow:0 0 0 3px var(--clay)}
+.agent.late{border-left-color:var(--brass)}.agent.failed{border-left-color:var(--coral)}.agent.unknown{border-left-color:rgba(59,47,36,.2)}
 .agent .name{font-weight:700;font-size:14px;display:flex;align-items:center;gap:7px}
 .agent .sub{font-size:12px;color:var(--teak);margin-top:2px}
-.agent .last{font-size:11.5px;color:rgba(34,48,31,.6);margin-top:6px;font-variant-numeric:tabular-nums}
+.agent .last{font-size:11.5px;color:rgba(59,47,36,.55);margin-top:6px;font-variant-numeric:tabular-nums}
 .spark{display:flex;gap:3px;margin-top:7px}
-.spark i{width:10px;height:10px;border-radius:3px;background:rgba(34,48,31,.12)}
+.spark i{width:10px;height:10px;border-radius:3px;background:rgba(59,47,36,.1)}
 .spark i.ok{background:var(--leaf)}.spark i.failed{background:var(--coral)}
-.panel{margin-top:26px;background:var(--palm2);border:1px solid rgba(194,154,61,.3);border-radius:var(--r);padding:18px 20px}
-.panel h3{font-family:Fraunces,serif;font-size:18px;color:var(--brass);margin-bottom:4px}
-.panel-sub{font-size:13px;color:rgba(245,238,223,.7);margin-bottom:12px}
+.panel{margin-top:26px;background:var(--card);border:1px solid rgba(138,106,74,.35);border-radius:var(--r);padding:18px 20px;box-shadow:0 4px 14px rgba(59,47,36,.08)}
+.panel h3{font-family:Fraunces,serif;font-size:18px;color:var(--clay);margin-bottom:4px}
+.panel-sub{font-size:13px;color:var(--teak);margin-bottom:12px}
 .panel table{width:100%;border-collapse:collapse;font-size:13px}
-.panel td{padding:7px 8px;border-top:1px solid rgba(245,238,223,.12);vertical-align:top}
-.panel td.t{white-space:nowrap;color:rgba(245,238,223,.65);font-variant-numeric:tabular-nums}
+.panel td{padding:7px 8px;border-top:1px solid rgba(138,106,74,.2);vertical-align:top}
+.panel td.t{white-space:nowrap;color:rgba(59,47,36,.6);font-variant-numeric:tabular-nums}
 .badge{font-size:11px;padding:2px 8px;border-radius:20px;font-weight:700}
-.badge.ok{background:rgba(63,143,95,.25);color:#9fd8b4}
-.badge.failed{background:rgba(201,79,61,.25);color:#f0a89c}
-.n8n-link{display:inline-block;margin-top:12px;font-size:13px;color:var(--brass)}
+.badge.ok{background:rgba(76,138,95,.16);color:#39684a}
+.badge.failed{background:rgba(184,67,47,.14);color:#96351f}
+.n8n-link{display:inline-block;margin-top:12px;font-size:13px;color:var(--clay);font-weight:600}
 .section{margin-top:46px}
 .section>h2{font-family:Fraunces,serif;font-size:22px;font-weight:650;margin-bottom:4px}
-.section-sub{font-size:13.5px;color:rgba(245,238,223,.65);margin-bottom:18px}
+.section-sub{font-size:13.5px;color:rgba(59,47,36,.6);margin-bottom:18px}
 .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px}
-.creative{background:var(--sand);color:var(--ink);border-radius:var(--r);overflow:hidden;display:flex;flex-direction:column}
-.creative video,.creative img{width:100%;aspect-ratio:16/10;object-fit:cover;background:#000}
+.creative{background:var(--card);color:var(--ink);border:1px solid rgba(138,106,74,.22);border-radius:var(--r);overflow:hidden;display:flex;flex-direction:column;box-shadow:0 2px 10px rgba(59,47,36,.08)}
+.creative video,.creative img{width:100%;aspect-ratio:16/10;object-fit:cover;background:#efe6d5}
 .creative .body{padding:12px 14px 14px;display:flex;flex-direction:column;gap:8px}
 .creative .title{font-weight:700;font-size:14.5px}
 .creative .meta{font-size:12px;color:var(--teak)}
-.creative .note{font-size:11.5px;color:rgba(34,48,31,.6)}
-.empty{border:1.5px dashed rgba(245,238,223,.3);border-radius:var(--r);padding:26px;text-align:center;font-size:13.5px;color:rgba(245,238,223,.65)}
+.creative .note{font-size:11.5px;color:rgba(59,47,36,.55)}
+.empty{border:1.5px dashed rgba(138,106,74,.5);border-radius:var(--r);padding:26px;text-align:center;font-size:13.5px;color:rgba(59,47,36,.6)}
 .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px}
-.kpi{background:var(--palm2);border:1px solid rgba(194,154,61,.3);border-radius:var(--r);padding:14px 16px}
-.kpi b{font-family:Fraunces,serif;font-size:26px;font-weight:650;color:var(--sand);display:block;font-variant-numeric:tabular-nums}
-.kpi span{font-size:12px;color:rgba(245,238,223,.65)}
+.kpi{background:var(--card);border:1px solid rgba(138,106,74,.3);border-radius:var(--r);padding:14px 16px;box-shadow:0 2px 8px rgba(59,47,36,.06)}
+.kpi b{font-family:Fraunces,serif;font-size:26px;font-weight:650;color:var(--ink);display:block;font-variant-numeric:tabular-nums}
+.kpi span{font-size:12px;color:var(--teak)}
 .gate{display:grid;place-items:center;min-height:100vh;text-align:center;padding:20px}
-.err{background:rgba(201,79,61,.18);border:1px solid var(--coral);border-radius:var(--r);padding:12px 16px;font-size:13px;margin-bottom:20px}
+.err{background:rgba(184,67,47,.1);border:1px solid var(--coral);color:#7c2c19;border-radius:var(--r);padding:12px 16px;font-size:13px;margin-bottom:20px}
 @media(max-width:900px){.branches{grid-template-columns:repeat(2,1fr)}.crossbar{margin:0 25%}}
 @media(max-width:540px){.branches{grid-template-columns:1fr}.crossbar{display:none}.branch::before{height:14px}}
 @media(prefers-reduced-motion:reduce){.agent{transition:none}}
@@ -177,7 +187,7 @@ async function render() {
   const all = Object.values(statuses);
   const ok = all.filter(s=>s.health==="ok").length, late = all.filter(s=>s.health==="late").length, failed = all.filter(s=>s.health==="failed").length;
   const pending = creatives.filter(c=>c.status==="pending_approval");
-  const HC = { ok:"var(--leaf)", late:"var(--brass)", failed:"var(--coral)", unknown:"rgba(34,48,31,.35)" };
+  const HC = { ok:"var(--leaf)", late:"var(--brass)", failed:"var(--coral)", unknown:"rgba(59,47,36,.35)" };
 
   const agentCard = a => { const s = statuses[a.key]; return `
             <button class="agent ${s.health}" data-key="${a.key}">
@@ -267,7 +277,7 @@ function drawDetail(statuses) {
   el.innerHTML = `<div class="panel">
     <h3>${esc(def.label)}</h3>
     <div class="panel-sub">cadans: ${def.cadence==="daily"?"dagelijks":def.cadence==="weekly"?"wekelijks":"event-gedreven"}</div>
-    ${s.hist.length===0 ? `<p style="font-size:13px;color:rgba(245,238,223,.7)">Geen regels in de <code>runs</code>-tabel voor deze agent. Voeg de twee log-nodes uit SEO ① toe aan deze workflow.</p>` : `
+    ${s.hist.length===0 ? `<p style="font-size:13px;color:rgba(59,47,36,.7)">Geen regels in de <code>runs</code>-tabel voor deze agent. Voeg de twee log-nodes uit SEO ① toe aan deze workflow.</p>` : `
     <table><tbody>${s.hist.map(r=>`
       <tr><td class="t">${new Date(r.created_at).toLocaleString("nl-NL",{timeZone:"Europe/Madrid"})}</td>
       <td><span class="badge ${r.success===false?"failed":"ok"}">${r.success===false?"gefaald":"gelukt"}</span></td>
