@@ -16,10 +16,14 @@
     { "label": "Content Factory", "agents": [
       { "key": "build", "label": "Build Factory", "sub": "unboxing reels (9:16)", "match": ["build factory", "unboxing"], "cadence": "daily", "n8n": "omVY6w6xNGHhHiCp" },
       { "key": "news", "label": "Newsletter", "sub": "5 producten · do 09:00", "match": ["newsletter"], "cadence": "weekly", "n8n": "wv7IA0IMKKpdRMsq" },
-      { "key": "social", "label": "Social Posts", "sub": "2 producten · zo + wo 09:00", "match": ["social posts", "hdb · social"], "cadence": "weekly", "n8n": "GswDTHv7SP1HoRTb" }
+      { "key": "social", "label": "Social Posts", "sub": "2 producten · zo + wo 09:00", "match": ["social posts", "hdb · social"], "cadence": "weekly", "n8n": "GswDTHv7SP1HoRTb" },
+      { "key": "assetprep", "label": "Daily Asset Prep", "sub": "dagelijkse content-assets", "match": ["asset prep", "daily asset"], "cadence": "daily", "n8n": "kYzW3MvVIoDdbfAg" }
     ]},
     { "label": "Meta Ads", "agents": [
-      { "key": "research", "label": "Ad Playbook Research", "sub": "concurrent-ads → playbook · ma 06:00", "match": ["research — ad", "ad playbook"], "cadence": "weekly", "n8n": "6nF0nPgISHRuPBKd" },
+      { "key": "adsbuild", "label": "Ads Builder", "sub": "wekelijkse always-on set (ES/PT)", "match": ["ads - builder", "ads builder"], "cadence": "weekly", "n8n": "4QzFa0QkW9dHjKb6" },
+      { "key": "adspub", "label": "Ads Publisher", "sub": "verwerkt approvals → Meta", "match": ["ads - publisher", "ads publisher"], "cadence": "event", "n8n": "ws35yB85YAMg1Tku" },
+      { "key": "adsman", "label": "Ads Manager", "sub": "wekelijkse digest, approve/reject", "match": ["ads - manager", "ads manager"], "cadence": "weekly", "n8n": "BP7tm0lI3bN5z1MK" },
+      { "key": "adsresearch", "label": "Ad Research", "sub": "viral playbook uit Meta Ad Library", "match": ["research — ad", "viral playbook", "ad research"], "cadence": "weekly", "n8n": "6nF0nPgISHRuPBKd" },
       { "key": "pub", "label": "Publish Campaign", "sub": "ES + PT ad sets", "match": ["publish — meta", "meta campaign"], "cadence": "daily", "n8n": "zcJG5aRNnArEeo66" },
       { "key": "man", "label": "Scale / Pause", "sub": "ROAS-regels, approval-gated", "match": ["manage", "scale"], "cadence": "daily", "n8n": "lPCaWG8WBjffUueS" },
       { "key": "ga4", "label": "GA4 Pull", "sub": "omzet per creative → ads_metrics", "match": ["ga4"], "cadence": "daily", "n8n": "1zLWq51JJ4R3hORf" }
