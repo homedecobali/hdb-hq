@@ -466,10 +466,11 @@ const HDB_DEPTS = [
     clusters:[]},
   { id:"advertising", name:"META ADS", color:C.advert, icon:"🎯",
     agents:[
-      {id:"build",name:"Build Factory",sched:"Mon 08:00",cadence:"weekly",grp:"metaads",step:1,match:["build factory","unboxing"],wf:"omVY6w6xNGHhHiCp"},
-      {id:"publish",name:"Publish Campaign",sched:"daily · approval",cadence:"daily",grp:"metaads",step:2,match:["hdb · publish","meta campaign"],wf:"zcJG5aRNnArEeo66"},
-      {id:"manage",name:"Scale / Pause",sched:"daily · approval",cadence:"daily",grp:"metaads",step:3,match:["scale","manage —","scale/pause"],wf:"lPCaWG8WBjffUueS"}],
-    clusters:[{id:"meta-pipe",label:"Meta Ads 1-2-3",members:["build","publish","manage"]}]},
+      {id:"build",name:"Build Videos",sched:"Mon 08:00",cadence:"weekly",grp:"metaads",step:1,match:["build videos","build factory","unboxing"],wf:"omVY6w6xNGHhHiCp"},
+      {id:"build-stills",name:"Build Ad Stills",sched:"nog te bouwen",cadence:"event",grp:"metaads",step:2,match:["build ad stills","ad stills"],wf:""},
+      {id:"publish",name:"Publish Campaigns",sched:"daily · approval",cadence:"daily",grp:"metaads",step:3,match:["hdb · publish","meta campaign","publish campaign"],wf:"zcJG5aRNnArEeo66"},
+      {id:"manage",name:"Manage Campaigns",sched:"daily · approval",cadence:"daily",grp:"metaads",step:4,match:["scale","manage —","scale/pause","manage campaign"],wf:"lPCaWG8WBjffUueS"}],
+    clusters:[{id:"meta-pipe",label:"Meta Ads pipeline",members:["build","build-stills","publish","manage"]}]},
   { id:"seo", name:"SEO", color:C.cyan, icon:"🔍",
     agents:[
       {id:"seo1",name:"Keyword Research",sched:"weekly",cadence:"weekly",grp:"seo",step:1,match:["keyword"],wf:"mksInkpgqJHSaYRI"},
@@ -1297,12 +1298,13 @@ function showGate(msg){ document.getElementById("app").innerHTML =
   +'<p style="color:var(--dim);margin-top:12px;font-size:13px;max-width:440px;line-height:1.6">'+msg+'</p></div></div>';
   const pp=document.getElementById("propPill"); if(pp)pp.style.display="none"; }
 async function main(){
-  let cfg;
-  try{
-    const res=await fetch('./config.json?v='+Date.now());
-    if(!res.ok)throw new Error('HTTP '+res.status);
-    cfg=await res.json();
-  }catch(e){ showGate('config.json kon niet geladen worden ('+e.message+'). Zet hem in dezelfde map als deze pagina.'); return; }
+  // Config ingebouwd (samengevoegd uit config.json) — geen aparte fetch meer nodig.
+  const cfg = {
+    supabase_url: "https://jucubuoftjehwancegma.supabase.co",
+    supabase_anon_key: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp1Y3VidW9mdGplaHdhbmNlZ21hIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI2OTYwMDIsImV4cCI6MjA5ODI3MjAwMn0.gKYBE76kVv5XdMb-GuFAELdSp5R7OjCIiUzw7hW2Jus",
+    dashboard_token: "hdb-3g2026",
+    n8n_base: "https://homedecobali.app.n8n.cloud"
+  };
   SUPABASE_URL=cfg.supabase_url; SUPABASE_ANON=cfg.supabase_anon_key;
   if(cfg.n8n_base)N8N_BASE=String(cfg.n8n_base).replace(/\/$/,"");
   if(Array.isArray(cfg.flows)&&cfg.flows.length)FLOWS=cfg.flows;
