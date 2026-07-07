@@ -489,7 +489,7 @@ const HDB_DEPTS = [
     clusters:[]},
   { id:"infra", name:"INFRA", color:C.grey, icon:"⚙",
     agents:[
-      {id:"health",name:"Agent Health Check",sched:"daily 08:00 · mail",cadence:"event",match:["health"],wf:"njHJAMDCIQwSjqyj"},
+      {id:"health",name:"Agent Health Check",sched:"daily 08:00 · mail",cadence:"daily",match:["health"],wf:"njHJAMDCIQwSjqyj"},
       {id:"dash",name:"Agent Dashboard",sched:"webhook",cadence:"event",match:["dashboard"],wf:"vOsQvZAhp9OiVE7g"}],
     clusters:[]},
 ];
