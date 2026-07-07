@@ -67,17 +67,6 @@
       "label": "Content Factory",
       "agents": [
         {
-          "key": "build",
-          "label": "Build Factory",
-          "sub": "unboxing reels (9:16)",
-          "match": [
-            "build factory",
-            "unboxing"
-          ],
-          "cadence": "daily",
-          "n8n": "omVY6w6xNGHhHiCp"
-        },
-        {
           "key": "news",
           "label": "Newsletter",
           "sub": "5 producten · do 09:00",
@@ -113,31 +102,58 @@
           ],
           "cadence": "weekly",
           "n8n": "6nF0nPgISHRuPBKd",
-          "group": "Paid Ads"
+          "group": "Playbook"
+        },
+        {
+          "key": "vids",
+          "label": "Build Videos",
+          "sub": "unboxing reels (9:16) · drop-video",
+          "match": [
+            "build videos",
+            "build factory",
+            "unboxing"
+          ],
+          "cadence": "weekly",
+          "n8n": "omVY6w6xNGHhHiCp",
+          "group": "Creatives"
+        },
+        {
+          "key": "stills",
+          "label": "Build Ad Stills",
+          "sub": "statische ad-beelden (nog te bouwen)",
+          "match": [
+            "build ad stills",
+            "ad stills"
+          ],
+          "cadence": "event",
+          "n8n": "",
+          "group": "Creatives"
         },
         {
           "key": "pub",
-          "label": "Publish Campaign",
-          "sub": "unboxing → Meta campagne",
+          "label": "Publish Campaigns",
+          "sub": "creatives → Meta campagnes (live)",
           "match": [
+            "publish campaigns",
             "publish — meta",
             "meta campaign"
           ],
           "cadence": "daily",
           "n8n": "zcJG5aRNnArEeo66",
-          "group": "Paid Vids"
+          "group": "Campaigns"
         },
         {
           "key": "man",
-          "label": "Scale / Pause",
-          "sub": "ROAS scale/pause",
+          "label": "Manage Campaigns",
+          "sub": "ROAS → continu / scale / pause",
           "match": [
+            "manage campaigns",
             "scale/pause",
             "scale"
           ],
           "cadence": "daily",
           "n8n": "lPCaWG8WBjffUueS",
-          "group": "Paid Vids"
+          "group": "Campaigns"
         },
         {
           "key": "ga4",
