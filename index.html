@@ -468,9 +468,7 @@ const HDB_DEPTS = [
     agents:[
       {id:"build",name:"Build Factory",sched:"Mon 08:00",cadence:"weekly",grp:"metaads",step:1,match:["build factory","unboxing"],wf:"omVY6w6xNGHhHiCp"},
       {id:"publish",name:"Publish Campaign",sched:"daily · approval",cadence:"daily",grp:"metaads",step:2,match:["hdb · publish","meta campaign"],wf:"zcJG5aRNnArEeo66"},
-      {id:"manage",name:"Scale / Pause",sched:"daily · approval",cadence:"daily",grp:"metaads",step:3,match:["scale","manage —","scale/pause"],wf:"lPCaWG8WBjffUueS"},
-      {id:"ads-manager",name:"Ads Manager · digest",sched:"weekly",cadence:"weekly",match:["ads - manager","ads · manager"],wf:"BP7tm0lI3bN5z1MK"},
-      {id:"ads-publisher",name:"Ads Publisher",sched:"webhook",cadence:"event",match:["ads - publisher","ads · publisher"],wf:"ws35yB85YAMg1Tku"}],
+      {id:"manage",name:"Scale / Pause",sched:"daily · approval",cadence:"daily",grp:"metaads",step:3,match:["scale","manage —","scale/pause"],wf:"lPCaWG8WBjffUueS"}],
     clusters:[{id:"meta-pipe",label:"Meta Ads 1-2-3",members:["build","publish","manage"]}]},
   { id:"seo", name:"SEO", color:C.cyan, icon:"🔍",
     agents:[
