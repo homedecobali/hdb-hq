@@ -114,7 +114,7 @@
 <div id="login" class="hidden">
   <div style="color:var(--cyan);font-weight:900;letter-spacing:.28em">DEWI</div>
   <p style="color:var(--muted)">Geen actieve sessie. Log eerst in via het hoofdscherm.</p>
-  <p><a href="/organisation.html">Naar login</a></p>
+  <p><a href="organisation.html">Naar login</a></p>
 </div>
 
 <div id="top" class="hidden">
@@ -207,11 +207,11 @@
 
   /* ================= secundaire panelen (volgorde = knopvolgorde) ================= */
   var PANELS = [
-    { id:'org',           label:'ORGANISATION',  url:'/organisation.html', title:'ORGANISATION',  clickView:'organigram' },
-    { id:'agents',        label:'AGENTS',        url:'/agents.html',      title:'AGENTS' },
-    { id:'creds',         label:'CREDENTIALS',   url:'/credentials.html', title:'CREDENTIALS' },
-    { id:'constellation', label:'CONSTELLATION', url:'/organisation.html', title:'CONSTELLATION', clickView:'constellation' },
-    { id:'comp',          label:'COMPETITION',   url:'/competition.html',  title:'COMPETITION' }
+    { id:'org',           label:'ORGANISATION',  url:'organisation.html', title:'ORGANISATION',  clickView:'organigram' },
+    { id:'agents',        label:'AGENTS',        url:'agents.html',      title:'AGENTS' },
+    { id:'creds',         label:'CREDENTIALS',   url:'credentials.html', title:'CREDENTIALS' },
+    { id:'constellation', label:'CONSTELLATION', url:'organisation.html', title:'CONSTELLATION', clickView:'constellation' },
+    { id:'comp',          label:'COMPETITION',   url:'competition.html',  title:'COMPETITION' }
   ];
   var state = { open:{}, widths:{} };   // widths in % van het werkvlak
   try{

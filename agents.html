@@ -103,7 +103,7 @@
 <header>
   <span class="brand">DEWI</span>
   <nav>
-    <a href="/">Overzicht</a>
+    <a href="kpi.html">Overzicht</a>
     <a href="agents.html" class="active">Agents</a>
     <a href="competition.html">Concurrentie</a>
   </nav>
@@ -149,7 +149,7 @@
   }
   const sb = supabase.createClient(cfg.SUPABASE_URL, cfg.SUPABASE_ANON_KEY);
   const { data: { session } } = await sb.auth.getSession();
-  if(!session){ location.href = "/"; return; }
+  if(!session){ location.href = "organisation.html"; return; }
 
   const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
   const fmtDT = t => t ? new Date(t).toLocaleString("nl-NL",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"}) : "-";
