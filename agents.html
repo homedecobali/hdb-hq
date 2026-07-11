@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DEWI - Agents</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="dewi-config.js"></script>
+<style>
+  :root{
+    --bg:#070b12; --panel:#0d1420; --panel2:#111a29; --line:#1c2940;
+    --cyan:#00d4ff; --green:#3ee08f; --red:#ff5f6b; --amber:#ffb547; --muted:#7d8ca3;
+    --text:#dfe8f5;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);
+    font:14px/1.5 "Segoe UI",system-ui,-apple-system,sans-serif;}
+  .mono{font-family:ui-monospace,"Cascadia Code","JetBrains Mono",Consolas,monospace}
+
+  header{display:flex;align-items:center;gap:18px;padding:14px 22px;
+    border-bottom:1px solid var(--line);background:var(--panel);position:sticky;top:0;z-index:5}
+  header .brand{font-weight:900;letter-spacing:.28em;color:var(--cyan);font-size:15px}
+  header nav{display:flex;gap:6px;margin-left:auto}
+  header nav a{color:var(--muted);text-decoration:none;padding:6px 14px;border:1px solid transparent;border-radius:6px}
+  header nav a:hover{color:var(--text);border-color:var(--line)}
+  header nav a.active{color:var(--cyan);border-color:var(--cyan)}
+  header nav a:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
+
+  .layout{display:grid;grid-template-columns:300px 1fr;gap:14px;padding:14px 22px;
+    max-width:3800px;margin:0 auto}
+  @media (min-width:1500px){ .layout{grid-template-columns:320px 1.4fr 1fr} }
+  @media (min-width:2200px){ .layout{grid-template-columns:360px 1.6fr 1.1fr;gap:20px;padding:20px 32px} }
+
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+  .panel h2{margin:0;padding:12px 16px;font-size:11px;letter-spacing:.22em;color:var(--muted);
+    border-bottom:1px solid var(--line);text-transform:uppercase}
+
+  /* agentlijst */
+  #agent-list{max-height:calc(100vh - 130px);overflow-y:auto}
+  .dept{padding:10px 16px 4px;font-size:10px;letter-spacing:.2em;color:var(--muted);text-transform:uppercase}
+  .agent-row{display:flex;align-items:center;gap:10px;width:100%;text-align:left;
+    padding:8px 16px;background:none;border:none;color:var(--text);cursor:pointer;font:inherit}
+  .agent-row:hover{background:var(--panel2)}
+  .agent-row.selected{background:var(--panel2);box-shadow:inset 3px 0 0 var(--cyan)}
+  .agent-row:focus-visible{outline:2px solid var(--cyan);outline-offset:-2px}
+  .dot{width:9px;height:9px;border-radius:50%;flex:none;background:var(--muted)}
+  .dot.ok{background:var(--green)} .dot.error{background:var(--red)}
+  .dot.stale{background:var(--amber)} .dot.paused{background:var(--muted)}
+  .agent-row small{color:var(--muted);margin-left:auto;font-size:11px}
+
+  /* detail */
+  #detail-empty{padding:40px;color:var(--muted);text-align:center}
+  .detail-head{padding:16px;border-bottom:1px solid var(--line)}
+  .detail-head h3{margin:0 0 4px;font-size:18px}
+  .detail-head .meta{color:var(--muted);font-size:12px}
+  .detail-head .err{color:var(--red);font-size:12px;margin-top:6px;word-break:break-word}
+
+  /* de pipeline-rail: het hart van dit scherm */
+  .exec-picker{display:flex;gap:6px;flex-wrap:wrap;padding:12px 16px;border-bottom:1px solid var(--line)}
+  .exec-chip{font-size:11px;padding:4px 10px;border-radius:20px;border:1px solid var(--line);
+    background:var(--panel2);color:var(--muted);cursor:pointer;font:inherit}
+  .exec-chip:hover{color:var(--text)}
+  .exec-chip.sel{border-color:var(--cyan);color:var(--cyan)}
+  .exec-chip .st{margin-right:5px}
+  .exec-chip:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
+
+  .pipeline{padding:18px 16px 22px;position:relative}
+  .step{display:grid;grid-template-columns:26px 1fr auto;gap:12px;align-items:start;
+    position:relative;padding:0 0 18px}
+  .step::before{content:"";position:absolute;left:12px;top:20px;bottom:-2px;width:2px;
+    background:var(--line)}
+  .step:last-child::before{display:none}
+  .step.done::before{background:linear-gradient(var(--cyan),var(--line))}
+  .node-glyph{width:26px;height:26px;border-radius:50%;border:2px solid var(--line);
+    background:var(--panel2);display:flex;align-items:center;justify-content:center;
+    font-size:13px;flex:none;z-index:1;position:relative}
+  .step.done .node-glyph{border-color:var(--cyan);color:var(--cyan)}
+  .step.error .node-glyph{border-color:var(--red);color:var(--red)}
+  .step.pending .node-glyph{color:var(--muted)}
+  .step-label{padding-top:2px}
+  .step-label b{font-weight:600}
+  .step-label .sub{display:block;color:var(--muted);font-size:11px;margin-top:2px}
+  .step-ms{color:var(--muted);font-size:11px;padding-top:5px;white-space:nowrap}
+  .pipeline-note{padding:0 16px 14px;color:var(--muted);font-size:12px}
+  details.rawnodes{margin:0 16px 16px;border:1px solid var(--line);border-radius:8px}
+  details.rawnodes summary{padding:8px 12px;cursor:pointer;color:var(--muted);font-size:12px}
+  details.rawnodes div{padding:4px 12px 10px;font-size:12px;color:var(--muted)}
+
+  /* run-historie */
+  .runs table{width:100%;border-collapse:collapse;font-size:12px}
+  .runs th{color:var(--muted);text-align:left;padding:8px 12px;border-bottom:1px solid var(--line);
+    font-weight:500;letter-spacing:.06em;font-size:10px;text-transform:uppercase}
+  .runs td{padding:8px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+  .runs tr:last-child td{border-bottom:none}
+  .badge{display:inline-block;padding:1px 8px;border-radius:10px;font-size:10px;letter-spacing:.04em}
+  .badge.ok{background:rgba(62,224,143,.12);color:var(--green)}
+  .badge.error{background:rgba(255,95,107,.12);color:var(--red)}
+  .badge.other{background:rgba(125,140,163,.15);color:var(--muted)}
+  .loading{padding:24px;color:var(--muted);text-align:center}
+</style>
+</head>
+<body>
+<header>
+  <span class="brand">DEWI</span>
+  <nav>
+    <a href="/">Overzicht</a>
+    <a href="agents.html" class="active">Agents</a>
+    <a href="competition.html">Concurrentie</a>
+  </nav>
+</header>
+
+<div class="layout">
+  <section class="panel">
+    <h2>Agents</h2>
+    <div id="agent-list"><div class="loading">Laden&hellip;</div></div>
+  </section>
+
+  <section class="panel" id="detail-panel">
+    <h2>Pipeline &mdash; stappen van de job</h2>
+    <div id="detail-empty">Kies links een agent om zijn werkstappen en de voortgang van de laatste job te zien.</div>
+    <div id="detail-body" style="display:none">
+      <div class="detail-head">
+        <h3 id="d-name"></h3>
+        <div class="meta" id="d-meta"></div>
+        <div class="err" id="d-err" style="display:none"></div>
+      </div>
+      <div class="exec-picker" id="exec-picker"></div>
+      <div class="pipeline" id="pipeline"></div>
+      <div class="pipeline-note" id="pipeline-note"></div>
+      <details class="rawnodes" id="rawnodes" style="display:none">
+        <summary>Alle uitgevoerde n8n-nodes tonen</summary>
+        <div id="rawnodes-body" class="mono"></div>
+      </details>
+    </div>
+  </section>
+
+  <section class="panel runs">
+    <h2>Run-historie (30 dagen)</h2>
+    <div id="runs-body"><div class="loading">Kies een agent.</div></div>
+  </section>
+</div>
+
+<script>
+(async function(){
+  const cfg = window.DEWI_CONFIG || window.BRIDGE_CONFIG || {};
+  if(!cfg.SUPABASE_ANON_KEY || cfg.SUPABASE_ANON_KEY.startsWith("PLAK_")){
+    document.body.innerHTML = "<p style='padding:40px;color:#ff5f6b'>dewi-config.js is nog niet ingevuld: kopieer de anon key uit organisation.html.</p>";
+    return;
+  }
+  const sb = supabase.createClient(cfg.SUPABASE_URL, cfg.SUPABASE_ANON_KEY);
+  const { data: { session } } = await sb.auth.getSession();
+  if(!session){ location.href = "/"; return; }
+
+  const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+  const fmtDT = t => t ? new Date(t).toLocaleString("nl-NL",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"}) : "-";
+  const fmtMs = ms => ms == null ? "" : (ms >= 1000 ? (ms/1000).toFixed(1)+" s" : ms+" ms");
+  const DEPT_LABELS = {mgmt:"Management",catalog:"Catalogus",seo:"SEO",intel:"Office",mktg:"Marketing",marketing:"Marketing",advertising:"Advertising",infra:"Infra"};
+
+  // --- data laden ---
+  const [{data: agents, error: aErr},{data: stepDefs}] = await Promise.all([
+    sb.from("bridge_agent_index").select("*").order("bridge_dept").order("agent_name"),
+    sb.from("bridge_agent_steps").select("*")
+  ]);
+  if(aErr){ document.getElementById("agent-list").innerHTML = "<div class='loading'>Kon agents niet laden: "+esc(aErr.message)+"</div>"; return; }
+
+  const stepsByAgent = {};
+  (stepDefs||[]).forEach(r => { (stepsByAgent[r.agent_id] = stepsByAgent[r.agent_id] || []).push(r); });
+  Object.values(stepsByAgent).forEach(a => a.sort((x,y)=>x.step_no-y.step_no));
+
+  // --- agentlijst renderen ---
+  const listEl = document.getElementById("agent-list");
+  listEl.innerHTML = "";
+  let currentDept = null;
+  const staleCut = Date.now() - 48*3600*1000;
+  agents.forEach(a => {
+    const dept = a.bridge_dept || a.department || "overig";
+    if(dept !== currentDept){
+      currentDept = dept;
+      const d = document.createElement("div");
+      d.className = "dept"; d.textContent = DEPT_LABELS[dept] || dept;
+      listEl.appendChild(d);
+    }
+    const btn = document.createElement("button");
+    btn.className = "agent-row"; btn.dataset.agentId = a.agent_id;
+    let dotCls = "paused";
+    if(!a.paused){
+      if(a.last_status === "error") dotCls = "error";
+      else if(a.last_run && new Date(a.last_run).getTime() < staleCut) dotCls = "stale";
+      else if(a.last_status) dotCls = "ok";
+    }
+    btn.innerHTML = "<span class='dot "+dotCls+"'></span><span>"+esc(a.agent_name)+"</span><small>"+esc(a.schedule_human||"")+"</small>";
+    btn.addEventListener("click", () => selectAgent(a, btn));
+    listEl.appendChild(btn);
+  });
+
+  // --- detail ---
+  const dBody = document.getElementById("detail-body");
+  const dEmpty = document.getElementById("detail-empty");
+
+  async function selectAgent(agent, btn){
+    document.querySelectorAll(".agent-row.selected").forEach(x=>x.classList.remove("selected"));
+    btn.classList.add("selected");
+    dEmpty.style.display = "none"; dBody.style.display = "block";
+
+    document.getElementById("d-name").textContent = agent.agent_name;
+    const bits = [];
+    if(agent.schedule_human) bits.push("Schema: "+agent.schedule_human);
+    if(agent.last_run) bits.push("Laatste run: "+fmtDT(agent.last_run));
+    if(agent.last_duration_ms != null) bits.push(fmtMs(agent.last_duration_ms));
+    if(agent.paused) bits.push("GEPAUZEERD");
+    document.getElementById("d-meta").textContent = bits.join("  \u00b7  ");
+    const errEl = document.getElementById("d-err");
+    if(agent.last_status === "error" && agent.last_error){ errEl.style.display="block"; errEl.textContent = "Laatste fout: "+agent.last_error; }
+    else errEl.style.display = "none";
+
+    loadRuns(agent);
+    loadExecutions(agent);
+  }
+
+  // --- run-historie (Supabase, samenvattingen) ---
+  async function loadRuns(agent){
+    const el = document.getElementById("runs-body");
+    if(!agent.run_token){ el.innerHTML = "<div class='loading'>Geen run-token gekoppeld aan deze agent; runs zijn alleen in n8n zichtbaar.</div>"; return; }
+    el.innerHTML = "<div class='loading'>Laden&hellip;</div>";
+    const {data, error} = await sb.from("bridge_agent_runs").select("*")
+      .eq("workflow", agent.run_token).order("run_at",{ascending:false}).limit(20);
+    if(error){ el.innerHTML = "<div class='loading'>"+esc(error.message)+"</div>"; return; }
+    if(!data || !data.length){ el.innerHTML = "<div class='loading'>Geen runs in de laatste 30 dagen.</div>"; return; }
+    el.innerHTML = "<table><thead><tr><th>Wanneer</th><th>Status</th><th>Samenvatting</th></tr></thead><tbody>"+
+      data.map(r=>{
+        const cls = r.status==="ok"?"ok":(r.status==="error"?"error":"other");
+        return "<tr><td class='mono'>"+fmtDT(r.run_at)+"</td><td><span class='badge "+cls+"'>"+esc(r.status)+"</span></td><td>"+esc(r.summary||"")+"</td></tr>";
+      }).join("")+"</tbody></table>";
+  }
+
+  // --- executies + pipeline (via /api/agent-run) ---
+  async function apiGet(qs){
+    const r = await fetch("/api/agent-run?"+qs, { headers: { authorization: "Bearer "+session.access_token }});
+    if(!r.ok) throw new Error((await r.json().catch(()=>({}))).detail || ("API "+r.status));
+    return r.json();
+  }
+
+  async function loadExecutions(agent){
+    const picker = document.getElementById("exec-picker");
+    const pipe = document.getElementById("pipeline");
+    const note = document.getElementById("pipeline-note");
+    document.getElementById("rawnodes").style.display = "none";
+    if(!agent.n8n_workflow_id){
+      picker.innerHTML = ""; pipe.innerHTML = "";
+      note.textContent = "Geen n8n-workflow gekoppeld aan deze agent - alleen run-historie beschikbaar.";
+      return;
+    }
+    picker.innerHTML = "<span class='loading'>Executies ophalen&hellip;</span>"; pipe.innerHTML = ""; note.textContent = "";
+    try{
+      const {executions} = await apiGet("workflow_id="+agent.n8n_workflow_id+"&limit=10");
+      if(!executions.length){ picker.innerHTML=""; note.textContent = "Nog geen executies gevonden in n8n."; return; }
+      picker.innerHTML = "";
+      executions.forEach((e,i)=>{
+        const chip = document.createElement("button");
+        chip.className = "exec-chip"+(i===0?" sel":"");
+        const glyph = e.status==="success"?"\u2713":(e.status==="error"||e.status==="crashed"?"\u2717":"\u25CC");
+        chip.innerHTML = "<span class='st'>"+glyph+"</span>"+fmtDT(e.startedAt)+(e.duration_ms!=null?" \u00b7 "+fmtMs(e.duration_ms):"");
+        chip.addEventListener("click", ()=>{
+          picker.querySelectorAll(".sel").forEach(x=>x.classList.remove("sel"));
+          chip.classList.add("sel");
+          loadPipeline(agent, e.id);
+        });
+        picker.appendChild(chip);
+      });
+      loadPipeline(agent, executions[0].id);
+    }catch(err){
+      picker.innerHTML = ""; note.textContent = "Kon executies niet ophalen: "+err.message;
+    }
+  }
+
+  async function loadPipeline(agent, execId){
+    const pipe = document.getElementById("pipeline");
+    const note = document.getElementById("pipeline-note");
+    const raw = document.getElementById("rawnodes");
+    pipe.innerHTML = "<div class='loading'>Stappen laden&hellip;</div>";
+    try{
+      const {execution, steps} = await apiGet("workflow_id="+agent.n8n_workflow_id+"&execution_id="+execId);
+      const defs = stepsByAgent[agent.agent_id];
+      const execByNode = {}; steps.forEach(s=>execByNode[s.node]=s);
+      let items;
+      if(defs && defs.length){
+        // gedefinieerde, leesbare stappen; n8n-nodes worden eraan gemapt
+        items = defs.map(d=>{
+          const hits = (d.node_names||[]).map(n=>execByNode[n]).filter(Boolean);
+          let status = "pending", ms = null;
+          if(hits.length){
+            ms = hits.reduce((t,h)=>t+(h.ms||0),0);
+            status = hits.some(h=>h.status==="error") ? "error" : "done";
+          }
+          return {label:d.label, sub:d.description, status, ms};
+        });
+        // nodes buiten de mapping blijven zichtbaar via het uitklapblok
+        const mapped = new Set(defs.flatMap(d=>d.node_names||[]));
+        const extra = steps.filter(s=>!mapped.has(s.node));
+        if(extra.length){
+          raw.style.display = "block";
+          document.getElementById("rawnodes-body").innerHTML =
+            extra.map(s=>esc(s.node)+" \u2014 "+esc(s.status)+(s.ms!=null?" ("+fmtMs(s.ms)+")":"")).join("<br>");
+        } else raw.style.display = "none";
+        note.textContent = "";
+      } else {
+        // geen mapping: de uitgevoerde n8n-nodes zijn de stappen
+        items = steps.map(s=>({label:s.node, sub:(s.runs>1? s.runs+"x uitgevoerd":null), status:(s.status==="error"?"error":"done"), ms:s.ms}));
+        raw.style.display = "none";
+        note.textContent = "Automatische weergave op n8n-nodenamen. Voeg rijen toe aan agent_steps voor leesbare stappen.";
+      }
+      const overall = execution.status==="success"?"":" \u2014 status: "+execution.status;
+      pipe.innerHTML = items.map(it=>{
+        const glyph = it.status==="done"?"\u2713":(it.status==="error"?"\u2717":"\u25CC");
+        return "<div class='step "+it.status+"'>"+
+          "<div class='node-glyph'>"+glyph+"</div>"+
+          "<div class='step-label'><b>"+esc(it.label)+"</b>"+(it.sub?"<span class='sub'>"+esc(it.sub)+"</span>":"")+"</div>"+
+          "<div class='step-ms'>"+fmtMs(it.ms)+"</div></div>";
+      }).join("") || "<div class='loading'>Geen stapdata in deze executie.</div>";
+      if(overall) note.textContent = "Executie "+execId+overall;
+    }catch(err){
+      pipe.innerHTML = "<div class='loading'>Kon stappen niet laden: "+esc(err.message)+"</div>";
+    }
+  }
+})();
+</script>
+</body>
+</html>

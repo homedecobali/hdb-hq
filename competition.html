@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DEWI - Competition</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="dewi-config.js"></script>
+<style>
+  :root{
+    --bg:#070b12; --panel:#0d1420; --panel2:#111a29; --line:#1c2940;
+    --cyan:#00d4ff; --pink:#ff5fa2; --green:#3ee08f; --red:#ff5f6b; --muted:#7d8ca3;
+    --text:#dfe8f5;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);
+    font:14px/1.5 "Segoe UI",system-ui,-apple-system,sans-serif;}
+  .mono{font-family:ui-monospace,"Cascadia Code","JetBrains Mono",Consolas,monospace}
+
+  header{display:flex;align-items:center;gap:18px;padding:14px 22px;
+    border-bottom:1px solid var(--line);background:var(--panel);position:sticky;top:0;z-index:5}
+  header .brand{font-weight:900;letter-spacing:.28em;color:var(--cyan);font-size:15px}
+  header nav{display:flex;gap:6px;margin-left:auto}
+  header nav a{color:var(--muted);text-decoration:none;padding:6px 14px;border:1px solid transparent;border-radius:6px}
+  header nav a:hover{color:var(--text);border-color:var(--line)}
+  header nav a.active{color:var(--pink);border-color:var(--pink)}
+  header nav a:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
+
+  .wrap{max-width:3800px;margin:0 auto;padding:14px 22px;display:flex;flex-direction:column;gap:14px}
+  @media (min-width:2200px){ .wrap{padding:20px 32px;gap:20px} }
+
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:10px}
+  .panel h2{margin:0;padding:12px 16px;font-size:11px;letter-spacing:.22em;color:var(--muted);
+    border-bottom:1px solid var(--line);text-transform:uppercase}
+  .pad{padding:14px 16px}
+  .loading{padding:24px;color:var(--muted);text-align:center}
+
+  /* criteria-rail: de lens waardoor DEWI de markt bekijkt */
+  #criteria .pad{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+  .crit{border:1px solid var(--line);background:var(--panel2);color:var(--text);
+    border-radius:20px;padding:5px 14px;font-size:12px;cursor:pointer;font:inherit;display:flex;gap:8px;align-items:center}
+  .crit:hover{border-color:var(--pink)}
+  .crit.sel{border-color:var(--pink);color:var(--pink)}
+  .crit:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
+  .crit .n{color:var(--muted);font-size:11px}
+  .crit.sel .n{color:var(--pink)}
+  .crit-hint{color:var(--muted);font-size:12px;width:100%}
+
+  .grid{display:grid;grid-template-columns:1fr;gap:14px}
+  @media (min-width:1200px){ .grid.g2{grid-template-columns:1fr 1fr} .grid.g3{grid-template-columns:1fr 1fr 1fr} }
+  @media (min-width:2200px){ .grid.g3{grid-template-columns:1fr 1fr 1fr};.grid{gap:20px} }
+
+  .card-list{display:flex;flex-direction:column;gap:10px;padding:14px 16px}
+  .icard{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:12px 14px}
+  .icard b{display:block;margin-bottom:4px}
+  .icard .why{color:var(--muted);font-size:12px;margin-top:6px}
+  .icard .ex{font-size:12px;color:var(--text);opacity:.85;margin-top:6px;border-left:2px solid var(--pink);padding-left:10px;font-style:italic}
+
+  .chips{display:flex;flex-wrap:wrap;gap:8px;padding:14px 16px}
+  .kw{border:1px solid var(--line);border-radius:6px;padding:3px 10px;font-size:12px;color:var(--muted)}
+
+  #comp-table table, #ads table{width:100%;border-collapse:collapse;font-size:12.5px}
+  th{color:var(--muted);text-align:left;padding:8px 12px;border-bottom:1px solid var(--line);
+    font-weight:500;letter-spacing:.06em;font-size:10px;text-transform:uppercase;white-space:nowrap}
+  td{padding:8px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+  tr:last-child td{border-bottom:none}
+  td a{color:var(--cyan);text-decoration:none} td a:hover{text-decoration:underline}
+  .days{font-weight:700;color:var(--pink)}
+  .body-snippet{max-width:640px;color:var(--muted)}
+  @media (min-width:2200px){ .body-snippet{max-width:1100px} }
+  .plat{font-size:11px;color:var(--muted)}
+  #summary-md{white-space:pre-wrap;font-size:13px;color:var(--text);opacity:.9}
+</style>
+</head>
+<body>
+<header>
+  <span class="brand">DEWI</span>
+  <nav>
+    <a href="/">Overzicht</a>
+    <a href="agents.html">Agents</a>
+    <a href="competition.html" class="active">Concurrentie</a>
+  </nav>
+</header>
+
+<div class="wrap">
+  <section class="panel" id="criteria">
+    <h2>Scancriteria &mdash; zoektermen waarmee Ad Viral Playbook de Meta Ad Library afzoekt</h2>
+    <div class="pad"><div class="loading">Laden&hellip;</div></div>
+  </section>
+
+  <div class="grid g2">
+    <section class="panel" id="comp-table">
+      <h2>Concurrenten in beeld <span id="intel-period" style="letter-spacing:normal;text-transform:none"></span></h2>
+      <div class="loading">Laden&hellip;</div>
+    </section>
+    <section class="panel" id="summary">
+      <h2>Analyse-samenvatting</h2>
+      <div class="pad"><div id="summary-md" class="loading">Laden&hellip;</div></div>
+    </section>
+  </div>
+
+  <div class="grid g3">
+    <section class="panel" id="hooks"><h2>Top hooks</h2><div class="card-list"><div class="loading">Laden&hellip;</div></div></section>
+    <section class="panel" id="ctas"><h2>Top CTA's</h2><div class="card-list"><div class="loading">Laden&hellip;</div></div></section>
+    <section class="panel" id="patterns"><h2>Copy-patronen</h2><div class="card-list"><div class="loading">Laden&hellip;</div></div></section>
+  </div>
+
+  <section class="panel" id="keywords"><h2>Top keywords</h2><div class="chips"><div class="loading">Laden&hellip;</div></div></section>
+
+  <section class="panel" id="ads">
+    <h2>Actieve concurrent-advertenties (laatste 60 dagen) &mdash; gesorteerd op looptijd</h2>
+    <div class="loading">Laden&hellip;</div>
+  </section>
+</div>
+
+<script>
+(async function(){
+  const cfg = window.DEWI_CONFIG || window.BRIDGE_CONFIG || {};
+  if(!cfg.SUPABASE_ANON_KEY || cfg.SUPABASE_ANON_KEY.startsWith("PLAK_")){
+    document.body.innerHTML = "<p style='padding:40px;color:#ff5f6b'>dewi-config.js is nog niet ingevuld: kopieer de anon key uit organisation.html.</p>";
+    return;
+  }
+  const sb = supabase.createClient(cfg.SUPABASE_URL, cfg.SUPABASE_ANON_KEY);
+  const { data: { session } } = await sb.auth.getSession();
+  if(!session){ location.href = "/organisation.html"; return; }
+
+  const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+  const fmtD = t => t ? new Date(t).toLocaleDateString("nl-NL",{day:"2-digit",month:"2-digit",year:"2-digit"}) : "-";
+  const fmtN = n => n == null ? "-" : Number(n).toLocaleString("nl-NL");
+
+  const [{data: intelRows},{data: criteria},{data: ads}] = await Promise.all([
+    sb.from("bridge_competitor_intel").select("*").limit(1),
+    sb.from("bridge_competitor_criteria").select("*"),
+    sb.from("bridge_competitor_ads").select("*").order("days_running",{ascending:false}).limit(400)
+  ]);
+  const intel = (intelRows && intelRows[0]) || null;
+
+  // --- criteria-rail (filtert de ads-tabel) ---
+  let selectedTerm = null;
+  const critPad = document.querySelector("#criteria .pad");
+  function renderCriteria(){
+    critPad.innerHTML = "";
+    const hint = document.createElement("div");
+    hint.className = "crit-hint";
+    hint.textContent = "Klik op een zoekterm om de advertentietabel hieronder te filteren. Aantallen: gevonden ads \u00b7 unieke concurrenten.";
+    (criteria||[]).forEach(c=>{
+      const b = document.createElement("button");
+      b.className = "crit"+(selectedTerm===c.search_term?" sel":"");
+      b.innerHTML = esc(c.search_term)+" <span class='n'>"+c.ads_found+" \u00b7 "+c.competitors_found+"</span>";
+      b.addEventListener("click", ()=>{ selectedTerm = selectedTerm===c.search_term ? null : c.search_term; renderCriteria(); renderAds(); });
+      critPad.appendChild(b);
+    });
+    critPad.appendChild(hint);
+    if(!(criteria||[]).length) critPad.innerHTML = "<div class='loading'>Nog geen scandata.</div>";
+  }
+  renderCriteria();
+
+  // --- intel-panelen ---
+  if(intel){
+    document.getElementById("intel-period").textContent =
+      " \u00b7 periode "+fmtD(intel.period_start)+" t/m "+fmtD(intel.period_end)+" \u00b7 bron: "+(intel.source||"Ad Viral Playbook");
+
+    const compEl = document.getElementById("comp-table");
+    const comps = Array.isArray(intel.competitors) ? intel.competitors : [];
+    compEl.querySelector(".loading").outerHTML =
+      "<table><thead><tr><th>Naam</th><th>Instagram</th><th>Website</th></tr></thead><tbody>"+
+      comps.map(c=>"<tr><td>"+esc(c.name)+"</td><td>"+(c.ig?"<a href='https://instagram.com/"+esc(c.ig)+"' target='_blank' rel='noopener'>@"+esc(c.ig)+"</a>":"-")+"</td><td>"+(c.website?"<a href='"+esc(c.website)+"' target='_blank' rel='noopener'>"+esc(c.website.replace(/^https?:\/\//,""))+"</a>":"-")+"</td></tr>").join("")+
+      "</tbody></table>";
+
+    document.getElementById("summary-md").textContent = intel.summary_md || "Geen samenvatting.";
+    document.getElementById("summary-md").classList.remove("loading");
+
+    const fill = (id, rows, render) => {
+      const el = document.querySelector("#"+id+" .card-list");
+      el.innerHTML = (rows && rows.length) ? rows.map(render).join("") : "<div class='loading'>Geen data.</div>";
+    };
+    fill("hooks", intel.top_hooks, h =>
+      "<div class='icard'><b>"+esc(h.hook)+"</b>"+(h.why?"<div class='why'>"+esc(h.why)+"</div>":"")+(h.example?"<div class='ex'>"+esc(h.example)+"</div>":"")+"</div>");
+    fill("ctas", intel.top_ctas, c =>
+      "<div class='icard'><b>"+esc(c.cta)+"</b>"+(c.example?"<div class='ex'>"+esc(c.example)+"</div>":"")+"</div>");
+    fill("patterns", intel.copy_patterns, p =>
+      "<div class='icard'><b>"+esc(p.pattern||"")+"</b>"+(p.example?"<div class='ex'>"+esc(p.example)+"</div>":"")+"</div>");
+
+    const kw = document.querySelector("#keywords .chips");
+    kw.innerHTML = (Array.isArray(intel.top_keywords)?intel.top_keywords:[]).map(k=>"<span class='kw'>"+esc(k)+"</span>").join("") || "<div class='loading'>Geen data.</div>";
+  } else {
+    ["comp-table","hooks","ctas","patterns"].forEach(id=>{
+      const el = document.querySelector("#"+id+" .loading"); if(el) el.textContent = "Nog geen intel-snapshot (Ad Viral Playbook draait maandag 06:00).";
+    });
+    document.getElementById("summary-md").textContent = "Nog geen intel-snapshot.";
+  }
+
+  // --- ads-tabel ---
+  function renderAds(){
+    const el = document.getElementById("ads");
+    const rows = (ads||[]).filter(a => !selectedTerm || a.search_term === selectedTerm);
+    const body = rows.slice(0,150).map(a=>{
+      const plat = Array.isArray(a.publisher_platforms) ? a.publisher_platforms.join(", ") : "";
+      const snippet = (a.creative_body||"").slice(0,220);
+      return "<tr>"+
+        "<td>"+esc(a.page_name)+"</td>"+
+        "<td class='days'>"+(a.days_running ?? "-")+"</td>"+
+        "<td class='mono'>"+fmtN(a.eu_total_reach)+"</td>"+
+        "<td class='plat'>"+esc(plat)+"</td>"+
+        "<td class='body-snippet'>"+esc(snippet)+(a.creative_body && a.creative_body.length>220?"\u2026":"")+"</td>"+
+        "<td class='mono'>"+fmtD(a.ad_delivery_start_time)+"</td>"+
+        "<td>"+esc(a.search_term||"")+"</td>"+
+        "<td>"+(a.snapshot_url?"<a href='"+esc(a.snapshot_url)+"' target='_blank' rel='noopener'>bekijk</a>":"-")+"</td>"+
+      "</tr>";
+    }).join("");
+    const tableEl = el.querySelector("table, .loading");
+    tableEl.outerHTML = rows.length ?
+      "<table><thead><tr><th>Concurrent</th><th>Dagen actief</th><th>EU-bereik</th><th>Platforms</th><th>Advertentietekst</th><th>Start</th><th>Zoekterm</th><th>Ad Library</th></tr></thead><tbody>"+body+"</tbody></table>"
+      : "<div class='loading'>Geen advertenties"+(selectedTerm?" voor '"+esc(selectedTerm)+"'":"")+".</div>";
+  }
+  renderAds();
+})();
+</script>
+</body>
+</html>
