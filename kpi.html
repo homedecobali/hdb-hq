@@ -86,6 +86,10 @@
   #memos .t{font-weight:600}
   #memos .n{font-size:12px;color:var(--muted);margin-top:2px}
   .pill{font-size:11px;font-weight:800;padding:3px 9px;border-radius:99px;white-space:nowrap}
+  .sys-sep{margin:12px 0 6px;padding-top:9px;border-top:1px dashed var(--line);
+    font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+  .sys-muted{opacity:.62}
+  .sys-muted i{font-style:normal;color:var(--muted);font-size:11px}
   .pill.red{background:rgba(255,93,93,.15);color:var(--red)}
   .pill.orange{background:rgba(230,126,34,.15);color:var(--orange)}
   .pill.grey{background:rgba(125,140,163,.12);color:var(--muted)}
@@ -705,6 +709,18 @@
       failed.forEach(function(a){
         sysHtml += '<div class="kv"><span style="color:var(--red)">'+a.agent_name+'</span><span>laatste run mislukt</span></div>';
       });
+
+      // Event-driven agents: gedempt onder een streep. Geen alarm (een webhook die
+      // niemand aanroept is niet kapot), maar wel zichtbaar zodat er geen blinde vlek ontstaat.
+      if(events.length){
+        sysHtml += '<div class="sys-sep">Niet bewaakt &mdash; vuren op een gebeurtenis, niet op een klok</div>';
+        events.forEach(function(a){
+          var last = (a.hours_since_last_run === null) ? 'nog nooit gedraaid'
+                   : a.hours_since_last_run + 'u geleden';
+          sysHtml += '<div class="kv sys-muted"><span>'+a.agent_name
+                  + ' <i>&middot; '+(a.schedule_human||'')+'</i></span><span>'+last+'</span></div>';
+        });
+      }
       $('system').innerHTML = sysHtml;
 
       $('stamp').textContent = 'bijgewerkt ' + new Date().toLocaleTimeString('nl-NL',{hour:'2-digit',minute:'2-digit'});
