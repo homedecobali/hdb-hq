@@ -127,6 +127,39 @@
     border-bottom:1px solid var(--line);font-size:13px}
   .kv:last-child{border-bottom:none}
 
+  /* ---- Voorstellen (goedkeuren/afwijzen, verplaatst uit organisation.html) ---- */
+  .prop-badge{margin-left:auto;min-width:16px;text-align:center;font:800 10px/1 system-ui;color:#06121c;
+    background:var(--yellow);border-radius:999px;padding:3px 6px;letter-spacing:0;text-transform:none}
+  .prop-badge.zero{background:var(--muted)}
+  .sml-foot{font:500 9px/1.3 system-ui;color:var(--muted);text-align:center;margin-top:4px}
+  .sml-msg{font:500 11px/1.4 system-ui;color:var(--muted);padding:10px;text-align:center}
+  #propBody{display:flex;flex-direction:column;gap:8px;max-height:340px;overflow-y:auto}
+  .prop-item{display:flex;gap:9px;border:1px solid var(--line);border-radius:10px;padding:8px 10px;background:rgba(255,255,255,.012)}
+  .prop-thumb{width:44px;height:44px;border-radius:8px;object-fit:cover;background:rgba(255,255,255,.04);flex:none}
+  .prop-thumb.ph{display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:16px}
+  .prop-main{min-width:0;flex:1}
+  .prop-h{display:flex;align-items:center;gap:6px;margin-bottom:3px}
+  .prop-tag{font:700 8px/1 system-ui;letter-spacing:.08em;padding:3px 6px;border-radius:5px;color:#0a1018;flex:none}
+  .prop-tag.social{background:#ff5fa2}
+  .prop-tag.meta_ads{background:var(--cyan)}
+  .prop-tag.newsletter{background:var(--green)}
+  .prop-title{font:700 11px/1.2 system-ui;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .prop-sub{font:500 9px/1.3 system-ui;color:var(--muted)}
+  .prop-prev{font:500 10px/1.35 system-ui;color:var(--text);opacity:.8;margin-top:3px;
+    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .prop-foot{display:flex;justify-content:space-between;align-items:center;margin-top:5px}
+  .prop-age{font:600 9px/1 system-ui;color:var(--orange)}
+  .prop-age.old{color:var(--red)}
+  .prop-link{font:600 9px/1 system-ui;color:var(--cyan);text-decoration:none}
+  .prop-btns{display:flex;gap:6px;margin-top:7px}
+  .prop-btn{flex:1;font:700 9px/1 system-ui;letter-spacing:.06em;padding:7px 0;border-radius:6px;
+    border:1px solid var(--line);background:rgba(0,0,0,.25);color:var(--text);cursor:pointer;text-align:center}
+  .prop-btn.ok{border-color:rgba(79,209,161,.4);color:var(--green)}
+  .prop-btn.ok:hover{background:var(--green);color:#06121c}
+  .prop-btn.no{border-color:rgba(255,93,93,.4);color:var(--red)}
+  .prop-btn.no:hover{background:var(--red);color:#fff}
+  .prop-pin{font:600 9px/1 system-ui;color:var(--muted);cursor:pointer;text-decoration:underline}
+
   #login{max-width:420px;margin:80px auto;text-align:center;background:var(--panel);
     border:1px solid var(--line);border-radius:12px;padding:30px}
   .hidden{display:none}
@@ -241,6 +274,12 @@
       <div class="card">
         <h2><span class="dot" style="background:var(--red)"></span>Systeem &mdash; stilte-detectie</h2>
         <div id="system"></div>
+      </div>
+      <div class="card">
+        <h2><span class="dot" style="background:var(--yellow)"></span>Voorstellen
+          <span class="when">wachten op goedkeuring</span>
+          <span class="prop-badge zero" id="propBadge">0</span></h2>
+        <div id="propBody"><div class="sml-msg">laden&hellip;</div></div>
       </div>
     </div>
     <div id="err"></div>
@@ -616,6 +655,7 @@
   /* ================= data laden ================= */
   async function load(){
     var errEl = $('err'); errEl.textContent = '';
+    loadProposals();   // voorstellen-blok (eigen foutafhandeling, blokkeert de rest niet)
     try{
       var res = await Promise.all([
         sb.from('bridge_kpi_daily').select('*'),
@@ -982,6 +1022,81 @@
       errEl.textContent = 'Fout bij laden: ' + (e.message || e);
     }
   }
+
+  /* ================= Voorstellen (goedkeuren/afwijzen, verplaatst uit organisation.html)
+     Bron: Supabase view 'proposals_pending' (token-vrij).
+     Acties lopen via DEWI-ProposalDispatcher: een PIN-beveiligde n8n-webhook
+     die het approve-token SERVER-SIDE opzoekt en doorstuurt (302) naar de
+     bestaande publisher-webhook. Social en Meta Ads tonen daarna hun eigen
+     bevestigingspagina (met preview/budget); de nieuwsbrief-flow verstuurt
+     direct, daarom vraagt de knop daar expliciet om bevestiging. ================= */
+  var PROP_DISPATCH_URL = "https://homedecobali.app.n8n.cloud/webhook/proposal-dispatch";
+  function propGetPin(force){
+    var pin = localStorage.getItem("dewi_prop_pin") || "";
+    if(force || !pin){
+      pin = (window.prompt("DEWI goedkeurings-PIN:","") || "").trim();
+      if(pin) localStorage.setItem("dewi_prop_pin", pin);
+      else localStorage.removeItem("dewi_prop_pin");
+    }
+    return pin;
+  }
+  function propDispatch(kind, id, action){
+    var pin = propGetPin(false);
+    if(!pin) return;
+    var CONFIRM = {
+      "newsletter:approve":"LET OP: dit verstuurt de nieuwsbrief DIRECT naar alle ontvangers. Doorgaan?",
+      "meta_ads:skip":"Advertentievoorstel afwijzen? De klaargezette (PAUSED) campagne wordt dan verwijderd.",
+      "social:skip":"Social post afwijzen?",
+      "newsletter:skip":"Nieuwsbrief-voorstel afwijzen?"
+    };
+    var msg = CONFIRM[kind + ":" + action];
+    if(msg && !window.confirm(msg)) return;
+    window.open(PROP_DISPATCH_URL + "?pin=" + encodeURIComponent(pin) + "&kind=" + encodeURIComponent(kind)
+      + "&id=" + encodeURIComponent(id) + "&action=" + encodeURIComponent(action), "_blank", "noopener");
+    setTimeout(loadProposals, 4000); setTimeout(loadProposals, 12000);
+  }
+  async function loadProposals(){
+    var body = $("propBody"), badge = $("propBadge");
+    if(!body) return;
+    try{
+      var r = await sb.from("proposals_pending").select("*").order("created_at",{ascending:true});
+      if(r.error){ console.warn("proposals_pending:", r.error.message); body.innerHTML = '<div class="sml-msg">kon voorstellen niet laden</div>'; return; }
+      var rows = r.data || [];
+      if(badge){ badge.textContent = String(rows.length); badge.classList.toggle("zero", rows.length === 0); }
+      if(!rows.length){ body.innerHTML = '<div class="sml-msg">geen openstaande voorstellen \u2705</div>'; return; }
+      var KIND = { social:{l:"SOCIAL"}, meta_ads:{l:"META ADS"}, newsletter:{l:"NIEUWSBRIEF"} };
+      var escp = function(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); };
+      body.innerHTML = rows.map(function(r){
+        var k = KIND[r.kind] || { l:String(r.kind||'').toUpperCase() };
+        var ageMs = Date.now() - new Date(r.created_at);
+        var days = Math.floor(ageMs/86400000);
+        var age = days > 0 ? days + "d" : Math.max(1, Math.floor(ageMs/3600000)) + "u";
+        var thumb = r.image_url ? '<img class="prop-thumb" src="' + escp(r.image_url) + '" loading="lazy" alt="">' : '<div class="prop-thumb ph">\u2709</div>';
+        var okLbl = (r.kind === 'meta_ads') ? '\u2713 ACTIVEER' : (r.kind === 'newsletter') ? '\u2713 VERSTUUR' : '\u2713 PUBLICEER';
+        return '<div class="prop-item">' + thumb + '<div class="prop-main">'
+          + '<div class="prop-h"><span class="prop-tag ' + escp(r.kind) + '">' + k.l + '</span>'
+          + '<span class="prop-title">' + escp(r.title) + (r.subtitle ? ' \u00B7 ' + escp(r.subtitle) : '') + '</span></div>'
+          + '<div class="prop-sub">' + escp(r.variant||'') + '</div>'
+          + (r.preview ? '<div class="prop-prev">' + escp(r.preview) + '</div>' : '')
+          + '<div class="prop-foot"><span class="prop-age' + (days >= 3 ? ' old' : '') + '">wacht ' + age + '</span>'
+          + (r.link ? '<a class="prop-link" href="' + escp(r.link) + '" target="_blank" rel="noopener">bekijk object \u203A</a>' : '')
+          + '</div>'
+          + '<div class="prop-btns">'
+          + '<button class="prop-btn ok" data-kind="' + escp(r.kind) + '" data-id="' + escp(r.id) + '" data-action="approve">' + okLbl + '</button>'
+          + '<button class="prop-btn no" data-kind="' + escp(r.kind) + '" data-id="' + escp(r.id) + '" data-action="skip">\u2715 AFWIJZEN</button>'
+          + '</div></div></div>';
+      }).join('')
+      + '<div class="sml-foot">social &amp; ads: eerst een bevestigingspagina \u00B7 <span class="prop-pin" id="propPinReset">PIN wijzigen</span></div>';
+    }catch(e){ console.warn("proposals:", e); body.innerHTML = '<div class="sml-msg">fout bij laden</div>'; }
+  }
+  (function(){
+    var b = $("propBody");
+    if(b) b.addEventListener("click", function(ev){
+      var btn = ev.target.closest(".prop-btn");
+      if(btn){ propDispatch(btn.dataset.kind, btn.dataset.id, btn.dataset.action); return; }
+      if(ev.target.id === "propPinReset"){ propGetPin(true); }
+    });
+  })();
 
   async function init(){
     var sess = await sb.auth.getSession();
