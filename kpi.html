@@ -6,6 +6,7 @@
 <title>DEWI - KPI</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="dewi-config.js"></script>
+<script src="dewi-agents.js"></script><!-- één bron van waarheid voor agent-tellingen -->
 <style>
   :root{
     --bg:#04070d; --panel:#0d1420; --line:#1c2940;
@@ -622,7 +623,10 @@
         sb.from('bridge_agent_silence').select('*'),
         sb.from('bridge_ads_summary').select('*'),
         sb.from('bridge_active_ads').select('*'),
-        sb.from('bridge_open_orders').select('*')
+        sb.from('bridge_open_orders').select('*'),
+        // agent-telling uit de gedeelde bron (dewi-agents.js -> bridge_agent_index),
+        // identiek aan agents.html en organisation.html; mag falen zonder de rest te blokkeren
+        DEWI_AGENTS.load(sb).catch(function(e){ return { agents: [], counts: null, error: e }; })
       ]);
       if(res[0].error) throw res[0].error;
       var kpi = res[0].data || [], memos = res[1].data || [],
@@ -931,7 +935,19 @@
       var silent = mon.filter(function(a){ return a.silent; });
       var failed = sil.filter(function(a){ return a.last_run_failed; });
 
-      var sysHtml = '<div class="kv"><span>Bewaakte agents</span><b>'+mon.length+'</b></div>'
+      // Kopregel: de gedeelde agent-telling (zelfde bron + formule als agents.html
+      // en de header van organisation.html). De stilte-detectie eronder is een
+      // aanvullende, andere invalshoek (bewaakt vs. event-driven) en telt NIET anders.
+      var agIdx = res[6];
+      var sysHtml = '';
+      if(agIdx && agIdx.counts){
+        sysHtml += '<div class="kv" style="border-bottom:1px solid var(--line);padding-bottom:7px;margin-bottom:7px">'
+          + '<span>Agents</span><b>' + DEWI_AGENTS.summaryHTML(agIdx.counts) + '</b></div>';
+      } else {
+        sysHtml += '<div class="kv"><span>Agents</span><span style="color:var(--muted)">telling niet beschikbaar'
+          + (agIdx && agIdx.error ? ': ' + esc(agIdx.error.message || agIdx.error) : '') + '</span></div>';
+      }
+      sysHtml += '<div class="kv"><span>Bewaakte agents</span><b>'+mon.length+'</b></div>'
         + '<div class="kv"><span>Event-driven (niet bewaakt)</span><b>'+events.length+'</b></div>'
         + '<div class="kv"><span>Stille agents</span>'
         + (silent.length ? '<span class="pill red">'+silent.length+' STIL</span>'

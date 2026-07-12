@@ -447,6 +447,7 @@
 </div>
 <div id="propPill"><span class="ic">✉</span><span>VOORSTELLEN</span><span class="badge zero" id="propBadge">0</span></div>
 
+<script src="dewi-agents.js"></script><!-- één bron van waarheid voor agent-tellingen -->
 <script type="module">
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 /* === CONFIG ============================================================ */
@@ -856,14 +857,39 @@ function pushEvent(a,err){ events.unshift({t:new Date(),agent:a.name,dept:a.dept
 }
 
 /* === SHARED METRICS ==================================================== */
+/* De headertelling (AGENTS TOT. / ONLINE / VEROUDERD / ERRORS) komt uit de
+   gedeelde bron dewi-agents.js (view bridge_agent_index) — exact dezelfde
+   bron en telformule als agents.html en de systeemkaart in kpi.html.
+   Alleen als die bron (nog) niet geladen is, valt de header terug op de
+   lokale layouttelling, zodat het scherm nooit leeg blijft. */
+let sharedCounts=null, _cntT=null;
+async function refreshAgentCounts(){
+  if(!window.DEWI_AGENTS) return;
+  try{
+    const {counts}=await DEWI_AGENTS.load(SB);
+    sharedCounts=counts;
+    if(AGENTS && AGENTS.length!==counts.total)
+      console.warn("Agent-telling: layout (bridge_layout/fallback) toont "+AGENTS.length
+        +" agents, maar de canonieke bron (bridge_agent_index) telt "+counts.total
+        +". Werk de registry-views bij zodat beide dezelfde agents bevatten.");
+    renderMetrics();
+  }catch(e){ console.warn("agent-telling (bridge_agent_index):", e.message||e); }
+}
+function refreshAgentCountsDebounced(){ clearTimeout(_cntT); _cntT=setTimeout(refreshAgentCounts, 800); }
+
 function renderMetrics(){
   const c={ok:0,running:0,idle:0,error:0,paused:0,stale:0}; AGENTS.forEach(a=>{const st=statusOf(a.id); if(c[st]!==undefined)c[st]++;});
   if(currentView==="radial"){ $("mNodes").textContent=UNITS.length; $("mNodesL").textContent="NODES ZICHTBAAR"; }
   else { $("mNodes").textContent=AGENTS.length; $("mNodesL").textContent="AGENTS ZICHTBAAR"; }
-  $("mAgents").textContent=AGENTS.length;
-  $("mOnline").textContent=c.ok+c.running;
-  $("mErr").textContent=c.error; $("mErr").style.color=c.error?C.red:C.dim;
-  $("mStale").textContent=c.stale; $("mStale").style.color=c.stale?C.amber:C.dim;
+  const s=sharedCounts;
+  const total = s ? s.total        : AGENTS.length;
+  const online= s ? (s.ok+s.running): (c.ok+c.running);
+  const err   = s ? s.error        : c.error;
+  const stale = s ? s.stale        : c.stale;
+  $("mAgents").textContent=total;
+  $("mOnline").textContent=online;
+  $("mErr").textContent=err; $("mErr").style.color=err?C.red:C.dim;
+  $("mStale").textContent=stale; $("mStale").style.color=stale?C.amber:C.dim;
 }
 
 function renderRadial(){ UNITS=visibleUnits(); computePositions(); buildEdges(); positionSvg(); buildDepEdges(); buildNodes(); positionNodes(); renderMetrics(); renderPanel(); }
@@ -1217,6 +1243,7 @@ function applyRow(r){ if(!r||!r.agent_id)return;
   rows[r.agent_id]={status:r.status,last_run:r.last_run,run_count:r.run_count,last_error:r.last_error,run_token:r.run_token};
   const a=BY_ID[r.agent_id];
   renderMetrics(); updateOrgStatus();
+  refreshAgentCountsDebounced();   // headertelling meebewegen met live statuswijzigingen (gedeelde bron)
   if(currentView==="radial"){ paintNodes(); if(selected===r.agent_id)renderPanel(); }
   if(a&&(r.status==="running"||r.status==="error")){ pushEvent(a,r.status==="error"); if(r.status==="running")spawn(r.agent_id,a.color); }
 }
@@ -1279,11 +1306,12 @@ async function start(){
   buildOrgOnce();                  // herbouw organigram in gesorteerde volgorde
   if(currentView==="radial") renderRadial();
   updateOrgStatus(); renderMetrics(); fillRuns24();
+  refreshAgentCounts();            // headertelling uit de gedeelde bron (dewi-agents.js)
   setConn(true,"live · homedecobali");
   loadReadiness();
   loadProposals();
   sb.channel("agent_status_live").on("postgres_changes",{event:"*",schema:"public",table:"agent_status"},p=>{ applyRow(p.new); refreshReadiness(); }).subscribe(s=>{ if(s==="SUBSCRIBED")setConn(true,"live · homedecobali"); });
-  setInterval(async()=>{ await load24h(); fillRuns24(); loadProposals(); }, 5*60*1000);   // ververs 24u-tellers (zonder herordening)
+  setInterval(async()=>{ await load24h(); fillRuns24(); loadProposals(); refreshAgentCounts(); }, 5*60*1000);   // ververs 24u-tellers + gedeelde agenttelling (zonder herordening)
   const {data:hb}=await sb.from("heartbeat").select("last_ping").order("last_ping",{ascending:false}).limit(1);
   if(hb&&hb[0]&&$("hb"))$("hb").innerHTML=`Heartbeat online · last ping <b style="color:${C.green}">${ago(hb[0].last_ping)}</b>`;
 }

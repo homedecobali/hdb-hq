@@ -6,6 +6,7 @@
 <title>DEWI - Agents</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="dewi-config.js"></script>
+<script src="dewi-agents.js"></script><!-- één bron van waarheid voor agent-tellingen -->
 <style>
   :root{
     --bg:#070b12; --panel:#0d1420; --panel2:#111a29; --line:#1c2940;
@@ -34,6 +35,8 @@
   .panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;overflow:hidden}
   .panel h2{margin:0;padding:12px 16px;font-size:11px;letter-spacing:.22em;color:var(--muted);
     border-bottom:1px solid var(--line);text-transform:uppercase}
+  /* telling in de paneelkop (bron: dewi-agents.js) */
+  .panel h2 .h2-counts{letter-spacing:.04em;text-transform:none;font-weight:400;color:var(--text)}
 
   /* agentlijst */
   #agent-list{max-height:calc(100vh - 130px);overflow-y:auto}
@@ -112,7 +115,7 @@
 
 <div class="layout">
   <section class="panel">
-    <h2>Agents</h2>
+    <h2 id="agents-title">Agents</h2>
     <div id="agent-list"><div class="loading">Laden&hellip;</div></div>
   </section>
 
@@ -158,11 +161,18 @@
   const DEPT_LABELS = {mgmt:"Management",catalog:"Catalogus",seo:"SEO",intel:"Office",mktg:"Marketing",marketing:"Marketing",advertising:"Advertising",infra:"Infra"};
 
   // --- data laden ---
-  const [{data: agents, error: aErr},{data: stepDefs}] = await Promise.all([
-    sb.from("bridge_agent_index").select("*").order("bridge_dept").order("agent_name"),
+  // Agentlijst + telling komen uit dewi-agents.js (bron: bridge_agent_index),
+  // dezelfde bron die kpi.html en organisation.html voor hun telling gebruiken.
+  const [idx, {data: stepDefs}] = await Promise.all([
+    DEWI_AGENTS.load(sb).catch(e => ({error:e})),
     sb.from("bridge_agent_steps").select("*")
   ]);
-  if(aErr){ document.getElementById("agent-list").innerHTML = "<div class='loading'>Kon agents niet laden: "+esc(aErr.message)+"</div>"; return; }
+  if(idx.error){ document.getElementById("agent-list").innerHTML = "<div class='loading'>Kon agents niet laden: "+esc(idx.error.message)+"</div>"; return; }
+  const agents = idx.agents;
+
+  // telling bovenin het paneel, bijv. "Agents — 73 totaal · 54 ok · 15 verouderd · 4 gepauzeerd"
+  document.getElementById("agents-title").innerHTML =
+    "Agents <span class='h2-counts'>&mdash; " + DEWI_AGENTS.summaryHTML(idx.counts) + "</span>";
 
   const stepsByAgent = {};
   (stepDefs||[]).forEach(r => { (stepsByAgent[r.agent_id] = stepsByAgent[r.agent_id] || []).push(r); });
@@ -172,7 +182,6 @@
   const listEl = document.getElementById("agent-list");
   listEl.innerHTML = "";
   let currentDept = null;
-  const staleCut = Date.now() - 48*3600*1000;
   agents.forEach(a => {
     const dept = a.bridge_dept || a.department || "overig";
     if(dept !== currentDept){
@@ -183,15 +192,10 @@
     }
     const btn = document.createElement("button");
     btn.className = "agent-row"; btn.dataset.agentId = a.agent_id;
-    let dotCls = "paused";
-    if(!a.paused){
-      // 'stale' komt nu uit agent_status (per-agent schema), niet uit een vaste drempel
-      if(a.last_status === "error") dotCls = "error";
-      else if(a.last_status === "stale") dotCls = "stale";
-      else if(a.last_status === "idle" || !a.last_run) dotCls = "other";
-      else if(a.last_run && new Date(a.last_run).getTime() < staleCut) dotCls = "stale";
-      else if(a.last_status) dotCls = "ok";
-    }
+    // dezelfde classificatie als de telling in de kop (dewi-agents.js) —
+    // een dot kan dus nooit meer afwijken van de samenvatting erboven
+    const st = DEWI_AGENTS.classify(a);
+    const dotCls = st === "running" ? "ok" : (st === "idle" ? "other" : st);
     btn.innerHTML = "<span class='dot "+dotCls+"'></span><span>"+esc(a.agent_name)+"</span><small>"+esc(a.schedule_human||"")+"</small>";
     btn.addEventListener("click", () => selectAgent(a, btn));
     listEl.appendChild(btn);
