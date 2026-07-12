@@ -186,6 +186,15 @@
     <div style="height:14px"></div>
 
     <div class="card">
+      <h2><span class="dot" style="background:var(--orange)"></span>Openstaande orders (Shopify)
+        <span class="when" id="oo-when"></span></h2>
+      <div class="nums" id="oo-nums"></div>
+      <div id="oo-table"></div>
+      <p id="oo-foot" style="color:var(--muted);font-size:11px;margin:10px 0 0"></p>
+    </div>
+    <div style="height:14px"></div>
+
+    <div class="card">
       <h2><span class="dot" style="background:var(--blue)"></span>Paid Ads (Meta)
         <span class="when" id="ads-when"></span></h2>
       <div class="nums" id="ads-nums"></div>
@@ -612,12 +621,14 @@
         sb.from('bridge_memos').select('*'),
         sb.from('bridge_agent_silence').select('*'),
         sb.from('bridge_ads_summary').select('*'),
-        sb.from('bridge_active_ads').select('*')
+        sb.from('bridge_active_ads').select('*'),
+        sb.from('bridge_open_orders').select('*')
       ]);
       if(res[0].error) throw res[0].error;
       var kpi = res[0].data || [], memos = res[1].data || [],
           sil = res[2].data || [], adsArr = res[3].data || [],
           live = res[4].data || [];
+      var oo = res[5].data || [], ooErr = res[5].error;
       var ads = adsArr[0] || null;
 
       var web = pivot(kpi, 'ga4'); var wd = lastDates(web, 28); var wl = lastTwo(web);
@@ -673,6 +684,55 @@
         { label: 'Omzet', values: vals(shop, shd, 'revenue'), color: CLR.green, format: eur2 },
         { label: 'AOV', values: vals(shop, shd, 'aov'), color: CLR.muted, format: eur2 }
       ], true);
+
+      // --- Openstaande orders (betaald & onverzonden, via bridge_open_orders) ---
+      if(ooErr){
+        $('oo-when').textContent = '';
+        $('oo-nums').innerHTML = '';
+        $('oo-table').innerHTML = '<p style="color:var(--muted)">bridge_open_orders niet leesbaar: '
+          + esc(ooErr.message || ooErr) + '</p>';
+      } else {
+        oo.sort(function(a,b){ return new Date(a.order_created_at) - new Date(b.order_created_at); });
+        var ooTot  = oo.reduce(function(a,r){ return a + Number(r.total_price || 0); }, 0);
+        var ageOf  = function(r){
+          return Math.max(0, Math.floor((Date.now() - new Date(r.order_created_at)) / 86400000));
+        };
+        var ooAges = oo.map(ageOf);
+        var ooOld  = ooAges.length ? Math.max.apply(null, ooAges) : 0;
+        var ooUrg  = ooAges.filter(function(d){ return d > 5; }).length;
+        var ooSync = oo.reduce(function(a,r){ return (r.synced_at||'') > a ? r.synced_at : a; }, '');
+        $('oo-when').textContent = '\u2014 betaald & onverzonden'
+          + (ooSync ? ' \u00b7 sync ' + ooSync.slice(0,16).replace('T',' ') : '');
+        $('oo-nums').innerHTML =
+          num('openstaand', fmt(oo.length), '', ooUrg ? 'warnval' : '') +
+          num('waarde', eur2(ooTot), '') +
+          num('gem. order', eur2(oo.length ? ooTot / oo.length : 0), '') +
+          num('oudste', ooOld + ' dg', '', ooOld > 5 ? 'badval' : (ooOld > 2 ? 'warnval' : 'goodval')) +
+          num('> 5 dagen', fmt(ooUrg), '', ooUrg ? 'badval' : 'goodval');
+        var finNL = { PAID:'betaald', PENDING:'in afwachting', AUTHORIZED:'geautoriseerd',
+                      PARTIALLY_PAID:'deels betaald', PARTIALLY_REFUNDED:'deels terugbetaald',
+                      REFUNDED:'terugbetaald' };
+        var ooRows = oo.map(function(r){
+          var d   = ageOf(r);
+          var cls = d > 5 ? 'red' : (d > 2 ? 'orange' : 'green');
+          var fin = finNL[r.financial_status] || String(r.financial_status || '\u2014').toLowerCase();
+          return '<tr>'
+            + '<td><b>' + esc(r.order_name) + '</b><span class="camp">' + esc(r.customer_name || '\u2014') + '</span></td>'
+            + '<td>' + String(r.order_created_at).slice(0,10) + '</td>'
+            + '<td><span class="pill ' + cls + '">' + d + ' dg</span></td>'
+            + '<td>' + fmt(r.line_item_count || 0) + '</td>'
+            + '<td>' + eur2(r.total_price) + '</td>'
+            + '<td><span class="pill ' + (r.financial_status === 'PAID' ? 'green' : 'orange') + '">' + esc(fin) + '</span></td>'
+            + '</tr>';
+        }).join('');
+        $('oo-table').innerHTML = oo.length
+          ? '<table class="adt"><thead><tr>'
+            + '<th>Order / klant</th><th>Datum</th><th>Wachttijd</th><th>Items</th><th>Bedrag</th><th>Betaling</th>'
+            + '</tr></thead><tbody>' + ooRows + '</tbody></table>'
+          : '<p style="color:var(--muted)">Geen openstaande orders \u2014 alles is verzonden.</p>';
+        $('oo-foot').textContent = 'Oudste eerst \u00b7 wachttijd: groen \u22642 dg, oranje 3\u20135 dg, rood >5 dg'
+          + ' \u00b7 bron: bridge_open_orders (Shopify-sync)';
+      }
 
       var soc = pivot(kpi, 'meta_social'); var sd = lastDates(soc, 28); var sl = lastTwo(soc);
       var igNow = sl.last.ig_followers||0, igPrev = sl.prev.ig_followers;
