@@ -86,6 +86,15 @@
   #memos .t{font-weight:600}
   #memos .n{font-size:12px;color:var(--muted);margin-top:2px}
   .pill{font-size:11px;font-weight:800;padding:3px 9px;border-radius:99px;white-space:nowrap}
+  .fun{display:flex;flex-direction:column;gap:7px;margin-top:12px}
+  .fun-row{display:flex;align-items:center;gap:10px}
+  .fun-lab{width:120px;flex:none;font-size:12px;color:var(--muted)}
+  .fun-track{flex:1;height:22px;background:rgba(255,255,255,.04);border-radius:5px;overflow:hidden}
+  .fun-fill{height:100%;border-radius:5px;display:flex;align-items:center;padding-left:9px;
+    font-size:11px;font-weight:600;color:#06121c;font-variant-numeric:tabular-nums;min-width:44px}
+  .fun-drop{width:88px;flex:none;text-align:right;font-size:11px;color:var(--muted);
+    font-variant-numeric:tabular-nums}
+  .fun-drop b{color:var(--red);font-weight:600}
   .split-bar{height:7px;border-radius:4px;background:var(--orange);overflow:hidden;margin:12px 0 8px}
   .split-bar i{display:block;height:100%;background:var(--cyan)}
   .split-legend{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;font-size:12px}
@@ -192,6 +201,15 @@
         </div>
       </div>
       <p id="ads-foot" style="color:var(--muted);font-size:11px;margin:10px 0 0"></p>
+    </div>
+    <div style="height:14px"></div>
+
+    <div class="card">
+      <h2><span class="dot" style="background:var(--green)"></span>Funnel &amp; rendement
+        <span class="when" id="fun-when"></span></h2>
+      <div class="nums" id="fun-nums"></div>
+      <div id="fun-steps"></div>
+      <p id="fun-foot" style="color:var(--muted);font-size:11px;margin:10px 0 0"></p>
     </div>
     <div style="height:14px"></div>
 
@@ -738,6 +756,65 @@
           + '<div style="text-align:right"><span class="pill '+cls+'">'+lbl+'</span>'
           + '<div class="n">'+mm.due_date+'</div></div></div>';
       }).join('') : '<p style="color:var(--muted)">Geen open to-do\'s.</p>';
+
+      // --- Funnel & rendement (28 dagen; koppelt GA4 + Shopify + Meta) ---
+      // MER (Marketing Efficiency Ratio) = TOTALE online omzet / TOTALE ads-spend.
+      // Anders dan Meta-ROAS, die alleen de omzet telt die Meta zichzelf toerekent.
+      var fd = lastDates(web, 28);                      // GA4-dagen
+      var gaSum = function(m){ return fd.reduce(function(a,d){ return a + Number((web[d]||{})[m]||0); }, 0); };
+      var shSum = function(m){ return fd.reduce(function(a,d){ return a + Number((shop[d]||{})[m]||0); }, 0); };
+      var adSum = function(m){ return fd.reduce(function(a,d){ return a + Number((pad[d]||{})[m]||0); }, 0); };
+
+      var fSess  = gaSum('sessions');
+      var fCart  = gaSum('add_to_carts');
+      var fChk   = gaSum('checkouts');
+      var fOrd   = shSum('online_orders');              // Shopify is de waarheid, niet GA4
+      var fRev   = shSum('online_revenue');
+      var fSpend = adSum('spend');
+      var fMetaRev = adSum('revenue');
+
+      var cvr  = fSess ? (fOrd / fSess * 100) : 0;
+      var mer  = fSpend ? (fRev / fSpend) : 0;
+      var cac  = fOrd ? (fSpend / fOrd) : 0;
+      var aov  = fOrd ? (fRev / fOrd) : 0;
+
+      $('fun-when').textContent = '\u2014 laatste 28 dagen \u00b7 webshop only';
+      $('fun-nums').innerHTML =
+        num('blended MER', (mer ? mer.toFixed(2) + 'x' : '\u2014'), '',
+            mer >= 3 ? 'goodval' : (mer >= 1.5 ? 'warnval' : 'badval')) +
+        num('conversie', cvr.toFixed(2) + '%', '',
+            cvr >= 1 ? 'goodval' : (cvr >= 0.5 ? 'warnval' : 'badval')) +
+        num('CAC', fOrd ? eur2(cac) : '\u2014', '',
+            (cac && aov && cac < aov) ? 'goodval' : 'badval') +
+        num('online AOV', eur2(aov), '') +
+        num('ads-spend', eur2(fSpend), '') +
+        num('online omzet', eur2(fRev), '');
+
+      var steps = [
+        { l:'Sessies',      v:fSess, c:'var(--cyan)'   },
+        { l:'In winkelwagen',v:fCart, c:'var(--blue)'   },
+        { l:'Checkout',     v:fChk,  c:'var(--yellow)' },
+        { l:'Aankoop',      v:fOrd,  c:'var(--green)'  }
+      ];
+      $('fun-steps').innerHTML = '<div class="fun">' + steps.map(function(st, i){
+        var w    = fSess ? Math.max(st.v / fSess * 100, 1.5) : 0;
+        var prev = i ? steps[i-1].v : 0;
+        var drop = (i && prev) ? (1 - st.v / prev) * 100 : null;
+        return '<div class="fun-row">'
+          + '<span class="fun-lab">' + st.l + '</span>'
+          + '<span class="fun-track"><span class="fun-fill" style="width:' + w + '%;background:' + st.c + '">'
+          +   fmt(st.v) + '</span></span>'
+          + '<span class="fun-drop">' + (drop === null ? '\u2014'
+              : '<b>-' + drop.toFixed(0) + '%</b> uitval') + '</span>'
+          + '</div>';
+      }).join('') + '</div>';
+
+      var gap = fMetaRev && fRev ? (fMetaRev / fRev) : 0;
+      $('fun-foot').textContent =
+        'Aankopen komen uit Shopify (online only), verkeer uit GA4, spend uit Meta. '
+        + (gap > 1.2
+            ? 'Let op: Meta claimt ' + eur2(fMetaRev) + ' omzet (' + gap.toFixed(1) + 'x je hele webshop-omzet) \u2014 dat is dubbeltelling; stuur op MER, niet op Meta-ROAS.'
+            : 'MER = online omzet \u00f7 ads-spend.');
 
       // --- Actieve advertenties (laatste 30 dagen, per ad) ---
       if(live.length){
