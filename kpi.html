@@ -683,14 +683,27 @@
           + '<div class="n">'+mm.due_date+'</div></div></div>';
       }).join('') : '<p style="color:var(--muted)">Geen open to-do\'s.</p>';
 
-      var silent = sil.filter(function(a){ return a.silent; });
-      var sysHtml = '<div class="kv"><span>Bewaakte agents</span><b>'+sil.length+'</b></div>'
+      // bewaakt = agent met vast schema; event-driven (webhook/on approve) is niet te bewaken
+      var mon    = sil.filter(function(a){ return a.monitored; });
+      var events = sil.filter(function(a){ return !a.monitored; });
+      var silent = mon.filter(function(a){ return a.silent; });
+      var failed = sil.filter(function(a){ return a.last_run_failed; });
+
+      var sysHtml = '<div class="kv"><span>Bewaakte agents</span><b>'+mon.length+'</b></div>'
+        + '<div class="kv"><span>Event-driven (niet bewaakt)</span><b>'+events.length+'</b></div>'
         + '<div class="kv"><span>Stille agents</span>'
         + (silent.length ? '<span class="pill red">'+silent.length+' STIL</span>'
-                         : '<span class="pill green">0 &mdash; alles draait</span>') + '</div>';
+                         : '<span class="pill green">0 &mdash; alles op schema</span>') + '</div>';
+      if(failed.length){
+        sysHtml += '<div class="kv"><span>Laatste run mislukt</span><span class="pill red">'+failed.length+'</span></div>';
+      }
       silent.forEach(function(a){
-        var since = (a.hours_since_last_run === null) ? 'nooit gedraaid' : a.hours_since_last_run + 'u geleden';
+        var since = (a.hours_since_last_run === null) ? 'nooit gedraaid'
+                  : a.hours_since_last_run + 'u geleden (verwacht elke ' + a.expected_interval_hours + 'u)';
         sysHtml += '<div class="kv"><span style="color:var(--red)">'+a.agent_name+'</span><span>'+since+'</span></div>';
+      });
+      failed.forEach(function(a){
+        sysHtml += '<div class="kv"><span style="color:var(--red)">'+a.agent_name+'</span><span>laatste run mislukt</span></div>';
       });
       $('system').innerHTML = sysHtml;
 
