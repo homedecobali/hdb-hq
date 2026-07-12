@@ -86,6 +86,18 @@
   #memos .t{font-weight:600}
   #memos .n{font-size:12px;color:var(--muted);margin-top:2px}
   .pill{font-size:11px;font-weight:800;padding:3px 9px;border-radius:99px;white-space:nowrap}
+  .adt{width:100%;border-collapse:collapse;font-size:12px;margin-top:6px}
+  .adt th{text-align:right;padding:6px 8px;color:var(--muted);font-weight:500;font-size:10px;
+    letter-spacing:.06em;text-transform:uppercase;border-bottom:1px solid var(--line);white-space:nowrap}
+  .adt th:first-child{text-align:left}
+  .adt td{padding:7px 8px;border-bottom:1px solid rgba(255,255,255,.04);text-align:right;
+    font-variant-numeric:tabular-nums;white-space:nowrap}
+  .adt td:first-child{text-align:left;white-space:normal;max-width:230px}
+  .adt tr:last-child td{border-bottom:none}
+  .adt .camp{display:block;color:var(--muted);font-size:10.5px;margin-top:2px}
+  .adt .win{color:var(--green);font-weight:600}
+  .adt .lose{color:var(--red);font-weight:600}
+  .adt .flat{color:var(--muted)}
   .sys-sep{margin:12px 0 6px;padding-top:9px;border-top:1px dashed var(--line);
     font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
   .sys-muted{opacity:.62}
@@ -173,6 +185,15 @@
         </div>
       </div>
       <p id="ads-foot" style="color:var(--muted);font-size:11px;margin:10px 0 0"></p>
+    </div>
+    <div style="height:14px"></div>
+
+    <div class="card">
+      <h2><span class="dot" style="background:var(--cyan)"></span>Actieve advertenties
+        <span class="when" id="live-when"></span></h2>
+      <div class="nums" id="live-nums"></div>
+      <div id="live-table"></div>
+      <p id="live-foot" style="color:var(--muted);font-size:11px;margin:10px 0 0"></p>
     </div>
     <div style="height:0"></div>
 
@@ -536,6 +557,8 @@
   }
   var eur2 = function(v){ return '\u20AC' + Number(v || 0).toFixed(2); };
   var pct1 = function(v){ return Number(v || 0).toFixed(1) + '%'; };
+  var esc  = function(v){ return String(v == null ? '' : v)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); };
 
   function pivot(rows, source){
     var out = {};
@@ -563,11 +586,13 @@
         sb.from('bridge_kpi_daily').select('*'),
         sb.from('bridge_memos').select('*'),
         sb.from('bridge_agent_silence').select('*'),
-        sb.from('bridge_ads_summary').select('*')
+        sb.from('bridge_ads_summary').select('*'),
+        sb.from('bridge_active_ads').select('*')
       ]);
       if(res[0].error) throw res[0].error;
       var kpi = res[0].data || [], memos = res[1].data || [],
-          sil = res[2].data || [], adsArr = res[3].data || [];
+          sil = res[2].data || [], adsArr = res[3].data || [],
+          live = res[4].data || [];
       var ads = adsArr[0] || null;
 
       var web = pivot(kpi, 'ga4'); var wd = lastDates(web, 28); var wl = lastTwo(web);
@@ -686,6 +711,55 @@
           + '<div style="text-align:right"><span class="pill '+cls+'">'+lbl+'</span>'
           + '<div class="n">'+mm.due_date+'</div></div></div>';
       }).join('') : '<p style="color:var(--muted)">Geen open to-do\'s.</p>';
+
+      // --- Actieve advertenties (laatste 30 dagen, per ad) ---
+      if(live.length){
+        var tSpend = live.reduce(function(a,r){ return a + Number(r.spend||0); }, 0);
+        var tRev   = live.reduce(function(a,r){ return a + Number(r.revenue||0); }, 0);
+        var tPur   = live.reduce(function(a,r){ return a + Number(r.purchases||0); }, 0);
+        var tImp   = live.reduce(function(a,r){ return a + Number(r.impressions||0); }, 0);
+        var tClk   = live.reduce(function(a,r){ return a + Number(r.clicks||0); }, 0);
+        var tRoas  = tSpend ? tRev / tSpend : 0;
+        var tCpa   = tPur ? tSpend / tPur : 0;
+        var tCtr   = tImp ? (tClk / tImp * 100) : 0;
+
+        $('live-when').textContent = '\u2014 laatste 30 dagen \u00b7 ' + live.length + ' ads live';
+        $('live-nums').innerHTML =
+          num('spend', eur2(tSpend), '') +
+          num('omzet', eur2(tRev), '') +
+          num('ROAS', tRoas.toFixed(2) + 'x', '', tRoas >= 2 ? 'goodval' : (tRoas >= 1 ? 'warnval' : 'badval')) +
+          num('aankopen', fmt(tPur), '') +
+          num('CPA', tPur ? eur2(tCpa) : '\u2014', '') +
+          num('CTR', tCtr.toFixed(2) + '%', '');
+
+        var rows = live.slice(0, 12).map(function(r){
+          var roas = Number(r.roas||0);
+          var cls  = roas >= 2 ? 'win' : (roas > 0 ? 'flat' : (Number(r.spend||0) >= 25 ? 'lose' : 'flat'));
+          return '<tr>'
+            + '<td>' + esc(r.ad_name || '\u2014') + '<span class="camp">' + esc(r.campaign_name || '') + '</span></td>'
+            + '<td>' + eur2(r.spend) + '</td>'
+            + '<td>' + fmt(r.impressions) + '</td>'
+            + '<td>' + fmt(r.reach) + '</td>'
+            + '<td>' + Number(r.frequency||0).toFixed(2) + '</td>'
+            + '<td>' + eur2(r.cpm) + '</td>'
+            + '<td>' + Number(r.ctr||0).toFixed(2) + '%</td>'
+            + '<td>' + fmt(r.purchases) + '</td>'
+            + '<td class="' + cls + '">' + (roas ? roas.toFixed(2) + 'x' : '\u2014') + '</td>'
+            + '<td>' + (r.cpa != null ? eur2(r.cpa) : '\u2014') + '</td>'
+            + '</tr>';
+        }).join('');
+        $('live-table').innerHTML = '<table class="adt"><thead><tr>'
+          + '<th>Advertentie</th><th>Spend</th><th>Impressies</th><th>Bereik</th><th>Freq.</th>'
+          + '<th>CPM</th><th>CTR</th><th>Aankopen</th><th>ROAS</th><th>CPA</th>'
+          + '</tr></thead><tbody>' + rows + '</tbody></table>';
+
+        var noSale = live.filter(function(r){ return !Number(r.purchases) && Number(r.spend||0) >= 25; });
+        $('live-foot').textContent = 'Gesorteerd op spend'
+          + (live.length > 12 ? ' \u00b7 top 12 van ' + live.length : '')
+          + (noSale.length ? ' \u00b7 ' + noSale.length + ' ads met \u226525 EUR spend en 0 aankopen' : '');
+      } else {
+        $('live-table').innerHTML = '<p style="color:var(--muted)">Nog geen data \u2014 Active Ads Pull draait dagelijks 07:30.</p>';
+      }
 
       // bewaakt = agent met vast schema; event-driven (webhook/on approve) is niet te bewaken
       var mon    = sil.filter(function(a){ return a.monitored; });
