@@ -86,6 +86,12 @@
   #memos .t{font-weight:600}
   #memos .n{font-size:12px;color:var(--muted);margin-top:2px}
   .pill{font-size:11px;font-weight:800;padding:3px 9px;border-radius:99px;white-space:nowrap}
+  .split-bar{height:7px;border-radius:4px;background:var(--orange);overflow:hidden;margin:12px 0 8px}
+  .split-bar i{display:block;height:100%;background:var(--cyan)}
+  .split-legend{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;font-size:12px}
+  .split-legend span:first-child b{color:var(--cyan)}
+  .split-legend span:last-child b{color:var(--orange)}
+  .split-note{color:var(--muted);font-size:11px;margin:8px 0 0}
   .adt{width:100%;border-collapse:collapse;font-size:12px;margin-top:6px}
   .adt th{text-align:right;padding:6px 8px;color:var(--muted);font-weight:500;font-size:10px;
     letter-spacing:.06em;text-transform:uppercase;border-bottom:1px solid var(--line);white-space:nowrap}
@@ -158,6 +164,7 @@
         <div class="chart" id="shop-chart"></div>
         <div class="legend"><span><i style="background:var(--yellow)"></i>Orders</span>
           <span><i style="background:var(--green)"></i>Omzet (&euro;)</span></div>
+        <div id="shop-split"></div>
       </div>
       <div class="card">
         <h2><span class="dot" style="background:var(--green)"></span>Social (Meta)
@@ -620,6 +627,26 @@
         num('orders', fmt(shl.last.orders||0), delta(shl.last.orders, shl.prev.orders)) +
         num('AOV', eur2(shl.last.aov||0), '') +
         num('nieuwe klanten', fmt(shl.last.new_customers||0), '');
+
+      // Kanaal-splitsing over dezelfde 14 dagen: online (webshop) vs winkel (draft/POS).
+      // Zonder deze splitsing vervuilt winkelomzet je webshop-conversie en je ads-ROAS.
+      var sum14 = function(metric){
+        return shd.reduce(function(a, d){ return a + Number((shop[d] || {})[metric] || 0); }, 0);
+      };
+      var onR = sum14('online_revenue'), onO = sum14('online_orders');
+      var stR = sum14('store_revenue'),  stO = sum14('store_orders');
+      var totR = onR + stR;
+      if(totR > 0){
+        var onPct = Math.round(onR / totR * 100);
+        $('shop-split').innerHTML =
+          '<div class="split-bar"><i style="width:' + onPct + '%"></i></div>'
+        + '<div class="split-legend">'
+        +   '<span><b>Online</b> ' + eur2(onR) + ' &middot; ' + onO + ' orders &middot; AOV ' + eur2(onO ? onR/onO : 0) + '</span>'
+        +   '<span><b>Winkel</b> ' + eur2(stR) + ' &middot; ' + stO + ' orders &middot; AOV ' + eur2(stO ? stR/stO : 0) + '</span>'
+        + '</div>'
+        + '<p class="split-note">14 dagen &middot; ' + onPct + '% van de omzet komt uit de webshop. '
+        + 'Winkelverkoop = handmatige/draft-orders; alleen de online-cijfers zijn relevant voor ads &amp; conversie.</p>';
+      }
       $('shop-chart').innerHTML = barChart(shd, [
         { values: vals(shop, shd, 'orders'), color: CLR.yellow }
       ], { values: vals(shop, shd, 'revenue'), color: CLR.green }, 230);
