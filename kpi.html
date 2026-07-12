@@ -692,7 +692,7 @@
         $('oo-table').innerHTML = '<p style="color:var(--muted)">bridge_open_orders niet leesbaar: '
           + esc(ooErr.message || ooErr) + '</p>';
       } else {
-        oo.sort(function(a,b){ return new Date(a.order_created_at) - new Date(b.order_created_at); });
+        oo.sort(function(a,b){ return new Date(b.order_created_at) - new Date(a.order_created_at); });
         var ooTot  = oo.reduce(function(a,r){ return a + Number(r.total_price || 0); }, 0);
         var ageOf  = function(r){
           return Math.max(0, Math.floor((Date.now() - new Date(r.order_created_at)) / 86400000));
