@@ -160,6 +160,7 @@
   .ac-run .rt{font-size:9px;color:var(--dim);font-variant-numeric:tabular-nums;letter-spacing:.2px;white-space:nowrap}
   .ac-run.run-ok  .rk{color:var(--green)} .ac-run.run-ok  .rt{color:#9fc7b1}
   .ac-run.run-err .rk{color:var(--red)}   .ac-run.run-err .rt{color:#e2a3a5}
+  .ac-run.run-stale .rk{color:var(--amber)} .ac-run.run-stale .rt{color:#e8c98a}
   .ac-run.run-go  .rk{color:var(--cyan);animation:jc-blink .9s infinite}
   .ac-run.run-go  .rt{color:#8fd6e8}
 
@@ -180,6 +181,7 @@
     background:rgba(0,0,0,.24);border:1px solid var(--hair);border-radius:8px}
   .exec-list .ex-k{flex:0 0 12px;text-align:center;font-size:11px;font-weight:800;color:var(--dim)}
   .exec-list .ex-k.run-ok{color:var(--green)} .exec-list .ex-k.run-err{color:var(--red)}
+  .exec-list .ex-k.run-stale{color:var(--amber)}
   .exec-list .ex-k.run-go{color:var(--cyan)}
   .exec-list .ex-when{color:var(--text);font-variant-numeric:tabular-nums;letter-spacing:.2px}
   .exec-list .ex-dur{margin-left:auto;color:var(--dim);font-size:10px;font-variant-numeric:tabular-nums}
@@ -403,6 +405,7 @@
     <div class="metric"><div class="v" id="mNodes">0</div><div class="l" id="mNodesL">NODES ZICHTBAAR</div></div>
     <div class="metric"><div class="v" id="mAgents">0</div><div class="l">AGENTS TOT.</div></div>
     <div class="metric"><div class="v" id="mOnline" style="color:var(--green)">0</div><div class="l">ONLINE</div></div>
+    <div class="metric"><div class="v" id="mStale" style="color:var(--dim)">0</div><div class="l">VEROUDERD</div></div>
     <div class="metric"><div class="v" id="mErr" style="color:var(--dim)">0</div><div class="l">ERRORS</div></div>
     <div class="clock"><span id="clk">--:--:--</span><span class="sub">CET</span></div>
   </header>
@@ -452,7 +455,9 @@ const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFz
 const SB = createClient(SUPABASE_URL, SUPABASE_ANON);
 /* ======================================================================= */
 const C = { cyan:"#00d4ff", green:"#3ee08f", amber:"#ffb547", violet:"#b58cff", red:"#E31E24", advert:"#ff5fa2", grey:"#8aa0b5", gold:"#ffd166", dim:"#5e7c8e", text:"#cfe2ec" };
-const STATUS = { ok:{c:C.green,l:"Healthy"}, running:{c:C.cyan,l:"Running"}, idle:{c:C.dim,l:"Idle"}, error:{c:C.red,l:"Error"}, paused:{c:"#ffb547",l:"Paused"} };
+const STATUS = { ok:{c:C.green,l:"Healthy"}, running:{c:C.cyan,l:"Running"}, idle:{c:C.dim,l:"Idle"}, error:{c:C.red,l:"Error"},
+                 stale:{c:C.amber,l:"Verouderd"},   // geslaagd, maar te lang geleden voor zijn schema
+                 paused:{c:"#ffb547",l:"Paused"} };
 
 /* Afdelingen + agents — FALLBACK.
    Supabase 'bridge_layout' wordt de bron van de indeling zodra die view in het
@@ -544,7 +549,7 @@ const fmtRun=ts=>{ if(!ts)return"—"; const d=new Date(ts); if(isNaN(d))return"
   const p=n=>String(n).padStart(2,"0");
   return `${p(d.getDate())}/${p(d.getMonth()+1)} ${p(d.getHours())}:${p(d.getMinutes())}`; };
 const RUNGLYPH={ ok:{ch:"✓",cls:"run-ok"}, running:{ch:"⟳",cls:"run-go"},
-  error:{ch:"✕",cls:"run-err"}, idle:{ch:"·",cls:""} };
+  error:{ch:"✕",cls:"run-err"}, stale:{ch:"!",cls:"run-stale"}, idle:{ch:"·",cls:""} };
 
 /* ---- dependencies / readiness ---- */
 const readiness = {};        // agent_id -> { agent_id, readiness, deps:[{upstream,name,kind,severity,health,upstream_last_run}] }
@@ -838,7 +843,7 @@ function renderPanel(){
       ${rdyHtml}${depsHtml}`;
     p.querySelector(".close").onclick=()=>{selected=null;renderPanel();};
   } else {
-    const c={ok:0,running:0,idle:0,error:0,paused:0}; AGENTS.forEach(a=>c[statusOf(a.id)]++);
+    const c={ok:0,running:0,idle:0,error:0,paused:0,stale:0}; AGENTS.forEach(a=>{const st=statusOf(a.id); if(c[st]!==undefined)c[st]++;});
     p.className="";
     p.innerHTML=`<div class="lbl" style="margin-bottom:10px">⚡ SYSTEM STATUS</div>
       <div class="statgrid">${Object.entries(STATUS).map(([k,v])=>`<div class="stat"><span class="c" style="background:${v.c};box-shadow:0 0 7px ${v.c}"></span>${v.l}<span class="n" style="color:${v.c}">${c[k]}</span></div>`).join("")}</div>
@@ -852,12 +857,13 @@ function pushEvent(a,err){ events.unshift({t:new Date(),agent:a.name,dept:a.dept
 
 /* === SHARED METRICS ==================================================== */
 function renderMetrics(){
-  const c={ok:0,running:0,idle:0,error:0,paused:0}; AGENTS.forEach(a=>c[statusOf(a.id)]++);
+  const c={ok:0,running:0,idle:0,error:0,paused:0,stale:0}; AGENTS.forEach(a=>{const st=statusOf(a.id); if(c[st]!==undefined)c[st]++;});
   if(currentView==="radial"){ $("mNodes").textContent=UNITS.length; $("mNodesL").textContent="NODES ZICHTBAAR"; }
   else { $("mNodes").textContent=AGENTS.length; $("mNodesL").textContent="AGENTS ZICHTBAAR"; }
   $("mAgents").textContent=AGENTS.length;
   $("mOnline").textContent=c.ok+c.running;
   $("mErr").textContent=c.error; $("mErr").style.color=c.error?C.red:C.dim;
+  $("mStale").textContent=c.stale; $("mStale").style.color=c.stale?C.amber:C.dim;
 }
 
 function renderRadial(){ UNITS=visibleUnits(); computePositions(); buildEdges(); positionSvg(); buildDepEdges(); buildNodes(); positionNodes(); renderMetrics(); renderPanel(); }

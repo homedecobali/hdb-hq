@@ -46,6 +46,7 @@
   .dot{width:9px;height:9px;border-radius:50%;flex:none;background:var(--muted)}
   .dot.ok{background:var(--green)} .dot.error{background:var(--red)}
   .dot.stale{background:var(--amber)} .dot.paused{background:var(--muted)}
+  .dot.other{background:var(--muted);opacity:.6}
   .agent-row small{color:var(--muted);margin-left:auto;font-size:11px}
 
   /* detail */
@@ -184,7 +185,10 @@
     btn.className = "agent-row"; btn.dataset.agentId = a.agent_id;
     let dotCls = "paused";
     if(!a.paused){
+      // 'stale' komt nu uit agent_status (per-agent schema), niet uit een vaste drempel
       if(a.last_status === "error") dotCls = "error";
+      else if(a.last_status === "stale") dotCls = "stale";
+      else if(a.last_status === "idle" || !a.last_run) dotCls = "other";
       else if(a.last_run && new Date(a.last_run).getTime() < staleCut) dotCls = "stale";
       else if(a.last_status) dotCls = "ok";
     }
