@@ -220,20 +220,11 @@
     <div style="height:14px"></div>
 
     <div class="card">
-      <h2><span class="dot" style="background:var(--yellow)"></span>Recente bestellingen (Shopify)
+      <h2><span class="dot" style="background:var(--orange)"></span>Onverzonden bestellingen (Shopify)
         <span class="when" id="ro-when"></span></h2>
       <div class="nums" id="ro-nums"></div>
       <div id="ro-table"></div>
       <p id="ro-foot" style="color:var(--muted);font-size:11px;margin:10px 0 0"></p>
-    </div>
-    <div style="height:14px"></div>
-
-    <div class="card">
-      <h2><span class="dot" style="background:var(--orange)"></span>Openstaande orders (Shopify)
-        <span class="when" id="oo-when"></span></h2>
-      <div class="nums" id="oo-nums"></div>
-      <div id="oo-table"></div>
-      <p id="oo-foot" style="color:var(--muted);font-size:11px;margin:10px 0 0"></p>
     </div>
     <div style="height:14px"></div>
 
@@ -675,16 +666,13 @@
         sb.from('bridge_open_orders').select('*'),
         // agent-telling uit de gedeelde bron (dewi-agents.js -> bridge_agent_index),
         // identiek aan agents.html en organisation.html; mag falen zonder de rest te blokkeren
-        DEWI_AGENTS.load(sb).catch(function(e){ return { agents: [], counts: null, error: e }; }),
-        // recente orders (alle kanalen & statussen) — gevuld door de hourly Open Orders Sync
-        sb.from('bridge_recent_orders').select('*')
+        DEWI_AGENTS.load(sb).catch(function(e){ return { agents: [], counts: null, error: e }; })
       ]);
       if(res[0].error) throw res[0].error;
       var kpi = res[0].data || [], memos = res[1].data || [],
           sil = res[2].data || [], adsArr = res[3].data || [],
           live = res[4].data || [];
       var oo = res[5].data || [], ooErr = res[5].error;
-      var ro = res[7].data || [], roErr = res[7].error;
       var ads = adsArr[0] || null;
 
       var web = pivot(kpi, 'ga4'); var wd = lastDates(web, 28); var wl = lastTwo(web);
@@ -741,111 +729,63 @@
         { label: 'AOV', values: vals(shop, shd, 'aov'), color: CLR.muted, format: eur2 }
       ], true);
 
-      // --- Recente bestellingen (alle kanalen & statussen, via bridge_recent_orders) ---
-      if(roErr){
+      // --- Onverzonden bestellingen (bridge_open_orders, hourly Open Orders Sync) ---
+      // De sync bewaart alleen open & onverzonden orders; verzonden orders worden verwijderd.
+      // We filteren hier defensief nogmaals op fulfillment_status en tonen nieuwste eerst.
+      if(ooErr){
         $('ro-when').textContent = '';
         $('ro-nums').innerHTML = '';
-        $('ro-table').innerHTML = '<p style="color:var(--muted)">bridge_recent_orders niet leesbaar: '
-          + esc(roErr.message || roErr) + '</p>';
-      } else {
-        ro.sort(function(a,b){ return new Date(b.order_created_at) - new Date(a.order_created_at); });
-        var roSync = ro.reduce(function(a,r){ return (r.synced_at||'') > a ? r.synced_at : a; }, '');
-        var isToday = function(r){
-          var d = new Date(r.order_created_at), n2 = new Date();
-          return d.getFullYear() === n2.getFullYear() && d.getMonth() === n2.getMonth() && d.getDate() === n2.getDate();
-        };
-        var roToday = ro.filter(isToday);
-        var roRev = roToday.reduce(function(a,r){ return a + Number(r.total_price || 0); }, 0);
-        var roOn = roToday.filter(function(r){ return r.source_name === 'web'; });
-        $('ro-when').textContent = '\u2014 laatste ' + ro.length + ' orders, alle kanalen'
-          + (roSync ? ' \u00b7 sync ' + roSync.slice(0,16).replace('T',' ') : '');
-        $('ro-nums').innerHTML =
-          num('orders vandaag', fmt(roToday.length), '') +
-          num('omzet vandaag', eur2(roRev), '') +
-          num('online vandaag', fmt(roOn.length), '') +
-          num('winkel/handmatig', fmt(roToday.length - roOn.length), '');
-        var chanNL = function(s){
-          return s === 'web' ? 'Online Store'
-               : s === 'shopify_draft_order' ? 'Concept/handmatig'
-               : s === 'pos' ? 'POS' : (s || '\u2014');
-        };
-        var fulNL = { FULFILLED:'verzonden', UNFULFILLED:'onverzonden', PARTIALLY_FULFILLED:'deels verzonden',
-                      ON_HOLD:'on hold', SCHEDULED:'gepland', IN_PROGRESS:'bezig' };
-        var finNLr = { PAID:'betaald', PENDING:'in afwachting', AUTHORIZED:'geautoriseerd',
-                       PARTIALLY_PAID:'deels betaald', PARTIALLY_REFUNDED:'deels terugbetaald',
-                       REFUNDED:'terugbetaald' };
-        var roRows = ro.slice(0, 12).map(function(r){
-          var d2 = new Date(r.order_created_at);
-          var when = String(r.order_created_at).slice(0,10) + ' '
-            + ('0' + d2.getHours()).slice(-2) + ':' + ('0' + d2.getMinutes()).slice(-2);
-          var ful = fulNL[r.fulfillment_status] || String(r.fulfillment_status || '\u2014').toLowerCase();
-          var fin = finNLr[r.financial_status] || String(r.financial_status || '\u2014').toLowerCase();
-          return '<tr>'
-            + '<td><b>' + esc(r.order_name) + '</b><span class="camp">' + esc(r.customer_name || '\u2014') + '</span></td>'
-            + '<td>' + when + '</td>'
-            + '<td>' + esc(chanNL(r.source_name)) + '</td>'
-            + '<td>' + fmt(r.line_item_count || 0) + '</td>'
-            + '<td>' + eur2(r.total_price) + '</td>'
-            + '<td><span class="pill ' + (r.financial_status === 'PAID' ? 'green' : 'orange') + '">' + esc(fin) + '</span></td>'
-            + '<td><span class="pill ' + (r.fulfillment_status === 'FULFILLED' ? 'green' : 'orange') + '">' + esc(ful) + '</span></td>'
-            + '</tr>';
-        }).join('');
-        $('ro-table').innerHTML = ro.length
-          ? '<table class="adt"><thead><tr>'
-            + '<th>Order / klant</th><th>Datum</th><th>Kanaal</th><th>Items</th><th>Bedrag</th><th>Betaling</th><th>Verzending</th>'
-            + '</tr></thead><tbody>' + roRows + '</tbody></table>'
-          : '<p style="color:var(--muted)">Nog geen recente orders gesynct \u2014 de sync draait elk uur.</p>';
-        $('ro-foot').textContent = 'Nieuwste eerst \u00b7 elk uur ververst \u00b7 bron: bridge_recent_orders (Shopify-sync)'
-          + ' \u00b7 het paneel hieronder toont alleen betaald & onverzonden';
-      }
-
-      // --- Openstaande orders (betaald & onverzonden, via bridge_open_orders) ---
-      if(ooErr){
-        $('oo-when').textContent = '';
-        $('oo-nums').innerHTML = '';
-        $('oo-table').innerHTML = '<p style="color:var(--muted)">bridge_open_orders niet leesbaar: '
+        $('ro-table').innerHTML = '<p style="color:var(--muted)">bridge_open_orders niet leesbaar: '
           + esc(ooErr.message || ooErr) + '</p>';
       } else {
-        oo.sort(function(a,b){ return new Date(b.order_created_at) - new Date(a.order_created_at); });
-        var ooTot  = oo.reduce(function(a,r){ return a + Number(r.total_price || 0); }, 0);
+        var ro = oo.filter(function(r){ return r.fulfillment_status !== 'FULFILLED'; });
+        ro.sort(function(a,b){ return new Date(b.order_created_at) - new Date(a.order_created_at); });
+        var roTot  = ro.reduce(function(a,r){ return a + Number(r.total_price || 0); }, 0);
         var ageOf  = function(r){
           return Math.max(0, Math.floor((Date.now() - new Date(r.order_created_at)) / 86400000));
         };
-        var ooAges = oo.map(ageOf);
-        var ooOld  = ooAges.length ? Math.max.apply(null, ooAges) : 0;
-        var ooUrg  = ooAges.filter(function(d){ return d > 5; }).length;
-        var ooSync = oo.reduce(function(a,r){ return (r.synced_at||'') > a ? r.synced_at : a; }, '');
-        $('oo-when').textContent = '\u2014 betaald & onverzonden'
-          + (ooSync ? ' \u00b7 sync ' + ooSync.slice(0,16).replace('T',' ') : '');
-        $('oo-nums').innerHTML =
-          num('openstaand', fmt(oo.length), '', ooUrg ? 'warnval' : '') +
-          num('waarde', eur2(ooTot), '') +
-          num('gem. order', eur2(oo.length ? ooTot / oo.length : 0), '') +
-          num('oudste', ooOld + ' dg', '', ooOld > 5 ? 'badval' : (ooOld > 2 ? 'warnval' : 'goodval')) +
-          num('> 5 dagen', fmt(ooUrg), '', ooUrg ? 'badval' : 'goodval');
+        var roAges = ro.map(ageOf);
+        var roOld  = roAges.length ? Math.max.apply(null, roAges) : 0;
+        var roUrg  = roAges.filter(function(d){ return d > 5; }).length;
+        var roSync = ro.reduce(function(a,r){ return (r.synced_at||'') > a ? r.synced_at : a; }, '');
+        $('ro-when').textContent = '\u2014 open & onverzonden, nieuwste eerst'
+          + (roSync ? ' \u00b7 sync ' + roSync.slice(0,16).replace('T',' ') : '');
+        $('ro-nums').innerHTML =
+          num('onverzonden', fmt(ro.length), '', roUrg ? 'warnval' : '') +
+          num('waarde', eur2(roTot), '') +
+          num('gem. order', eur2(ro.length ? roTot / ro.length : 0), '') +
+          num('oudste', roOld + ' dg', '', roOld > 5 ? 'badval' : (roOld > 2 ? 'warnval' : 'goodval')) +
+          num('> 5 dagen', fmt(roUrg), '', roUrg ? 'badval' : 'goodval');
+        var fulNL = { UNFULFILLED:'onverzonden', PARTIALLY_FULFILLED:'deels verzonden',
+                      ON_HOLD:'on hold', SCHEDULED:'gepland', IN_PROGRESS:'bezig' };
         var finNL = { PAID:'betaald', PENDING:'in afwachting', AUTHORIZED:'geautoriseerd',
                       PARTIALLY_PAID:'deels betaald', PARTIALLY_REFUNDED:'deels terugbetaald',
                       REFUNDED:'terugbetaald' };
-        var ooRows = oo.map(function(r){
+        var roRows = ro.map(function(r){
           var d   = ageOf(r);
           var cls = d > 5 ? 'red' : (d > 2 ? 'orange' : 'green');
+          var d2  = new Date(r.order_created_at);
+          var when = String(r.order_created_at).slice(0,10) + ' '
+            + ('0' + d2.getHours()).slice(-2) + ':' + ('0' + d2.getMinutes()).slice(-2);
           var fin = finNL[r.financial_status] || String(r.financial_status || '\u2014').toLowerCase();
+          var ful = fulNL[r.fulfillment_status] || String(r.fulfillment_status || '\u2014').toLowerCase();
           return '<tr>'
             + '<td><b>' + esc(r.order_name) + '</b><span class="camp">' + esc(r.customer_name || '\u2014') + '</span></td>'
-            + '<td>' + String(r.order_created_at).slice(0,10) + '</td>'
+            + '<td>' + when + '</td>'
             + '<td><span class="pill ' + cls + '">' + d + ' dg</span></td>'
             + '<td>' + fmt(r.line_item_count || 0) + '</td>'
             + '<td>' + eur2(r.total_price) + '</td>'
             + '<td><span class="pill ' + (r.financial_status === 'PAID' ? 'green' : 'orange') + '">' + esc(fin) + '</span></td>'
+            + '<td><span class="pill orange">' + esc(ful) + '</span></td>'
             + '</tr>';
         }).join('');
-        $('oo-table').innerHTML = oo.length
+        $('ro-table').innerHTML = ro.length
           ? '<table class="adt"><thead><tr>'
-            + '<th>Order / klant</th><th>Datum</th><th>Wachttijd</th><th>Items</th><th>Bedrag</th><th>Betaling</th>'
-            + '</tr></thead><tbody>' + ooRows + '</tbody></table>'
-          : '<p style="color:var(--muted)">Geen openstaande orders \u2014 alles is verzonden.</p>';
-        $('oo-foot').textContent = 'Oudste eerst \u00b7 wachttijd: groen \u22642 dg, oranje 3\u20135 dg, rood >5 dg'
-          + ' \u00b7 bron: bridge_open_orders (Shopify-sync)';
+            + '<th>Order / klant</th><th>Datum</th><th>Wachttijd</th><th>Items</th><th>Bedrag</th><th>Betaling</th><th>Verzending</th>'
+            + '</tr></thead><tbody>' + roRows + '</tbody></table>'
+          : '<p style="color:var(--muted)">Geen onverzonden orders \u2014 alles is verzonden. De sync draait elk uur.</p>';
+        $('ro-foot').textContent = 'Nieuwste eerst \u00b7 elk uur ververst \u00b7 wachttijd: groen \u22642 dg, oranje 3\u20135 dg, rood >5 dg'
+          + ' \u00b7 bron: bridge_open_orders (HDB \u00b7 Orders \u2014 Open Orders Sync)';
       }
 
       var soc = pivot(kpi, 'meta_social'); var sd = lastDates(soc, 28); var sl = lastTwo(soc);
