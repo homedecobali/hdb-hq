@@ -544,6 +544,63 @@
     return svg + '</svg>';
   }
 
+  // Lijngrafiek met twee y-assen: elke serie krijgt een eigen schaal (min-max
+  // rond de werkelijke waarden i.p.v. vanaf 0), zodat groei van series met
+  // sterk verschillende aantallen (bijv. IG- vs FB-volgers) leesbaar blijft.
+  function dualLineChart(dates, s1, s2, height){
+    var w = 900, h = height || 240, padL = 52, padR = 52, padT = 22, padB = 26;
+    var iW = w - padL - padR, iH = h - padT - padB;
+    var n = dates.length;
+    var X = function(i){ return padL + (n <= 1 ? iW/2 : i * (iW / (n-1))); };
+    // per serie: nette min/max met wat lucht, zodat de lijn niet plat oogt
+    function scaleOf(values){
+      var mn = Infinity, mx = -Infinity;
+      values.forEach(function(v){ if(v < mn) mn = v; if(v > mx) mx = v; });
+      if(!isFinite(mn)){ mn = 0; mx = 1; }
+      if(mn === mx){ mn = mn - 1; mx = mx + 1; }
+      var pad = (mx - mn) * 0.12;
+      mn = Math.max(0, Math.floor(mn - pad)); mx = Math.ceil(mx + pad);
+      return { min: mn, max: mx,
+        Y: function(v){ return padT + iH - ((v - mn) / (mx - mn)) * iH; } };
+    }
+    var sc1 = scaleOf(s1.values), sc2 = scaleOf(s2.values);
+    var svg = '<svg viewBox="0 0 '+w+' '+h+'" preserveAspectRatio="xMidYMid meet">';
+    // rasterlijnen + as-labels; links in de kleur van serie 1, rechts van serie 2
+    for(var g = 0; g <= 4; g++){
+      var gy = padT + iH - (iH * g / 4);
+      var v1 = sc1.min + (sc1.max - sc1.min) * g / 4;
+      var v2 = sc2.min + (sc2.max - sc2.min) * g / 4;
+      svg += '<line x1="'+padL+'" y1="'+gy.toFixed(1)+'" x2="'+(w-padR)+'" y2="'+gy.toFixed(1)
+        + '" stroke="'+CLR.grid+'" stroke-width="1"/>'
+        + '<text x="'+(padL-8)+'" y="'+(gy+4).toFixed(1)+'" text-anchor="end" font-size="11" fill="'+s1.color+'">'
+        + fmt(Math.round(v1)) + '</text>'
+        + '<text x="'+(w-padR+8)+'" y="'+(gy+4).toFixed(1)+'" text-anchor="start" font-size="11" fill="'+s2.color+'">'
+        + fmt(Math.round(v2)) + '</text>';
+    }
+    var step = Math.max(1, Math.ceil(n / 8));
+    for(var i = 0; i < n; i += step){
+      svg += '<text x="'+X(i).toFixed(1)+'" y="'+(h-8)+'" text-anchor="middle" font-size="11" fill="'+CLR.muted+'">'
+        + dayLabel(dates[i]) + '</text>';
+    }
+    // legenda bovenin, in de as-kleuren
+    svg += '<circle cx="'+padL+'" cy="9" r="3.5" fill="'+s1.color+'"/>'
+      + '<text x="'+(padL+8)+'" y="13" font-size="11" fill="'+s1.color+'">'+esc(s1.label)+' (links)</text>'
+      + '<circle cx="'+(padL+130)+'" cy="9" r="3.5" fill="'+s2.color+'"/>'
+      + '<text x="'+(padL+138)+'" y="13" font-size="11" fill="'+s2.color+'">'+esc(s2.label)+' (rechts)</text>';
+    [ {s:s1, sc:sc1}, {s:s2, sc:sc2} ].forEach(function(p){
+      var d = '';
+      p.s.values.forEach(function(v, i){ d += (i ? ' L' : 'M') + X(i).toFixed(1) + ' ' + p.sc.Y(v).toFixed(1); });
+      if(p.s.fill){
+        svg += '<path d="'+d+' L'+X(n-1).toFixed(1)+' '+(padT+iH).toFixed(1)+' L'+X(0).toFixed(1)+' '+(padT+iH).toFixed(1)
+          + ' Z" fill="'+p.s.color+'" opacity="0.08"/>';
+      }
+      svg += '<path d="'+d+'" fill="none" stroke="'+p.s.color+'" stroke-width="2.4" stroke-linejoin="round"/>';
+      var lv = p.s.values[n-1];
+      svg += '<circle cx="'+X(n-1).toFixed(1)+'" cy="'+p.sc.Y(lv).toFixed(1)+'" r="3.5" fill="'+p.s.color+'"/>';
+    });
+    return svg + '</svg>';
+  }
+
   function barChart(dates, groups, lineSeries, height){
     var w = 900, h = height || 240, padL = 46, padR = 10, padT = 12, padB = 26;
     var iW = w - padL - padR, iH = h - padT - padB;
@@ -594,12 +651,12 @@
 
   // ---------- hover: tooltip + hulplijn op elke grafiek ----------
   // series: [{label, values, color, format?}] - format is optionele functie op de waarde
-  function hookHover(el, dates, series, isBars){
+  function hookHover(el, dates, series, isBars, opts){
     if(!el || !dates || dates.length < 2) return;
     var tip = document.createElement('div'); tip.className = 'tip';
     var guide = document.createElement('div'); guide.className = 'guide';
     el.appendChild(guide); el.appendChild(tip);
-    var W = 900, padL = 46, padR = 10, n = dates.length;
+    var W = 900, padL = (opts && opts.padL) || 46, padR = (opts && opts.padR) || 10, n = dates.length;
     var iW = W - padL - padR;
     var slot = iW / n, stepX = iW / (n - 1);
     var xOf = function(i){ return isBars ? (padL + i * slot + slot / 2) : (padL + i * stepX); };
@@ -799,13 +856,14 @@
         num('FB volgers', fmt(sl.last.fb_followers||0), '') +
         num('FB fans', fmt(sl.last.fb_fans||0), '');
       if(sd.length >= 2){
-        $('social-chart').innerHTML = lineChart(sd, [
-          { values: vals(soc, sd, 'ig_followers'), color: CLR.green, fill: true }
-        ], 230);
+        $('social-chart').innerHTML = dualLineChart(sd,
+          { label: 'IG volgers', values: vals(soc, sd, 'ig_followers'), color: CLR.green, fill: true },
+          { label: 'FB volgers', values: vals(soc, sd, 'fb_followers'), color: CLR.blue },
+          230);
         hookHover($('social-chart'), sd, [
           { label: 'IG volgers', values: vals(soc, sd, 'ig_followers'), color: CLR.green },
           { label: 'FB volgers', values: vals(soc, sd, 'fb_followers'), color: CLR.blue }
-        ]);
+        ], false, { padL: 52, padR: 52 });
       } else {
         $('social-chart').innerHTML = '<p style="color:var(--muted);font-size:12px;margin:30px 0">'
           + 'Groeigrafiek verschijnt zodra er meerdere dagen historie is &mdash; volger-aantallen zijn '
