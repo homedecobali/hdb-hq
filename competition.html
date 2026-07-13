@@ -3,13 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DEWI - Competition</title>
+<title>DEWI - Concurrentie</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="dewi-config.js"></script>
 <style>
   :root{
     --bg:#070b12; --panel:#0d1420; --panel2:#111a29; --line:#1c2940;
-    --cyan:#00d4ff; --pink:#ff5fa2; --green:#3ee08f; --red:#ff5f6b; --muted:#7d8ca3;
+    --cyan:#00d4ff; --pink:#ff5fa2; --green:#3ee08f; --amber:#ffc45f; --red:#ff5f6b; --muted:#7d8ca3;
     --text:#dfe8f5;
   }
   *{box-sizing:border-box}
@@ -34,9 +34,33 @@
     border-bottom:1px solid var(--line);text-transform:uppercase}
   .pad{padding:14px 16px}
   .loading{padding:24px;color:var(--muted);text-align:center}
+  .note{color:var(--muted);font-size:12px}
 
-  /* criteria-rail: de lens waardoor DEWI de markt bekijkt */
-  #criteria .pad{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+  /* ---- statusstrip: de stuurfactoren van de research-pijplijn ---- */
+  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px;padding:14px 16px}
+  .stat{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:12px 14px}
+  .stat .lbl{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+  .stat .val{font-size:20px;font-weight:700;margin-top:4px}
+  .stat .sub{font-size:11.5px;color:var(--muted);margin-top:3px}
+  .ok{color:var(--green)} .warn{color:var(--amber)} .bad{color:var(--red)} .info{color:var(--cyan)}
+
+  .banner{display:none;margin:0 16px 14px;border-radius:8px;padding:11px 14px;font-size:13px;line-height:1.45;
+    border:1px solid var(--amber);background:rgba(255,196,95,.07);color:var(--amber)}
+  .banner.bad{border-color:var(--red);background:rgba(255,95,107,.07);color:var(--red)}
+  .banner b{font-weight:700}
+
+  /* ---- pijplijn: hoe concurrentie-inzicht onze ads stuurt ---- */
+  .pipe{display:flex;flex-wrap:wrap;align-items:stretch;gap:0;padding:14px 16px}
+  .pipe .step{flex:1;min-width:170px;background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:10px 12px;position:relative;margin-right:26px}
+  .pipe .step:last-child{margin-right:0}
+  .pipe .step::after{content:"\2192";position:absolute;right:-21px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:16px}
+  .pipe .step:last-child::after{content:""}
+  .pipe .step b{display:block;font-size:12.5px;color:var(--cyan)}
+  .pipe .step span{display:block;font-size:11.5px;color:var(--muted);margin-top:3px}
+  @media (max-width:900px){ .pipe{flex-direction:column;gap:8px} .pipe .step{margin-right:0} .pipe .step::after{content:""} }
+
+  /* ---- filter-rail taal x segment ---- */
+  #filters .pad{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
   .crit{border:1px solid var(--line);background:var(--panel2);color:var(--text);
     border-radius:20px;padding:5px 14px;font-size:12px;cursor:pointer;font:inherit;display:flex;gap:8px;align-items:center}
   .crit:hover{border-color:var(--pink)}
@@ -48,28 +72,34 @@
 
   .grid{display:grid;grid-template-columns:1fr;gap:14px}
   @media (min-width:1200px){ .grid.g2{grid-template-columns:1fr 1fr} .grid.g3{grid-template-columns:1fr 1fr 1fr} }
-  @media (min-width:2200px){ .grid.g3{grid-template-columns:1fr 1fr 1fr};.grid{gap:20px} }
+  @media (min-width:2200px){ .grid{gap:20px} }
 
   .card-list{display:flex;flex-direction:column;gap:10px;padding:14px 16px}
-  .icard{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:12px 14px}
-  .icard b{display:block;margin-bottom:4px}
-  .icard .why{color:var(--muted);font-size:12px;margin-top:6px}
-  .icard .ex{font-size:12px;color:var(--text);opacity:.85;margin-top:6px;border-left:2px solid var(--pink);padding-left:10px;font-style:italic}
+  .icard{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:11px 14px;font-size:13px}
+  .icard .tagrow{margin-bottom:5px}
+  .tag{display:inline-block;font-size:10px;letter-spacing:.08em;text-transform:uppercase;border:1px solid var(--line);
+    border-radius:4px;padding:1px 7px;color:var(--muted);margin-right:6px}
+  .tag.lang{color:var(--cyan);border-color:var(--cyan)}
+  .tag.seg{color:var(--pink);border-color:var(--pink)}
+  .icard .ex{font-size:12px;opacity:.85;margin-top:6px;border-left:2px solid var(--pink);padding-left:10px;font-style:italic}
 
-  .chips{display:flex;flex-wrap:wrap;gap:8px;padding:14px 16px}
-  .kw{border:1px solid var(--line);border-radius:6px;padding:3px 10px;font-size:12px;color:var(--muted)}
+  ul.plain{margin:0;padding:14px 16px;list-style:none;display:flex;flex-direction:column;gap:8px}
+  ul.plain li{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:9px 13px;font-size:13px}
+  ul.plain li .tagrow{margin-bottom:4px}
+  ul.plain.dos li{border-left:3px solid var(--green)}
+  ul.plain.donts li{border-left:3px solid var(--red)}
 
-  #comp-table table, #ads table{width:100%;border-collapse:collapse;font-size:12.5px}
+  table{width:100%;border-collapse:collapse;font-size:12.5px}
   th{color:var(--muted);text-align:left;padding:8px 12px;border-bottom:1px solid var(--line);
     font-weight:500;letter-spacing:.06em;font-size:10px;text-transform:uppercase;white-space:nowrap}
   td{padding:8px 12px;border-bottom:1px solid var(--line);vertical-align:top}
   tr:last-child td{border-bottom:none}
   td a{color:var(--cyan);text-decoration:none} td a:hover{text-decoration:underline}
-  .days{font-weight:700;color:var(--pink)}
-  .body-snippet{max-width:640px;color:var(--muted)}
-  @media (min-width:2200px){ .body-snippet{max-width:1100px} }
-  .plat{font-size:11px;color:var(--muted)}
-  #summary-md{white-space:pre-wrap;font-size:13px;color:var(--text);opacity:.9}
+  .dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:7px;vertical-align:baseline}
+  .dot.ok{background:var(--green)} .dot.bad{background:var(--red)}
+  .bar-wrap{display:inline-block;width:90px;height:8px;background:var(--panel2);border:1px solid var(--line);border-radius:4px;vertical-align:middle;margin-right:8px;overflow:hidden}
+  .bar{height:100%;background:var(--cyan)}
+  #source-notes{white-space:pre-wrap;font-size:13px;opacity:.9}
 </style>
 </head>
 <body>
@@ -83,34 +113,64 @@
 </header>
 
 <div class="wrap">
-  <section class="panel" id="criteria">
-    <h2>Scancriteria &mdash; zoektermen waarmee Ad Viral Playbook de Meta Ad Library afzoekt</h2>
+
+  <!-- 1. Stuurfactoren: versheid, dekking en databasis van het playbook -->
+  <section class="panel" id="status">
+    <h2>Playbook-status &mdash; Ad Viral Playbook draait wekelijks ma 06:00, 2 uur voor de Build Factory</h2>
+    <div class="stats"><div class="loading" style="grid-column:1/-1">Laden&hellip;</div></div>
+    <div class="banner" id="fallback-banner"></div>
+  </section>
+
+  <!-- 2. Hoe het inzicht doorstroomt naar onze eigen advertenties -->
+  <section class="panel" id="pipeline">
+    <h2>Zo stuurt concurrentie-inzicht onze ads</h2>
+    <div class="pipe">
+      <div class="step"><b>1 &middot; Meta Ad Library</b><span>Actieve ads van 10 vaste ES/PT home-decor concurrenten (op page-ID, geen zoektermen).</span></div>
+      <div class="step"><b>2 &middot; Rangschikken op looptijd</b><span>Langer actief = bewezen renderend. Top 30 dient als bewijs.</span></div>
+      <div class="step"><b>3 &middot; Claude distilleert</b><span>Hooks, CTA's, structuren, do's &amp; don'ts per taal &times; segment (+ web search).</span></div>
+      <div class="step"><b>4 &middot; ad_research_playbook</b><span>4 combinaties (ES/PT &times; product/lifestyle), 14 dagen geldig.</span></div>
+      <div class="step"><b>5 &middot; Build Factory</b><span>Stills, Carousel en Unboxing-video's schrijven hun copy op deze versie.</span></div>
+    </div>
+  </section>
+
+  <!-- 3. Filter op taal x segment -->
+  <section class="panel" id="filters">
+    <h2>Playbook-combinaties &mdash; laatste snapshot per taal &times; segment</h2>
     <div class="pad"><div class="loading">Laden&hellip;</div></div>
   </section>
 
-  <div class="grid g2">
-    <section class="panel" id="comp-table">
-      <h2>Concurrenten in beeld <span id="intel-period" style="letter-spacing:normal;text-transform:none"></span></h2>
-      <div class="loading">Laden&hellip;</div>
-    </section>
-    <section class="panel" id="summary">
-      <h2>Analyse-samenvatting</h2>
-      <div class="pad"><div id="summary-md" class="loading">Laden&hellip;</div></div>
-    </section>
+  <!-- 4. Het playbook zelf: waar we op sturen in onze copy -->
+  <div class="grid g3">
+    <section class="panel" id="hooks"><h2>Hooks &mdash; bewezen openingszinnen</h2><div class="card-list"><div class="loading">Laden&hellip;</div></div></section>
+    <section class="panel" id="ctas"><h2>CTA's &mdash; zachte call-to-actions</h2><div class="card-list"><div class="loading">Laden&hellip;</div></div></section>
+    <section class="panel" id="structures"><h2>Copy-structuren die converteren</h2><div class="card-list"><div class="loading">Laden&hellip;</div></div></section>
   </div>
 
   <div class="grid g3">
-    <section class="panel" id="hooks"><h2>Top hooks</h2><div class="card-list"><div class="loading">Laden&hellip;</div></div></section>
-    <section class="panel" id="ctas"><h2>Top CTA's</h2><div class="card-list"><div class="loading">Laden&hellip;</div></div></section>
-    <section class="panel" id="patterns"><h2>Copy-patronen</h2><div class="card-list"><div class="loading">Laden&hellip;</div></div></section>
+    <section class="panel" id="dos"><h2>Do's</h2><ul class="plain dos"><li class="loading">Laden&hellip;</li></ul></section>
+    <section class="panel" id="donts"><h2>Don'ts</h2><ul class="plain donts"><li class="loading">Laden&hellip;</li></ul></section>
+    <section class="panel" id="examples"><h2>Voorbeeld-advertentieteksten</h2><div class="card-list"><div class="loading">Laden&hellip;</div></div></section>
   </div>
 
-  <section class="panel" id="keywords"><h2>Top keywords</h2><div class="chips"><div class="loading">Laden&hellip;</div></div></section>
-
-  <section class="panel" id="ads">
-    <h2>Actieve concurrent-advertenties (laatste 60 dagen) &mdash; gesorteerd op looptijd</h2>
-    <div class="loading">Laden&hellip;</div>
+  <!-- 5. Bronverantwoording -->
+  <section class="panel" id="source">
+    <h2>Bron &amp; betrouwbaarheid van de laatste snapshot</h2>
+    <div class="pad"><div id="source-notes" class="loading">Laden&hellip;</div></div>
   </section>
+
+  <!-- 6. Wie we volgen + run-historie -->
+  <div class="grid g2">
+    <section class="panel" id="competitors">
+      <h2>Concurrenten die we volgen (10 vaste pagina's)</h2>
+      <div class="pad note">Deze lijst is vastgelegd als page-ID's in de n8n-node <span class="mono">Fetch Ad Library ES+PT</span> van de workflow <span class="mono">HDB &middot; Research &mdash; Ad Viral Playbook</span>. Wil je iemand toevoegen of vervangen, pas de ID's daar aan.</div>
+      <div id="comp-table"><div class="loading">Laden&hellip;</div></div>
+    </section>
+    <section class="panel" id="runs">
+      <h2>Run-historie &mdash; hoeveel concurrent-ads leverde elke scan?</h2>
+      <div class="loading">Laden&hellip;</div>
+    </section>
+  </div>
+
 </div>
 
 <script>
@@ -126,94 +186,189 @@
 
   const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
   const fmtD = t => t ? new Date(t).toLocaleDateString("nl-NL",{day:"2-digit",month:"2-digit",year:"2-digit"}) : "-";
-  const fmtN = n => n == null ? "-" : Number(n).toLocaleString("nl-NL");
+  const fmtDT = t => t ? new Date(t).toLocaleString("nl-NL",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"}) : "-";
 
-  const [{data: intelRows},{data: criteria},{data: ads}] = await Promise.all([
-    sb.from("bridge_competitor_intel").select("*").limit(1),
-    sb.from("bridge_competitor_criteria").select("*"),
-    sb.from("bridge_competitor_ads").select("*").order("days_running",{ascending:false}).limit(400)
+  // De 10 gevolgde concurrenten. Bron van waarheid: page-ID's in de n8n-node "Fetch Ad Library ES+PT".
+  const COMPETITORS = [
+    {name:"Natyal", market:"ES"},
+    {name:"Menta Atelier", market:"ES"},
+    {name:"Artesany Home", market:"ES"},
+    {name:"Arte com Luz", market:"PT"},
+    {name:"Nk loja", market:"PT"},
+    {name:"LaNovenaNube", market:"ES"},
+    {name:"The Nook Home", market:"ES"},
+    {name:"CUE Ceramica", market:"ES"},
+    {name:"Artesanato Duarte", market:"PT"},
+    {name:"Woodabu", market:"ES/PT"}
+  ];
+
+  const LANG_LABEL = { es:"Spaans (ES)", pt:"Portugees (PT)" };
+  const SEG_LABEL = { product:"Product", lifestyle:"Lifestyle" };
+
+  const [{data: pbRows, error: pbErr},{data: runRows}] = await Promise.all([
+    sb.from("ad_research_playbook").select("*").order("created_at",{ascending:false}).limit(60),
+    sb.from("runs").select("*").ilike("workflow_name","%Ad%Playbook%").order("created_at",{ascending:false}).limit(14)
   ]);
-  const intel = (intelRows && intelRows[0]) || null;
 
-  // --- criteria-rail (filtert de ads-tabel) ---
-  let selectedTerm = null;
-  const critPad = document.querySelector("#criteria .pad");
-  function renderCriteria(){
-    critPad.innerHTML = "";
+  // ---- laatste snapshot: per taal x segment de nieuwste rij ----
+  const latest = {};
+  (pbRows||[]).forEach(r=>{
+    const k = r.language + "/" + r.segment;
+    if(!latest[k]) latest[k] = r; // rows come newest-first
+  });
+  const combos = Object.values(latest);
+  const newest = combos.length ? combos.reduce((a,b)=> new Date(a.created_at) > new Date(b.created_at) ? a : b) : null;
+
+  // ---- 1. statusstrip ----
+  const statsEl = document.querySelector("#status .stats");
+  const lastRun = (runRows||[])[0] || null;
+  const adsInRun = r => { const m = /(\d+)\s+concurrent-ads/.exec(r && r.summary || ""); return m ? Number(m[1]) : null; };
+  const lastAds = lastRun ? adsInRun(lastRun) : null;
+  const webOnly = newest && /No competitor ad data/i.test(newest.source_notes||"") || lastAds === 0;
+
+  let freshCls = "bad", freshTxt = "Geen snapshot", freshSub = "Wacht op eerste run (ma 06:00)";
+  if(newest){
+    const vu = newest.valid_until ? new Date(newest.valid_until + "T23:59:59") : null;
+    const daysLeft = vu ? Math.ceil((vu - Date.now())/86400000) : null;
+    if(daysLeft == null){ freshCls="warn"; freshTxt="Onbekend"; freshSub="Geen geldigheidsdatum op de snapshot"; }
+    else if(daysLeft < 0){ freshCls="bad"; freshTxt="Verlopen"; freshSub="Geldig tot "+fmtD(newest.valid_until)+" \u00b7 Build Factory schrijft op oude data"; }
+    else if(daysLeft <= 3){ freshCls="warn"; freshTxt=daysLeft+" dagen"; freshSub="Geldig tot "+fmtD(newest.valid_until); }
+    else { freshCls="ok"; freshTxt=daysLeft+" dagen"; freshSub="Geldig tot "+fmtD(newest.valid_until); }
+  }
+
+  const expectedCombos = 4; // es/pt x product/lifestyle
+  const covCls = combos.length >= expectedCombos ? "ok" : (combos.length ? "warn" : "bad");
+
+  const basisCls = webOnly ? "warn" : (lastAds != null ? "ok" : "info");
+  const basisTxt = webOnly ? "Web research" : (lastAds != null ? lastAds + " concurrent-ads" : "\u2014");
+  const basisSub = webOnly ? "Ad Library leverde 0 ads \u2014 fallback actief" : "Bewijs uit actieve concurrent-ads (Ad Library)";
+
+  const runCls = lastRun ? (lastRun.success ? "ok" : "bad") : "bad";
+  const runTxt = lastRun ? (lastRun.success ? "Geslaagd" : "Mislukt") : "Geen runs";
+  const runSub = lastRun ? fmtDT(lastRun.created_at) : "Nog geen run gelogd";
+
+  statsEl.innerHTML =
+    "<div class='stat'><div class='lbl'>Playbook geldig</div><div class='val "+freshCls+"'>"+esc(freshTxt)+"</div><div class='sub'>"+esc(freshSub)+"</div></div>"+
+    "<div class='stat'><div class='lbl'>Snapshot van</div><div class='val info'>"+(newest?fmtD(newest.created_at):"\u2014")+"</div><div class='sub'>Ververst elke maandag 06:00</div></div>"+
+    "<div class='stat'><div class='lbl'>Dekking taal &times; segment</div><div class='val "+covCls+"'>"+combos.length+" / "+expectedCombos+"</div><div class='sub'>ES + PT &times; product + lifestyle</div></div>"+
+    "<div class='stat'><div class='lbl'>Databasis laatste scan</div><div class='val "+basisCls+"'>"+esc(basisTxt)+"</div><div class='sub'>"+esc(basisSub)+"</div></div>"+
+    "<div class='stat'><div class='lbl'>Laatste run</div><div class='val "+runCls+"'>"+esc(runTxt)+"</div><div class='sub'>"+esc(runSub)+"</div></div>";
+
+  const banner = document.getElementById("fallback-banner");
+  if(webOnly){
+    banner.style.display = "block";
+    banner.innerHTML = "<b>Let op:</b> de laatste scan haalde geen concurrent-ads op uit de Meta Ad Library; het playbook draait volledig op web research. Controleer het Meta-token (Ad Library-permissie) in de node <span class='mono'>Fetch Ad Library ES+PT</span>, anders sturen we op algemene best practice in plaats van op wat concurrenten bewezen laten draaien.";
+  } else if(lastRun && !lastRun.success){
+    banner.style.display = "block";
+    banner.className = "banner bad";
+    banner.innerHTML = "<b>Let op:</b> de laatste research-run is mislukt; het playbook van vorige week blijft in gebruik. Details staan in de run-historie hieronder.";
+  }
+
+  // ---- 3+4. filter-rail en playbook-panelen ----
+  let selected = combos.length ? null : null; // null = alles
+  const filterPad = document.querySelector("#filters .pad");
+
+  function renderFilters(){
+    filterPad.innerHTML = "";
+    combos
+      .slice()
+      .sort((a,b)=> (a.language+a.segment).localeCompare(b.language+b.segment))
+      .forEach(c=>{
+        const key = c.language + "/" + c.segment;
+        const b = document.createElement("button");
+        b.className = "crit" + (selected===key ? " sel" : "");
+        b.innerHTML = esc((LANG_LABEL[c.language]||c.language) + " \u00b7 " + (SEG_LABEL[c.segment]||c.segment)) +
+          " <span class='n'>" + fmtD(c.created_at) + "</span>";
+        b.addEventListener("click", ()=>{ selected = selected===key ? null : key; renderFilters(); renderPlaybook(); });
+        filterPad.appendChild(b);
+      });
     const hint = document.createElement("div");
     hint.className = "crit-hint";
-    hint.textContent = "Klik op een zoekterm om de advertentietabel hieronder te filteren. Aantallen: gevonden ads \u00b7 unieke concurrenten.";
-    (criteria||[]).forEach(c=>{
-      const b = document.createElement("button");
-      b.className = "crit"+(selectedTerm===c.search_term?" sel":"");
-      b.innerHTML = esc(c.search_term)+" <span class='n'>"+c.ads_found+" \u00b7 "+c.competitors_found+"</span>";
-      b.addEventListener("click", ()=>{ selectedTerm = selectedTerm===c.search_term ? null : c.search_term; renderCriteria(); renderAds(); });
-      critPad.appendChild(b);
-    });
-    critPad.appendChild(hint);
-    if(!(criteria||[]).length) critPad.innerHTML = "<div class='loading'>Nog geen scandata.</div>";
+    hint.textContent = combos.length
+      ? "Klik op een combinatie om de panelen hieronder te filteren; klik nogmaals om alles te tonen."
+      : "Nog geen playbook-snapshot. De eerste verschijnt na de run van maandag 06:00.";
+    filterPad.appendChild(hint);
   }
-  renderCriteria();
 
-  // --- intel-panelen ---
-  if(intel){
-    document.getElementById("intel-period").textContent =
-      " \u00b7 periode "+fmtD(intel.period_start)+" t/m "+fmtD(intel.period_end)+" \u00b7 bron: "+(intel.source||"Ad Viral Playbook");
+  const tagrow = r => "<div class='tagrow'><span class='tag lang'>"+esc(r.language.toUpperCase())+"</span><span class='tag seg'>"+esc(SEG_LABEL[r.segment]||r.segment)+"</span></div>";
 
-    const compEl = document.getElementById("comp-table");
-    const comps = Array.isArray(intel.competitors) ? intel.competitors : [];
-    compEl.querySelector(".loading").outerHTML =
-      "<table><thead><tr><th>Naam</th><th>Instagram</th><th>Website</th></tr></thead><tbody>"+
-      comps.map(c=>"<tr><td>"+esc(c.name)+"</td><td>"+(c.ig?"<a href='https://instagram.com/"+esc(c.ig)+"' target='_blank' rel='noopener'>@"+esc(c.ig)+"</a>":"-")+"</td><td>"+(c.website?"<a href='"+esc(c.website)+"' target='_blank' rel='noopener'>"+esc(c.website.replace(/^https?:\/\//,""))+"</a>":"-")+"</td></tr>").join("")+
-      "</tbody></table>";
-
-    document.getElementById("summary-md").textContent = intel.summary_md || "Geen samenvatting.";
-    document.getElementById("summary-md").classList.remove("loading");
-
-    const fill = (id, rows, render) => {
+  function renderPlaybook(){
+    const rows = combos.filter(r => !selected || (r.language + "/" + r.segment) === selected);
+    const fillCards = (id, pick, extra) => {
       const el = document.querySelector("#"+id+" .card-list");
-      el.innerHTML = (rows && rows.length) ? rows.map(render).join("") : "<div class='loading'>Geen data.</div>";
+      const cards = [];
+      rows.forEach(r=>{
+        (pick(r.payload||{})||[]).forEach(item=>{
+          cards.push("<div class='icard'>"+tagrow(r)+esc(item)+(extra?extra(r):"")+"</div>");
+        });
+      });
+      el.innerHTML = cards.length ? cards.join("") : "<div class='loading'>Geen data in deze snapshot.</div>";
     };
-    fill("hooks", intel.top_hooks, h =>
-      "<div class='icard'><b>"+esc(h.hook)+"</b>"+(h.why?"<div class='why'>"+esc(h.why)+"</div>":"")+(h.example?"<div class='ex'>"+esc(h.example)+"</div>":"")+"</div>");
-    fill("ctas", intel.top_ctas, c =>
-      "<div class='icard'><b>"+esc(c.cta)+"</b>"+(c.example?"<div class='ex'>"+esc(c.example)+"</div>":"")+"</div>");
-    fill("patterns", intel.copy_patterns, p =>
-      "<div class='icard'><b>"+esc(p.pattern||"")+"</b>"+(p.example?"<div class='ex'>"+esc(p.example)+"</div>":"")+"</div>");
+    fillCards("hooks", p=>p.hooks);
+    fillCards("ctas", p=>p.ctas);
+    fillCards("structures", p=>p.structures);
+    fillCards("examples", p=>p.example_primary_texts);
 
-    const kw = document.querySelector("#keywords .chips");
-    kw.innerHTML = (Array.isArray(intel.top_keywords)?intel.top_keywords:[]).map(k=>"<span class='kw'>"+esc(k)+"</span>").join("") || "<div class='loading'>Geen data.</div>";
-  } else {
-    ["comp-table","hooks","ctas","patterns"].forEach(id=>{
-      const el = document.querySelector("#"+id+" .loading"); if(el) el.textContent = "Nog geen intel-snapshot (Ad Viral Playbook draait maandag 06:00).";
+    const fillList = (id, pick) => {
+      const el = document.querySelector("#"+id+" ul");
+      const items = [];
+      rows.forEach(r=>{
+        (pick(r.payload||{})||[]).forEach(item=>{
+          items.push("<li>"+tagrow(r)+esc(item)+"</li>");
+        });
+      });
+      el.innerHTML = items.length ? items.join("") : "<li class='loading'>Geen data in deze snapshot.</li>";
+    };
+    fillList("dos", p=>p.dos);
+    fillList("donts", p=>p.donts);
+
+    // bronverantwoording van de geselecteerde (of nieuwste) snapshot
+    const src = rows.length ? (rows.find(r=>r.source_notes) || rows[0]) : null;
+    const srcEl = document.getElementById("source-notes");
+    srcEl.classList.remove("loading");
+    srcEl.textContent = src && src.source_notes ? src.source_notes : "Geen bronvermelding op deze snapshot.";
+  }
+
+  if(combos.length){ renderFilters(); renderPlaybook(); }
+  else {
+    renderFilters();
+    ["hooks","ctas","structures","examples"].forEach(id=>{
+      document.querySelector("#"+id+" .card-list").innerHTML = "<div class='loading'>Nog geen playbook-data.</div>";
     });
-    document.getElementById("summary-md").textContent = "Nog geen intel-snapshot.";
+    ["dos","donts"].forEach(id=>{
+      document.querySelector("#"+id+" ul").innerHTML = "<li class='loading'>Nog geen playbook-data.</li>";
+    });
+    document.getElementById("source-notes").textContent = "Nog geen snapshot.";
+    document.getElementById("source-notes").classList.remove("loading");
   }
 
-  // --- ads-tabel ---
-  function renderAds(){
-    const el = document.getElementById("ads");
-    const rows = (ads||[]).filter(a => !selectedTerm || a.search_term === selectedTerm);
-    const body = rows.slice(0,150).map(a=>{
-      const plat = Array.isArray(a.publisher_platforms) ? a.publisher_platforms.join(", ") : "";
-      const snippet = (a.creative_body||"").slice(0,220);
-      return "<tr>"+
-        "<td>"+esc(a.page_name)+"</td>"+
-        "<td class='days'>"+(a.days_running ?? "-")+"</td>"+
-        "<td class='mono'>"+fmtN(a.eu_total_reach)+"</td>"+
-        "<td class='plat'>"+esc(plat)+"</td>"+
-        "<td class='body-snippet'>"+esc(snippet)+(a.creative_body && a.creative_body.length>220?"\u2026":"")+"</td>"+
-        "<td class='mono'>"+fmtD(a.ad_delivery_start_time)+"</td>"+
-        "<td>"+esc(a.search_term||"")+"</td>"+
-        "<td>"+(a.snapshot_url?"<a href='"+esc(a.snapshot_url)+"' target='_blank' rel='noopener'>bekijk</a>":"-")+"</td>"+
-      "</tr>";
-    }).join("");
-    const tableEl = el.querySelector("table, .loading");
-    tableEl.outerHTML = rows.length ?
-      "<table><thead><tr><th>Concurrent</th><th>Dagen actief</th><th>EU-bereik</th><th>Platforms</th><th>Advertentietekst</th><th>Start</th><th>Zoekterm</th><th>Ad Library</th></tr></thead><tbody>"+body+"</tbody></table>"
-      : "<div class='loading'>Geen advertenties"+(selectedTerm?" voor '"+esc(selectedTerm)+"'":"")+".</div>";
+  // ---- 6a. concurrententabel ----
+  document.querySelector("#comp-table .loading").outerHTML =
+    "<table><thead><tr><th>#</th><th>Concurrent</th><th>Markt</th></tr></thead><tbody>"+
+    COMPETITORS.map((c,i)=>"<tr><td class='mono'>"+(i+1)+"</td><td>"+esc(c.name)+"</td><td>"+esc(c.market)+"</td></tr>").join("")+
+    "</tbody></table>";
+
+  // ---- 6b. run-historie met ads-per-scan ----
+  const runsEl = document.querySelector("#runs .loading");
+  const runs = runRows || [];
+  if(runs.length){
+    const maxAds = Math.max(1, ...runs.map(r => adsInRun(r) ?? 0));
+    runsEl.outerHTML = "<table><thead><tr><th>Wanneer</th><th>Status</th><th>Concurrent-ads</th><th>Samenvatting</th></tr></thead><tbody>"+
+      runs.map(r=>{
+        const n = adsInRun(r);
+        const pct = n == null ? 0 : Math.round(n / maxAds * 100);
+        const adsCell = n == null ? "<span class='note'>\u2014</span>"
+          : "<span class='bar-wrap'><span class='bar' style='width:"+pct+"%"+(n===0?";background:var(--amber)":"")+"'></span></span><span class='mono'>"+n+"</span>";
+        return "<tr>"+
+          "<td class='mono'>"+fmtDT(r.created_at)+"</td>"+
+          "<td><span class='dot "+(r.success?"ok":"bad")+"'></span>"+(r.success?"geslaagd":"mislukt")+"</td>"+
+          "<td>"+adsCell+"</td>"+
+          "<td class='note'>"+esc(r.summary||"")+"</td>"+
+        "</tr>";
+      }).join("")+"</tbody></table>";
+  } else {
+    runsEl.textContent = "Nog geen runs gelogd voor de Ad Viral Playbook-workflow.";
   }
-  renderAds();
 })();
 </script>
 </body>
