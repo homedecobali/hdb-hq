@@ -124,6 +124,9 @@
   .camphead .cm b.win{color:var(--green)} .camphead .cm b.lose{color:var(--red)} .camphead .cm b.flat{color:var(--muted)}
   .campads{padding:2px 0 10px 20px}
   .campads.hidden{display:none}
+  .wbud{display:flex;gap:18px;flex-wrap:wrap;align-items:center;padding:8px 4px;margin-bottom:4px;border-bottom:1px solid var(--line);font-size:11.5px;color:var(--muted)}
+  .wbud b{color:var(--text);font-weight:700}
+  .wbud .u{color:var(--green);font-weight:700} .wbud .o{color:var(--red);font-weight:700}
   .sys-sep{margin:12px 0 6px;padding-top:9px;border-top:1px dashed var(--line);
     font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
   .sys-muted{opacity:.62}
@@ -1018,6 +1021,18 @@
           num('CPA', tPur ? eur2(tCpa) : '\u2014', '') +
           num('CTR', tCtr.toFixed(2) + '%', '');
 
+        // weekly budget / spend / variance (budget = dagbudget x 7 uit bridge_ads_summary; spend = laatste 7d meta-spend)
+        var _pad = (typeof pad !== 'undefined' && pad) ? pad : {};
+        var wSp = 0; lastDates(_pad, 7).forEach(function(d){ wSp += Number((_pad[d]||{}).spend || 0); });
+        var wBud = Number((typeof ads !== 'undefined' && ads && ads.active_daily_budget_eur) || 0) * 7;
+        var wDiff = wBud - wSp;
+        var wbudHtml = '<div class="wbud">'
+          + '<span>Weekly budget <b>' + eur2(wBud) + '</b></span>'
+          + '<span>Weekly spend <b>' + eur2(wSp) + '</b></span>'
+          + (wDiff >= 0 ? '<span class="u">' + eur2(wDiff) + ' onderspend</span>'
+                        : '<span class="o">' + eur2(-wDiff) + ' overspend</span>')
+          + '</div>';
+
         // groepeer ads per campagne, uitklapbaar; kolommen: Adspend / Omzet / Aankopen / ROAS, dan Freq / CPA
         function adRev(r){ return r.revenue!=null ? Number(r.revenue) : Number(r.roas||0)*Number(r.spend||0); }
         var byCamp = {};
@@ -1026,16 +1041,16 @@
           (byCamp[k] = byCamp[k] || []).push(r);
         });
         var camps = Object.keys(byCamp).map(function(k){
-          var ads = byCamp[k];
-          var sp = ads.reduce(function(a,r){ return a + Number(r.spend||0); }, 0);
-          var rv = ads.reduce(function(a,r){ return a + adRev(r); }, 0);
-          var pu = ads.reduce(function(a,r){ return a + Number(r.purchases||0); }, 0);
-          return { name:k, ads:ads, spend:sp, rev:rv, pur:pu, mer:(sp?rv/sp:0), cpa:(pu?sp/pu:0) };
+          var ads2 = byCamp[k];
+          var sp = ads2.reduce(function(a,r){ return a + Number(r.spend||0); }, 0);
+          var rv = ads2.reduce(function(a,r){ return a + adRev(r); }, 0);
+          var pu = ads2.reduce(function(a,r){ return a + Number(r.purchases||0); }, 0);
+          return { name:k, ads:ads2, spend:sp, rev:rv, pur:pu, mer:(sp?rv/sp:0), cpa:(pu?sp/pu:0) };
         }).sort(function(a,b){ return b.spend - a.spend; });
 
         function merCls(m){ return m >= 2 ? 'win' : (m >= 1 ? 'flat' : 'lose'); }
-        function adRows(ads){
-          return ads.slice().sort(function(a,b){ return Number(b.spend||0)-Number(a.spend||0); }).map(function(r){
+        function adRows(ads3){
+          return ads3.slice().sort(function(a,b){ return Number(b.spend||0)-Number(a.spend||0); }).map(function(r){
             var roas = Number(r.roas||0), sp = Number(r.spend||0), rv = adRev(r);
             var cls  = roas >= 2 ? 'win' : (roas > 0 ? 'flat' : (sp >= 25 ? 'lose' : 'flat'));
             var star = /\[CAT\]/.test(r.ad_name||'') ? ' ⭐' : '';
@@ -1050,7 +1065,7 @@
               + '</tr>';
           }).join('');
         }
-        $('live-table').innerHTML = camps.map(function(c, idx){
+        $('live-table').innerHTML = wbudHtml + camps.map(function(c, idx){
           var head = '<div class="camphead" data-i="' + idx + '">'
             + '<span class="cv">▸</span>'
             + '<span class="cn">' + esc(c.name) + '</span>'
@@ -1071,7 +1086,7 @@
         });
 
         var noSale = live.filter(function(r){ return !Number(r.purchases) && Number(r.spend||0) >= 25; });
-        $('live-foot').textContent = camps.length + ' campagnes · klik om ads uit te klappen · Omzet = ROAS × adspend · MER ≈ ROAS op dit niveau'
+        $('live-foot').textContent = camps.length + ' campagnes · klik om ads uit te klappen · Omzet = ROAS × adspend · weekbudget = dagbudget × 7'
           + (noSale.length ? ' · ' + noSale.length + ' ads met ≥25 EUR & 0 aankopen' : '');
       } else {
         $('live-table').innerHTML = '<p style="color:var(--muted)">Nog geen data \u2014 Active Ads Pull draait dagelijks 07:30.</p>';
