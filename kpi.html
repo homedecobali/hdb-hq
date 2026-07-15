@@ -114,6 +114,16 @@
   .adt .win{color:var(--green);font-weight:600}
   .adt .lose{color:var(--red);font-weight:600}
   .adt .flat{color:var(--muted)}
+  .campblk{border-bottom:1px solid rgba(255,255,255,.05)}
+  .campblk:last-child{border-bottom:none}
+  .camphead{display:flex;align-items:center;gap:10px;padding:9px 4px;cursor:pointer}
+  .camphead:hover{background:rgba(255,255,255,.03)}
+  .camphead .cv{color:var(--muted);font-size:10px;width:10px;flex:none}
+  .camphead .cn{font-weight:600;font-size:12.5px;color:var(--text);max-width:240px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .camphead .cm{font-size:11px;color:var(--muted);margin-left:auto;white-space:nowrap}
+  .camphead .cm b.win{color:var(--green)} .camphead .cm b.lose{color:var(--red)} .camphead .cm b.flat{color:var(--muted)}
+  .campads{padding:2px 0 10px 20px}
+  .campads.hidden{display:none}
   .sys-sep{margin:12px 0 6px;padding-top:9px;border-top:1px dashed var(--line);
     font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
   .sys-muted{opacity:.62}
@@ -1003,36 +1013,63 @@
         $('live-nums').innerHTML =
           num('spend', eur2(tSpend), '') +
           num('omzet', eur2(tRev), '') +
-          num('ROAS', tRoas.toFixed(2) + 'x', '', tRoas >= 2 ? 'goodval' : (tRoas >= 1 ? 'warnval' : 'badval')) +
+          num('MER', tRoas.toFixed(2) + 'x', '', tRoas >= 2 ? 'goodval' : (tRoas >= 1 ? 'warnval' : 'badval')) +
           num('aankopen', fmt(tPur), '') +
           num('CPA', tPur ? eur2(tCpa) : '\u2014', '') +
           num('CTR', tCtr.toFixed(2) + '%', '');
 
-        var rows = live.slice(0, 12).map(function(r){
-          var roas = Number(r.roas||0);
-          var cls  = roas >= 2 ? 'win' : (roas > 0 ? 'flat' : (Number(r.spend||0) >= 25 ? 'lose' : 'flat'));
-          return '<tr>'
-            + '<td>' + esc(r.ad_name || '\u2014') + '<span class="camp">' + esc(r.campaign_name || '') + '</span></td>'
-            + '<td>' + eur2(r.spend) + '</td>'
-            + '<td>' + fmt(r.impressions) + '</td>'
-            + '<td>' + fmt(r.reach) + '</td>'
-            + '<td>' + Number(r.frequency||0).toFixed(2) + '</td>'
-            + '<td>' + eur2(r.cpm) + '</td>'
-            + '<td>' + Number(r.ctr||0).toFixed(2) + '%</td>'
-            + '<td>' + fmt(r.purchases) + '</td>'
-            + '<td class="' + cls + '">' + (roas ? roas.toFixed(2) + 'x' : '\u2014') + '</td>'
-            + '<td>' + (r.cpa != null ? eur2(r.cpa) : '\u2014') + '</td>'
-            + '</tr>';
+        // groepeer ads per campagne, uitklapbaar, met MER per campagne/ad
+        var byCamp = {};
+        live.forEach(function(r){
+          var k = r.campaign_name || '(zonder campagne)';
+          (byCamp[k] = byCamp[k] || []).push(r);
+        });
+        var camps = Object.keys(byCamp).map(function(k){
+          var ads = byCamp[k];
+          var sp = ads.reduce(function(a,r){ return a + Number(r.spend||0); }, 0);
+          var rv = ads.reduce(function(a,r){ return a + (r.revenue!=null ? Number(r.revenue) : Number(r.roas||0)*Number(r.spend||0)); }, 0);
+          var pu = ads.reduce(function(a,r){ return a + Number(r.purchases||0); }, 0);
+          return { name:k, ads:ads, spend:sp, pur:pu, mer:(sp?rv/sp:0), cpa:(pu?sp/pu:0) };
+        }).sort(function(a,b){ return b.spend - a.spend; });
+
+        function merCls(m){ return m >= 2 ? 'win' : (m >= 1 ? 'flat' : 'lose'); }
+        function adRows(ads){
+          return ads.slice().sort(function(a,b){ return Number(b.spend||0)-Number(a.spend||0); }).map(function(r){
+            var roas = Number(r.roas||0);
+            var cls  = roas >= 2 ? 'win' : (roas > 0 ? 'flat' : (Number(r.spend||0) >= 25 ? 'lose' : 'flat'));
+            var star = /\[CAT\]/.test(r.ad_name||'') ? ' ⭐' : '';
+            return '<tr>'
+              + '<td>' + esc(r.ad_name || '—') + star + '</td>'
+              + '<td>' + eur2(r.spend) + '</td>'
+              + '<td>' + Number(r.frequency||0).toFixed(2) + '</td>'
+              + '<td>' + fmt(r.purchases) + '</td>'
+              + '<td class="' + cls + '">' + (roas ? roas.toFixed(2) + 'x' : '—') + '</td>'
+              + '<td>' + (r.cpa != null ? eur2(r.cpa) : '—') + '</td>'
+              + '</tr>';
+          }).join('');
+        }
+        $('live-table').innerHTML = camps.map(function(c, idx){
+          var head = '<div class="camphead" data-i="' + idx + '">'
+            + '<span class="cv">▸</span>'
+            + '<span class="cn">' + esc(c.name) + '</span>'
+            + '<span class="cm">' + eur2(c.spend) + ' · <b class="' + merCls(c.mer) + '">MER ' + c.mer.toFixed(2) + 'x</b> · '
+              + fmt(c.pur) + ' aankopen · CPA ' + (c.pur ? eur2(c.cpa) : '—') + ' · ' + c.ads.length + ' ads</span>'
+            + '</div>';
+          var body = '<div class="campads hidden"><table class="adt"><thead><tr>'
+            + '<th>Advertentie</th><th>Spend</th><th>Freq.</th><th>Aankopen</th><th>MER</th><th>CPA</th>'
+            + '</tr></thead><tbody>' + adRows(c.ads) + '</tbody></table></div>';
+          return '<div class="campblk">' + head + body + '</div>';
         }).join('');
-        $('live-table').innerHTML = '<table class="adt"><thead><tr>'
-          + '<th>Advertentie</th><th>Spend</th><th>Impressies</th><th>Bereik</th><th>Freq.</th>'
-          + '<th>CPM</th><th>CTR</th><th>Aankopen</th><th>ROAS</th><th>CPA</th>'
-          + '</tr></thead><tbody>' + rows + '</tbody></table>';
+        Array.prototype.forEach.call(document.querySelectorAll('#live-table .camphead'), function(h){
+          h.addEventListener('click', function(){
+            var collapsed = h.nextElementSibling.classList.toggle('hidden');
+            h.querySelector('.cv').textContent = collapsed ? '▸' : '▾';
+          });
+        });
 
         var noSale = live.filter(function(r){ return !Number(r.purchases) && Number(r.spend||0) >= 25; });
-        $('live-foot').textContent = 'Gesorteerd op spend'
-          + (live.length > 12 ? ' \u00b7 top 12 van ' + live.length : '')
-          + (noSale.length ? ' \u00b7 ' + noSale.length + ' ads met \u226525 EUR spend en 0 aankopen' : '');
+        $('live-foot').textContent = camps.length + ' campagnes · klik om ads uit te klappen · MER = toegerekende omzet ÷ spend (≈ ROAS)'
+          + (noSale.length ? ' · ' + noSale.length + ' ads met ≥25 EUR & 0 aankopen' : '');
       } else {
         $('live-table').innerHTML = '<p style="color:var(--muted)">Nog geen data \u2014 Active Ads Pull draait dagelijks 07:30.</p>';
       }
