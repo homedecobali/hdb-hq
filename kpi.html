@@ -1031,6 +1031,10 @@
           + '<span>Weekly spend <b>' + eur2(wSp) + '</b></span>'
           + (wDiff >= 0 ? '<span class="u">' + eur2(wDiff) + ' onderspend</span>'
                         : '<span class="o">' + eur2(-wDiff) + ' overspend</span>')
+          + '<span style="opacity:.4">|</span>'
+          + '<span>Plafond <b>' + eur2(800) + '</b></span>'
+          + (wSp <= 800 ? '<span class="u">' + eur2(800 - wSp) + ' onder plafond</span>'
+                        : '<span class="o">' + eur2(wSp - 800) + ' boven plafond</span>')
           + '</div>';
 
         // groepeer ads per campagne, uitklapbaar; kolommen: Adspend / Omzet / Aankopen / ROAS, dan Freq / CPA
