@@ -153,6 +153,12 @@
   .ac-sched .schedtxt{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
   .ac-sched .ac24{flex:0 0 auto;font-size:9px;letter-spacing:.2px}
   .ac-sched .ac24 b{font-weight:800;font-variant-numeric:tabular-nums;color:var(--cyan)}
+  /* workflownaam onder de agent: kort staartje, volledige naam in tooltip, klik = n8n */
+  .ac-wf{display:block;font-size:9px;line-height:1.25;margin-top:1px;color:var(--dim);opacity:.75;
+    text-decoration:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+  a.ac-wf:hover{color:var(--cyan);opacity:1;text-decoration:underline}
+  .pnl-wf{color:var(--text);text-decoration:none}
+  a.pnl-wf:hover{color:var(--cyan);text-decoration:underline}
   /* laatst-gedraaid badge rechts op de kaart */
   .ac-run{flex:0 0 auto;display:flex;flex-direction:column;align-items:flex-end;gap:1px;
     margin-left:auto;padding-left:6px;text-align:right;line-height:1.05}
@@ -403,6 +409,22 @@ const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFz
 const SB = createClient(SUPABASE_URL, SUPABASE_ANON);
 /* ======================================================================= */
 const C = { cyan:"#00d4ff", green:"#3ee08f", amber:"#ffb547", violet:"#b58cff", red:"#E31E24", advert:"#ff5fa2", grey:"#8aa0b5", gold:"#ffd166", dim:"#5e7c8e", text:"#cfe2ec" };
+/* ---- workflownaam bij de agent -------------------------------------
+   De naam volgt de conventie 'HDB · <AFDELING> · <Naam>'. Op de kaart
+   tonen we alleen het staartje na de laatste '·' (de afdeling staat al
+   in de kolom waar de kaart hangt); de volledige naam zit in de tooltip.
+   Ontbreekt workflow_name, dan renderen we niets -- zo blijft de kaart
+   schoon als de registry-view even wegvalt en de fallback-indeling draait. */
+const N8N_BASE = "https://homedecobali.app.n8n.cloud/workflow/";
+const escH = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const shortWf = n => { const p = String(n||"").split("\u00b7"); return (p[p.length-1]||"").trim(); };
+function wfHTML(a, cls){
+  if(!a || !a.wf) return "";
+  const full = escH(a.wf), short = escH(shortWf(a.wf)) || full;
+  return a.wfid
+    ? `<a class="${cls}" href="${N8N_BASE}${encodeURIComponent(a.wfid)}" target="_blank" rel="noopener" title="${full} — openen in n8n">${short}</a>`
+    : `<span class="${cls}" title="${full}">${short}</span>`;
+}
 const STATUS = { ok:{c:C.green,l:"Healthy"}, running:{c:C.cyan,l:"Running"}, idle:{c:C.dim,l:"Idle"}, error:{c:C.red,l:"Error"},
                  stale:{c:C.amber,l:"Verouderd"},   // geslaagd, maar te lang geleden voor zijn schema
                  paused:{c:"#ffb547",l:"Paused"} };
@@ -784,6 +806,7 @@ function renderPanel(){
       <div style="font-size:11px;letter-spacing:1.5px;color:${a.color}">${a.deptName}</div>
       <div style="font-size:18px;font-weight:700;margin:4px 0 3px">${a.name}</div>
       <div style="font-size:12.5px;color:${C.dim};margin-bottom:12px">Schedule: ${a.sched}</div>
+      ${a.wf?`<div class="row"><span class="k">Workflow</span><span class="v">${wfHTML(a,"pnl-wf")}</span></div>`:""}
       <div class="row"><span class="k">Status</span><span class="v" style="color:${st.c}">${st.l}</span></div>
       <div class="row"><span class="k">Last run</span><span class="v">${ago(r.last_run)}</span></div>
       <div class="row"><span class="k">Runs total</span><span class="v">${r.run_count??0}</span></div>
@@ -955,6 +978,7 @@ function agentCardHTML(a){
         <div class="ac-meta">
           <div class="ac-name">${nm}${a.paused?'<span class="ac-paused">PAUSED</span>':''}</div>
           <div class="ac-sched"><span class="schedtxt">${a.sched}</span><span class="ac24" data-24="${a.id}"></span></div>
+          ${wfHTML(a,"ac-wf")}
         </div>
         <div class="ac-run" data-run="${a.id}" title="laatst gedraaid"><span class="rk">·</span><span class="rt">—</span></div>
         <span class="ac-caret">⌄</span>
@@ -1221,7 +1245,8 @@ async function loadRegistryLayout(sb){
     for(const r of data){
       if(!dm[r.bridge_dept]) dm[r.bridge_dept]={id:r.bridge_dept,name:r.dept_name,color:r.dept_color,icon:r.dept_icon,_s:r.dept_sort||100,agents:[],_cl:{}};
       const d=dm[r.bridge_dept];
-      const a={id:r.agent_id,name:r.agent_name,sched:r.schedule_human||"\u2014",_s:r.agent_sort||100};
+      const a={id:r.agent_id,name:r.agent_name,sched:r.schedule_human||"\u2014",_s:r.agent_sort||100,
+               wf:r.workflow_name||null,wfid:r.n8n_workflow_id||null};
       if(r.grp){ a.grp=r.grp; a.step=r.grp_step||0; }
       if(r.paused) a.paused=true;
       d.agents.push(a);
