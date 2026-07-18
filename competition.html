@@ -116,7 +116,7 @@
 
   <!-- 1. Stuurfactoren: versheid, dekking en databasis van het playbook -->
   <section class="panel" id="status">
-    <h2>Playbook-status &mdash; Competitor Intel &amp; Ad Playbook draait wekelijks ma 06:00, 2 uur voor de Build Factory</h2>
+    <h2>Playbook-status &mdash; Competitor Intel &amp; Playbook draait wekelijks ma 06:00, voor de creatie-agents</h2>
     <div class="stats"><div class="loading" style="grid-column:1/-1">Laden&hellip;</div></div>
     <div class="banner" id="fallback-banner"></div>
   </section>
@@ -128,8 +128,8 @@
       <div class="step"><b>1 &middot; Google SERP</b><span>12 roterende zoekopdrachten (uit 50, ES+PT) per week; nieuwe shops komen automatisch in de concurrentenlijst.</span></div>
       <div class="step"><b>2 &middot; Meta Ad Library</b><span>Actieve ads van alle gevolgde concurrenten met page-ID, gerangschikt op looptijd: langer actief = bewezen renderend.</span></div>
       <div class="step"><b>3 &middot; Claude distilleert</b><span>Hooks, CTA's, structuren, do's &amp; don'ts per taal &times; segment + gescoorde best practices.</span></div>
-      <div class="step"><b>4 &middot; Supabase</b><span>ad_research_playbook (4 combinaties, 14 dagen geldig) + competitor_best_practices + competitor_ads.</span></div>
-      <div class="step"><b>5 &middot; Build Factory &amp; Social</b><span>Stills, Carousel en Unboxing-video's schrijven hun copy op deze versie.</span></div>
+      <div class="step"><b>4 &middot; Supabase</b><span>ad_research_playbook (4 combinaties, 8 dagen geldig) + competitor_best_practices + competitor_ads.</span></div>
+      <div class="step"><b>5 &middot; Creatie-agents</b><span>Build Ad Stills, Build Ads Carousel en de nieuwsbrief schrijven hun copy op deze versie.</span></div>
     </div>
   </section>
 
@@ -168,7 +168,7 @@
   <div class="grid g2">
     <section class="panel" id="competitors">
       <h2>Concurrenten die we volgen &mdash; live uit Supabase</h2>
-      <div class="pad note">Bron van waarheid: de tabel <span class="mono">competitors</span>. De workflow <span class="mono">HDB &middot; Research &mdash; Competitor Intel &amp; Ad Playbook</span> vult deze wekelijks aan via SERP-onderzoek en scant de Meta Ad Library van elke rij met een <span class="mono">fb_page_id</span>. Concurrent toevoegen = rij toevoegen in die tabel.</div>
+      <div class="pad note">Bron van waarheid: de tabel <span class="mono">competitors</span>. De workflow <span class="mono">HDB &middot; OFFICE &middot; Competitor Intel &amp; Playbook</span> vult deze wekelijks aan via SERP-onderzoek en scant de Meta Ad Library van elke rij met een <span class="mono">fb_page_id</span>. Concurrent toevoegen = rij toevoegen in die tabel.</div>
       <div id="comp-table"><div class="loading">Laden&hellip;</div></div>
     </section>
     <section class="panel" id="runs">
@@ -201,7 +201,7 @@
 
   const [{data: pbRows, error: pbErr},{data: runRows},{data: compRows},{data: bpRows}] = await Promise.all([
     sb.from("ad_research_playbook").select("*").order("created_at",{ascending:false}).limit(60),
-    sb.from("runs").select("*").ilike("workflow_name","%Ad%Playbook%").order("created_at",{ascending:false}).limit(14),
+    sb.from("runs").select("*").ilike("workflow_name","%Competitor Intel%").order("created_at",{ascending:false}).limit(14),
     sb.from("competitors").select("*").order("serp_hits",{ascending:false}).limit(60),
     sb.from("competitor_best_practices").select("*").order("score",{ascending:false}).order("created_at",{ascending:false}).limit(12)
   ]);
@@ -227,7 +227,7 @@
     const vu = newest.valid_until ? new Date(newest.valid_until + "T23:59:59") : null;
     const daysLeft = vu ? Math.ceil((vu - Date.now())/86400000) : null;
     if(daysLeft == null){ freshCls="warn"; freshTxt="Onbekend"; freshSub="Geen geldigheidsdatum op de snapshot"; }
-    else if(daysLeft < 0){ freshCls="bad"; freshTxt="Verlopen"; freshSub="Geldig tot "+fmtD(newest.valid_until)+" \u00b7 Build Factory schrijft op oude data"; }
+    else if(daysLeft < 0){ freshCls="bad"; freshTxt="Verlopen"; freshSub="Geldig tot "+fmtD(newest.valid_until)+" \u00b7 creatie-agents schrijven op oude data"; }
     else if(daysLeft <= 3){ freshCls="warn"; freshTxt=daysLeft+" dagen"; freshSub="Geldig tot "+fmtD(newest.valid_until); }
     else { freshCls="ok"; freshTxt=daysLeft+" dagen"; freshSub="Geldig tot "+fmtD(newest.valid_until); }
   }
@@ -390,7 +390,7 @@
         "</tr>";
       }).join("")+"</tbody></table>";
   } else {
-    runsEl.textContent = "Nog geen runs gelogd voor de Competitor Intel & Ad Playbook-workflow.";
+    runsEl.textContent = "Nog geen runs gelogd voor de Competitor Intel &amp; Playbook-workflow.";
   }
 })();
 </script>
