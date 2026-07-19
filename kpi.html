@@ -400,6 +400,7 @@
         <span class="zkpi">
           <div>Sessies 28d<b id="zs-stats-sess">&mdash;</b></div>
           <div>Conversie<b id="zs-stats-cvr">&mdash;</b></div>
+          <div>Mail bounce<b id="zs-stats-mailb">&mdash;</b></div>
           <div>IG volgers<b id="zs-stats-ig">&mdash;</b></div>
           <div>Blended MER<b id="zs-stats-mer">&mdash;</b></div>
         </span>
@@ -419,6 +420,16 @@
 
         <div class="row2">
           <div class="card">
+            <h2><span class="dot" style="background:var(--orange)"></span>Mail (Brevo)
+              <span class="when" id="mail-when"></span>
+              <span class="src">bron: brevo</span></h2>
+            <div class="nums" id="mail-nums"></div>
+            <div class="chart" id="mail-chart"></div>
+            <div class="legend"><span><i style="background:#ffd400"></i>Verzonden</span>
+              <span><i style="background:var(--green)"></i>Delivered</span>
+              <span><i style="background:var(--red)"></i>Bounces &mdash; stippellijn</span></div>
+          </div>
+          <div class="card">
             <h2><span class="dot" style="background:var(--green)"></span>Social (Meta)
               <span class="when" id="social-when"></span>
               <span class="src">bron: meta</span></h2>
@@ -426,14 +437,15 @@
             <div class="chart" id="social-chart"></div>
             <div class="legend"><span><i style="background:var(--green)"></i>IG volgers</span></div>
           </div>
-          <div class="card">
-            <h2><span class="dot" style="background:var(--green)"></span>Funnel &amp; rendement
-              <span class="when" id="fun-when"></span>
-              <span class="src">ga4 + shopify + meta</span></h2>
-            <div class="nums" id="fun-nums"></div>
-            <div id="fun-steps"></div>
-            <p id="fun-foot" style="color:var(--muted);font-size:11px;margin:10px 0 0"></p>
-          </div>
+        </div>
+
+        <div class="card">
+          <h2><span class="dot" style="background:var(--green)"></span>Funnel &amp; rendement
+            <span class="when" id="fun-when"></span>
+            <span class="src">ga4 + shopify + meta</span></h2>
+          <div class="nums" id="fun-nums"></div>
+          <div id="fun-steps"></div>
+          <p id="fun-foot" style="color:var(--muted);font-size:11px;margin:10px 0 0"></p>
         </div>
 
       </div>
@@ -1191,6 +1203,57 @@
         $('social-chart').innerHTML = '<p style="color:var(--muted);font-size:12px;margin:30px 0">'
           + 'Groeigrafiek verschijnt zodra er meerdere dagen historie is &mdash; volger-aantallen zijn '
           + 'alleen als dagelijkse snapshot beschikbaar (opbouw gestart 10 juli).</p>';
+      }
+
+      // ---- MAIL (BREVO) ----
+      // De metric-namen kunnen per sync-versie verschillen; we pakken de eerste die bestaat.
+      var MAILK = {
+        sent:      ['sent','emails_sent','requests','delivered_requests','verzonden'],
+        delivered: ['delivered','emails_delivered','deliveries'],
+        bounces:   ['bounces','hard_bounces','bounce','soft_bounces'],
+        opens:     ['unique_opens','opens_unique','uniqueOpens','opens']
+      };
+      var mpick = function(row, keys){
+        for(var i = 0; i < keys.length; i++){
+          if(row && row[keys[i]] !== undefined && row[keys[i]] !== null) return Number(row[keys[i]]) || 0;
+        }
+        return 0;
+      };
+      var mvals = function(byDate, dates, keys){
+        return dates.map(function(d){ return mpick(byDate[d], keys); });
+      };
+
+      var mail = pivot(kpi, 'brevo'); var md = lastDates(mail, 14); var mlt = lastTwo(mail);
+      var mSent  = mpick(mlt.last, MAILK.sent),  mSentP = mpick(mlt.prev, MAILK.sent);
+      var mDel   = mpick(mlt.last, MAILK.delivered);
+      var mBou   = mpick(mlt.last, MAILK.bounces);
+      var mOpen  = mpick(mlt.last, MAILK.opens);
+      var mBouP  = mSent ? (mBou / mSent * 100) : 0;
+
+      $('mail-when').textContent = mlt.lastDate ? '\u2014 14 dagen, t/m ' + mlt.lastDate : '';
+      $('mail-nums').innerHTML =
+        num('verzonden', fmt(mSent), delta(mSent, mSentP)) +
+        num('delivered', fmt(mDel), '') +
+        num('bounces', fmt(mBou) + (mSent ? ' <span style="font-size:15px">(' + mBouP.toFixed(0) + '%)</span>' : ''),
+            '', mBouP >= 5 ? 'badval' : (mBouP >= 2 ? 'warnval' : '')) +
+        num('opens uniek', fmt(mOpen), '');
+      zset('zs-stats-mailb', mSent ? mBouP.toFixed(0) + '%' : '\u2014',
+           mBouP >= 5 ? 'bad' : (mBouP >= 2 ? 'warn' : 'good'));
+
+      if(md.length){
+        $('mail-chart').innerHTML = barChart(md, [
+          { label: 'Verzonden', values: mvals(mail, md, MAILK.sent),      color: CLR.yellow },
+          { label: 'Delivered', values: mvals(mail, md, MAILK.delivered), color: CLR.green }
+        ], { label: 'Bounces', values: mvals(mail, md, MAILK.bounces), color: CLR.red }, 230);
+        hookHover($('mail-chart'), md, [
+          { label: 'Verzonden', values: mvals(mail, md, MAILK.sent),      color: CLR.yellow },
+          { label: 'Delivered', values: mvals(mail, md, MAILK.delivered), color: CLR.green },
+          { label: 'Bounces',   values: mvals(mail, md, MAILK.bounces),   color: CLR.red }
+        ], true, { padL: 46, padR: 10 });
+      } else {
+        $('mail-chart').innerHTML = '<p style="color:var(--muted);font-size:12px;margin:30px 0">'
+          + 'Nog geen Brevo-data in bridge_kpi_daily (source = <b>brevo</b>). '
+          + 'Zodra de mail-sync draait verschijnt hier de grafiek.</p>';
       }
 
       // ---- PAID ADS (META) ----
