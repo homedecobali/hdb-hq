@@ -159,6 +159,17 @@
   a.ac-wf:hover{color:var(--cyan);opacity:1;text-decoration:underline}
   .pnl-wf{color:var(--text);text-decoration:none}
   a.pnl-wf:hover{color:var(--cyan);text-decoration:underline}
+  /* rond icoontje rechts op de kaart: klik = workflow openen in n8n
+     (zelfde patroon als de stap-rijen in de KPI-stack) */
+  .wf-ic{flex:0 0 auto;width:19px;height:19px;border-radius:50%;display:grid;place-items:center;
+    margin-left:4px;border:1px solid var(--hair);background:rgba(255,255,255,.03);
+    color:var(--dim);text-decoration:none;transition:all .15s ease}
+  .wf-ic svg{width:11px;height:11px;display:block;fill:none;stroke:currentColor;
+    stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+  a.wf-ic:hover{color:#06131a;border-color:var(--cyan);background:var(--cyan);
+    box-shadow:0 0 10px color-mix(in srgb,var(--cyan) 55%,transparent)}
+  .wf-ic.off{opacity:.35;cursor:default}
+  .pnl-wf-ic{display:inline-grid;vertical-align:-4px}
   /* laatst-gedraaid badge rechts op de kaart */
   .ac-run{flex:0 0 auto;display:flex;flex-direction:column;align-items:flex-end;gap:1px;
     margin-left:auto;padding-left:6px;text-align:right;line-height:1.05}
@@ -424,6 +435,18 @@ function wfHTML(a, cls){
   return a.wfid
     ? `<a class="${cls}" href="${N8N_BASE}${encodeURIComponent(a.wfid)}" target="_blank" rel="noopener" title="${full} — openen in n8n">${short}</a>`
     : `<span class="${cls}" title="${full}">${short}</span>`;
+}
+/* ---- workflow-icoontje --------------------------------------------
+   Klein rond knopje met een 'nodes'-glyph. Is er een n8n_workflow_id,
+   dan is het een echte link naar de workflow (nieuw tabblad); zonder id
+   tonen we het knopje gedimd zodat de kaart-layout niet verspringt. */
+const WF_GLYPH = `<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="12" r="2.4"/><circle cx="18" cy="6" r="2.4"/><circle cx="18" cy="18" r="2.4"/><path d="M8.1 10.9 15.9 7.1M8.1 13.1 15.9 16.9"/></svg>`;
+function wfIcon(a, extra=""){
+  if(!a || !a.wf) return "";
+  const full = escH(a.wf);
+  return a.wfid
+    ? `<a class="wf-ic ${extra}" href="${N8N_BASE}${encodeURIComponent(a.wfid)}" target="_blank" rel="noopener" title="${full} — openen in n8n">${WF_GLYPH}</a>`
+    : `<span class="wf-ic off ${extra}" title="${full} — geen n8n-id bekend">${WF_GLYPH}</span>`;
 }
 const STATUS = { ok:{c:C.green,l:"Healthy"}, running:{c:C.cyan,l:"Running"}, idle:{c:C.dim,l:"Idle"}, error:{c:C.red,l:"Error"},
                  stale:{c:C.amber,l:"Verouderd"},   // geslaagd, maar te lang geleden voor zijn schema
@@ -806,7 +829,7 @@ function renderPanel(){
       <div style="font-size:11px;letter-spacing:1.5px;color:${a.color}">${a.deptName}</div>
       <div style="font-size:18px;font-weight:700;margin:4px 0 3px">${a.name}</div>
       <div style="font-size:12.5px;color:${C.dim};margin-bottom:12px">Schedule: ${a.sched}</div>
-      ${a.wf?`<div class="row"><span class="k">Workflow</span><span class="v">${wfHTML(a,"pnl-wf")}</span></div>`:""}
+      ${a.wf?`<div class="row"><span class="k">Workflow</span><span class="v">${wfHTML(a,"pnl-wf")} ${wfIcon(a,"pnl-wf-ic")}</span></div>`:""}
       <div class="row"><span class="k">Status</span><span class="v" style="color:${st.c}">${st.l}</span></div>
       <div class="row"><span class="k">Last run</span><span class="v">${ago(r.last_run)}</span></div>
       <div class="row"><span class="k">Runs total</span><span class="v">${r.run_count??0}</span></div>
@@ -978,9 +1001,10 @@ function agentCardHTML(a){
         <div class="ac-meta">
           <div class="ac-name">${nm}${a.paused?'<span class="ac-paused">PAUSED</span>':''}</div>
           <div class="ac-sched"><span class="schedtxt">${a.sched}</span><span class="ac24" data-24="${a.id}"></span></div>
-          ${wfHTML(a,"ac-wf")}
+          ${a.wf?`<span class="ac-wf" title="${escH(a.wf)}">${escH(shortWf(a.wf))||escH(a.wf)}</span>`:""}
         </div>
         <div class="ac-run" data-run="${a.id}" title="laatst gedraaid"><span class="rk">·</span><span class="rt">—</span></div>
+        ${wfIcon(a)}
         <span class="ac-caret">⌄</span>
       </div>
       <div class="ac-exec" data-exec="${a.id}"><div class="inner"></div></div>
@@ -1018,7 +1042,10 @@ function wireAgentCards(scope){
     orgAgentDots[id]=card.querySelector(".sd");
     orgAgentRun[id]=card.querySelector(".ac-run");
     orgAgentDep[id]=card.querySelector(".ac-dep");
-    card.addEventListener("click",()=>toggleExec(id,unit));   // klik = laatste 10 executies uit/in klappen
+    card.addEventListener("click",e=>{
+      if(e.target.closest(".wf-ic")) return;                  // icoontje opent n8n, niet de accordion
+      toggleExec(id,unit);
+    });   // klik = laatste 10 executies uit/in klappen
   });
 }
 function wireManager(scope,d){
