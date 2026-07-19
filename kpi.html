@@ -126,6 +126,9 @@
   .campads.hidden{display:none}
   /* ---- verkopen laatste 7 dagen ---- */
   .camphead .cd{font-size:11px;color:var(--muted);flex:none}
+  .camphead .ck{font-size:11.5px;color:var(--blue);flex:none;max-width:230px;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .camphead .ck.geen{color:var(--muted);font-style:italic}
   .adt td.thumb{width:44px;padding:5px 8px}
   .adt td.thumb img{width:34px;height:34px;object-fit:cover;border-radius:5px;
     border:1px solid var(--line);display:block}
@@ -1272,6 +1275,7 @@
         if(!o){
           o = byOrder[l.order_name] = { naam: l.order_name, datum: l.order_created_at,
             status: l.financial_status, shipping: Number(l.shipping || 0),
+            klant: l.customer_name, plaats: l.customer_city, land: l.customer_country,
             omzet: 0, kost: 0, winst: 0, korting: 0, onbekend: 0, regels: [] };
           volgorde.push(o);
         }
@@ -1301,9 +1305,14 @@
       $('sale-table').innerHTML = volgorde.map(function(o, idx){
         var marge = o.omzet > 0 ? (o.winst / o.omzet) * 100 : 0;
         var wCls  = o.winst < 0 ? 'lose' : 'win';
+        var klantTxt = o.klant
+          ? o.klant + (o.plaats ? ' \u00B7 ' + o.plaats : '')
+              + (o.land && o.land !== 'Spain' ? ' (' + o.land + ')' : '')
+          : 'klant onbekend';
         var head = '<div class="camphead" data-i="' + idx + '">'
           + '<span class="cv">\u25B8</span>'
           + '<span class="cn">' + esc(o.naam) + '</span>'
+          + '<span class="ck' + (o.klant ? '' : ' geen') + '">' + esc(klantTxt) + '</span>'
           + '<span class="cd">' + dm(o.datum) + '</span>'
           + '<span class="cm">' + o.regels.length + ' regel' + (o.regels.length === 1 ? '' : 's')
             + ' \u00B7 ' + eur2(o.omzet) + ' omzet \u00B7 '
@@ -1339,7 +1348,10 @@
         }).join('');
 
         var som = '<tr class="sale-sum"><td class="thumb"></td>'
-          + '<td>Totaal order \u00B7 verzendkosten ' + eur2(o.shipping)
+          + '<td>' + (o.klant ? esc(o.klant) + (o.plaats ? ' \u00B7 ' + esc(o.plaats) : '')
+                              + (o.land ? ', ' + esc(o.land) : '')
+                             : 'Klant onbekend')
+            + ' \u00B7 verzendkosten ' + eur2(o.shipping)
             + (o.korting > 0 ? ' \u00B7 korting ' + eur2(o.korting) : '') + '</td>'
           + '<td></td><td></td><td></td><td>' + eur2(o.omzet) + '</td><td>' + eur2(o.kost) + '</td>'
           + '<td><span class="' + wCls + '">' + eur2(o.winst) + '</span></td>'
