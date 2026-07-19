@@ -1223,14 +1223,22 @@
         return dates.map(function(d){ return mpick(byDate[d], keys); });
       };
 
-      var mail = pivot(kpi, 'brevo'); var md = lastDates(mail, 14); var mlt = lastTwo(mail);
-      var mSent  = mpick(mlt.last, MAILK.sent),  mSentP = mpick(mlt.prev, MAILK.sent);
-      var mDel   = mpick(mlt.last, MAILK.delivered);
-      var mBou   = mpick(mlt.last, MAILK.bounces);
-      var mOpen  = mpick(mlt.last, MAILK.opens);
+      var mail = pivot(kpi, 'brevo'); var md = lastDates(mail, 14);
+      var mAll = lastDates(mail, 90);
+      var mAct = mAll.filter(function(d){ return mpick(mail[d], MAILK.sent) > 0; });
+      var mLastD = mAct[mAct.length - 1] || null;
+      var mPrevD = mAct[mAct.length - 2] || null;
+      var mLast = mLastD ? mail[mLastD] : {};
+      var mPrev = mPrevD ? mail[mPrevD] : {};
+      var mSent  = mpick(mLast, MAILK.sent),  mSentP = mpick(mPrev, MAILK.sent);
+      var mDel   = mpick(mLast, MAILK.delivered);
+      var mBou   = mpick(mLast, MAILK.bounces);
+      var mOpen  = mpick(mLast, MAILK.opens);
       var mBouP  = mSent ? (mBou / mSent * 100) : 0;
 
-      $('mail-when').textContent = mlt.lastDate ? '\u2014 14 dagen, t/m ' + mlt.lastDate : '';
+      $('mail-when').textContent = mLastD
+        ? '\u2014 laatste verzending ' + mLastD + ' \u00b7 grafiek 14 dagen'
+        : '\u2014 14 dagen';
       $('mail-nums').innerHTML =
         num('verzonden', fmt(mSent), delta(mSent, mSentP)) +
         num('delivered', fmt(mDel), '') +
