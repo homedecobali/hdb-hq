@@ -373,8 +373,8 @@
             </div>
             <div>
               <div class="chart" id="ads-chart-reach"></div>
-              <div class="legend"><span><i style="background:var(--cyan)"></i>Impressions</span>
-                <span><i style="background:var(--yellow)"></i>Link clicks</span></div>
+              <div class="legend"><span><i style="background:var(--cyan)"></i>Impressies &mdash; linkeras</span>
+                <span><i style="background:var(--yellow)"></i>Link clicks &mdash; rechteras</span></div>
             </div>
           </div>
           <p id="ads-foot" style="color:var(--muted);font-size:11px;margin:10px 0 0"></p>
@@ -759,7 +759,7 @@
   // Lijngrafiek met twee y-assen: elke serie krijgt een eigen schaal (min-max
   // rond de werkelijke waarden i.p.v. vanaf 0), zodat groei van series met
   // sterk verschillende aantallen (bijv. IG- vs FB-volgers) leesbaar blijft.
-  function dualLineChart(dates, s1, s2, height){
+  function dualLineChart(dates, s1, s2, height, opts){
     var w = 900, h = height || 240, padL = 52, padR = 52, padT = 22, padB = 26;
     var iW = w - padL - padR, iH = h - padT - padB;
     var n = dates.length;
@@ -769,6 +769,13 @@
       var mn = Infinity, mx = -Infinity;
       values.forEach(function(v){ if(v < mn) mn = v; if(v > mx) mx = v; });
       if(!isFinite(mn)){ mn = 0; mx = 1; }
+      // volumes (impressies, clicks) horen vanaf nul; standen (volgers) juist niet,
+      // want dan wordt elke groeilijn een platte streep bovenin.
+      if(opts && opts.zero){
+        var top = niceMax(mx || 1);
+        return { min: 0, max: top,
+          Y: function(v){ return padT + iH - (v / top) * iH; } };
+      }
       if(mn === mx){ mn = mn - 1; mx = mx + 1; }
       var pad = (mx - mn) * 0.12;
       mn = Math.max(0, Math.floor(mn - pad)); mx = Math.ceil(mx + pad);
@@ -1155,15 +1162,15 @@
           { label: 'CPC', values: vals(pad, ad28, 'cpc'), color: CLR.muted, format: eur2 },
           { label: 'CTR', values: vals(pad, ad28, 'ctr'), color: CLR.muted, format: pct1 }
         ], true);
-        $('ads-chart-reach').innerHTML = lineChart(ad28, [
-          { values: vals(pad, ad28, 'impressions'), color: CLR.cyan, fill: true },
-          { values: vals(pad, ad28, 'link_clicks'), color: CLR.yellow }
-        ], 210);
+        $('ads-chart-reach').innerHTML = dualLineChart(ad28,
+          { label: 'Impressies',  values: vals(pad, ad28, 'impressions'), color: CLR.cyan, fill: true },
+          { label: 'Link clicks', values: vals(pad, ad28, 'link_clicks'), color: CLR.yellow },
+          210, { zero: true });
         hookHover($('ads-chart-reach'), ad28, [
           { label: 'Impressies', values: vals(pad, ad28, 'impressions'), color: CLR.cyan },
           { label: 'Link clicks', values: vals(pad, ad28, 'link_clicks'), color: CLR.yellow },
           { label: 'Page likes', values: vals(pad, ad28, 'page_likes'), color: CLR.green }
-        ]);
+        ], false, { padL: 52, padR: 52 });
       } else {
         $('ads-chart-spend').innerHTML = '<p style="color:var(--muted);font-size:12px;margin:20px 0">Geen delivery in de laatste 28 dagen.</p>';
         $('ads-chart-reach').innerHTML = '';
