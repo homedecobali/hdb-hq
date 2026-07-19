@@ -412,8 +412,9 @@
             <span class="when" id="web-when"></span></h2>
           <div class="nums" id="web-nums"></div>
           <div class="chart" id="web-chart"></div>
-          <div class="legend"><span><i style="background:var(--cyan)"></i>Sessies</span>
-            <span><i style="background:var(--blue)"></i>Gebruikers</span></div>
+          <div class="legend"><span><i style="background:var(--cyan)"></i>Sessies &mdash; linkeras</span>
+            <span><i style="background:#a37bff"></i>Gebruikers &mdash; linkeras</span>
+            <span><i style="background:var(--blue);opacity:.6"></i>Weergaven &mdash; rechteras (kolommen)</span></div>
         </div>
 
         <div class="row2">
@@ -492,7 +493,7 @@
   var $ = function(id){ return document.getElementById(id); };
   var fmt = function(n){ return Number(n).toLocaleString('nl-NL'); };
   var CLR = { cyan:'#00d4ff', blue:'#3da5ff', green:'#4fd1a1', red:'#ff5d5d',
-              yellow:'#ffd400', muted:'#7d8ca3', grid:'#1c2940' };
+              yellow:'#ffd400', muted:'#7d8ca3', grid:'#1c2940', violet:'#a37bff' };
 
   /* ================= secundaire panelen (volgorde = knopvolgorde) ================= */
   var PANELS = [
@@ -864,6 +865,62 @@
     return svg + '</svg>';
   }
 
+  // Meerdere lijnen op de LINKER as (bijv. sessies + gebruikers) en kolommen op de
+  // RECHTER as (bijv. weergaven). Kolommen worden eerst getekend, dus de lijnen
+  // liggen er altijd leesbaar bovenop. Beide assen starten op nul: het zijn dagvolumes.
+  function linesBarsDualChart(dates, lines, bars, height){
+    var w = 900, h = height || 250, padL = 52, padR = 56, padT = 22, padB = 26;
+    var iW = w - padL - padR, iH = h - padT - padB;
+    var lMax = 1, bMax = 1;
+    lines.forEach(function(s){ s.values.forEach(function(v){ if(v > lMax) lMax = v; }); });
+    bars.values.forEach(function(v){ if(v > bMax) bMax = v; });
+    lMax = niceMax(lMax); bMax = niceMax(bMax);
+    var n = dates.length, slot = iW / n, bw = Math.max(2, slot * 0.55);
+    var cx = function(i){ return padL + i * slot + slot / 2; };
+    var Yl = function(v){ return padT + iH - (v / lMax) * iH; };
+    var Yb = function(v){ return padT + iH - (v / bMax) * iH; };
+    var svg = '<svg viewBox="0 0 '+w+' '+h+'" preserveAspectRatio="xMidYMid meet">';
+    // raster + beide asschalen, elk in de kleur van de reeks die erbij hoort
+    for(var g = 0; g <= 4; g++){
+      var gy = padT + iH - (iH * g / 4);
+      svg += '<line x1="'+padL+'" y1="'+gy.toFixed(1)+'" x2="'+(w-padR)+'" y2="'+gy.toFixed(1)
+        + '" stroke="'+CLR.grid+'" stroke-width="1"/>'
+        + '<text x="'+(padL-8)+'" y="'+(gy+4).toFixed(1)+'" text-anchor="end" font-size="11" fill="'+lines[0].color+'">'
+        + fmt(Math.round(lMax * g / 4)) + '</text>'
+        + '<text x="'+(w-padR+8)+'" y="'+(gy+4).toFixed(1)+'" text-anchor="start" font-size="11" fill="'+bars.color+'">'
+        + fmt(Math.round(bMax * g / 4)) + '</text>';
+    }
+    var step = Math.max(1, Math.ceil(n / 8));
+    for(var i = 0; i < n; i += step){
+      svg += '<text x="'+cx(i).toFixed(1)+'" y="'+(h-8)+'" text-anchor="middle" font-size="11" fill="'+CLR.muted+'">'
+        + dayLabel(dates[i]) + '</text>';
+    }
+    // kolommen eerst (achtergrond)
+    bars.values.forEach(function(v, i){
+      var y = Yb(v), bh = padT + iH - y;
+      if(bh < 1 && v > 0){ bh = 1; y = padT + iH - 1; }
+      svg += '<rect x="'+(cx(i) - bw/2).toFixed(1)+'" y="'+y.toFixed(1)+'" width="'+bw.toFixed(1)
+        + '" height="'+bh.toFixed(1)+'" rx="1.5" fill="'+bars.color+'" opacity="0.32"/>';
+    });
+    // legenda bovenin, in de kleuren van de assen
+    var lx = padL;
+    lines.forEach(function(sr){
+      svg += '<circle cx="'+lx+'" cy="9" r="3.5" fill="'+sr.color+'"/>'
+        + '<text x="'+(lx+8)+'" y="13" font-size="11" fill="'+sr.color+'">'+esc(sr.label)+' (links)</text>';
+      lx += 20 + esc(sr.label).length * 6.2 + 34;
+    });
+    svg += '<rect x="'+lx+'" y="5.5" width="8" height="8" rx="1.5" fill="'+bars.color+'" opacity="0.6"/>'
+      + '<text x="'+(lx+13)+'" y="13" font-size="11" fill="'+bars.color+'">'+esc(bars.label)+' (rechts)</text>';
+    // dan de lijnen
+    lines.forEach(function(sr){
+      var d = '';
+      sr.values.forEach(function(v, i){ d += (i ? ' L' : 'M') + cx(i).toFixed(1) + ' ' + Yl(v).toFixed(1); });
+      svg += '<path d="'+d+'" fill="none" stroke="'+sr.color+'" stroke-width="2.6" stroke-linejoin="round"/>'
+        + '<circle cx="'+cx(n-1).toFixed(1)+'" cy="'+Yl(sr.values[n-1]).toFixed(1)+'" r="3.5" fill="'+sr.color+'"/>';
+    });
+    return svg + '</svg>';
+  }
+
   function barChart(dates, groups, lineSeries, height){
     var w = 900, h = height || 240, padL = 46, padR = 10, padT = 12, padB = 26;
     var iW = w - padL - padR, iH = h - padT - padB;
@@ -1003,15 +1060,15 @@
         num('weergaven', fmt(wl.last.pageviews||0), delta(wl.last.pageviews, wl.prev.pageviews)) +
         num('engagement', (wl.last.engagement_rate||0) + '%', delta(wl.last.engagement_rate, wl.prev.engagement_rate)) +
         num('nieuwe gebruikers', fmt(wl.last.new_users||0), '');
-      $('web-chart').innerHTML = lineChart(wd, [
-        { values: vals(web, wd, 'sessions'), color: CLR.cyan, fill: true },
-        { values: vals(web, wd, 'users'), color: CLR.blue }
-      ], 250);
+      $('web-chart').innerHTML = linesBarsDualChart(wd, [
+        { label: 'Sessies',    values: vals(web, wd, 'sessions'), color: CLR.cyan },
+        { label: 'Gebruikers', values: vals(web, wd, 'users'),    color: CLR.violet }
+      ], { label: 'Weergaven', values: vals(web, wd, 'pageviews'), color: CLR.blue }, 260);
       hookHover($('web-chart'), wd, [
         { label: 'Sessies', values: vals(web, wd, 'sessions'), color: CLR.cyan },
-        { label: 'Gebruikers', values: vals(web, wd, 'users'), color: CLR.blue },
-        { label: 'Weergaven', values: vals(web, wd, 'pageviews'), color: CLR.muted }
-      ]);
+        { label: 'Gebruikers', values: vals(web, wd, 'users'), color: CLR.violet },
+        { label: 'Weergaven', values: vals(web, wd, 'pageviews'), color: CLR.blue }
+      ], true, { padL: 52, padR: 56 });
 
       var shop = pivot(kpi, 'shopify'); var shd = lastDates(shop, 14); var shl = lastTwo(shop);
       $('shop-when').textContent = shl.lastDate ? '\u2014 14 dagen, t/m ' + shl.lastDate : '';
