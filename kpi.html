@@ -12,6 +12,8 @@
     --bg:#04070d; --panel:#0d1420; --line:#1c2940;
     --cyan:#00d4ff; --blue:#3da5ff; --green:#4fd1a1; --orange:#e67e22;
     --red:#ff5d5d; --yellow:#ffd400; --muted:#7d8ca3; --text:#dfe8f5;
+    /* zonekleuren: ver uit elkaar op de kleurcirkel, zodat elke groep direct herkenbaar is */
+    --z-shop:#2fd47e; --z-meta:#ff3f9a; --z-stats:#00c8ff; --z-dewi:#a37bff;
   }
   *{box-sizing:border-box}
   html,body{height:100%}
@@ -207,9 +209,70 @@
   .hidden{display:none}
   #err{color:var(--red);font-size:12px;margin-top:14px;white-space:pre-wrap}
 
+  /* ---- zones: gekleurd vlak onder een groep panelen (Shopify / Meta / Stats / DEWI) ----
+     De kaarten zelf zijn ongewijzigd; alleen het vlak eronder en de kop zijn nieuw. ---- */
+  .zone{
+    --acc:var(--cyan);
+    position:relative;
+    border:1px solid color-mix(in srgb, var(--acc) 34%, transparent);
+    border-left:5px solid var(--acc);
+    border-radius:14px;
+    box-shadow:0 0 0 1px rgba(0,0,0,.4), 0 10px 34px -22px var(--acc);
+    background:linear-gradient(180deg,
+        color-mix(in srgb, var(--acc) 13%, transparent) 0%,
+        color-mix(in srgb, var(--acc) 6%, transparent) 220px,
+        color-mix(in srgb, var(--acc) 3%, transparent) 100%);
+    padding:0 14px 14px;
+    margin-bottom:22px;
+  }
+  .zone-head{
+    position:sticky;top:0;z-index:20;
+    display:flex;align-items:center;gap:12px;flex-wrap:wrap;
+    margin:0 -14px 12px;padding:10px 16px;
+    background:color-mix(in srgb, var(--acc) 20%, #060b13 80%);
+    backdrop-filter:blur(6px);
+    border-bottom:1px solid color-mix(in srgb, var(--acc) 45%, transparent);
+    border-radius:11px 11px 0 0;
+  }
+  .zone-head .zi{width:24px;height:24px;border-radius:7px;flex:none;
+    display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:900;
+    color:#06121c;background:var(--acc);box-shadow:0 0 12px -2px var(--acc)}
+  .zone-head .zt{font-size:12.5px;font-weight:800;letter-spacing:.22em;text-transform:uppercase;
+    color:var(--acc)}
+  .zone-head .zs{font-size:11px;color:color-mix(in srgb, var(--acc) 55%, var(--muted))}
+  .zone-head .zkpi{margin-left:auto;display:flex;gap:18px;flex-wrap:wrap;align-items:baseline}
+  .zone-head .zkpi div{font-size:11px;letter-spacing:.08em;text-transform:uppercase;
+    color:color-mix(in srgb, var(--acc) 45%, var(--muted))}
+  .zone-head .zkpi b{display:block;font-size:15px;color:var(--text);letter-spacing:0;
+    font-variant-numeric:tabular-nums;text-transform:none}
+  .zone-head .zkpi b.good{color:var(--green)}
+  .zone-head .zkpi b.warn{color:var(--orange)}
+  .zone-head .zkpi b.bad{color:var(--red)}
+  .zone-head .fold{border:1px solid color-mix(in srgb, var(--acc) 35%, transparent);
+    background:none;color:var(--acc);border-radius:6px;padding:3px 9px;cursor:pointer;
+    font:inherit;font-size:11px;line-height:1.2}
+  .zone.folded .zone-body{display:none}
+  .zone .card{background:#0b1119;box-shadow:0 2px 10px rgba(0,0,0,.35)}
+  .zone .zone-body > .card:last-child{margin-bottom:0}
+  /* bruggend paneel: klein bronlabel zodat 'Social' in de stats-zone niet verwart */
+  .src{display:inline-flex;align-items:center;gap:6px;font-size:9.5px;font-weight:800;
+    letter-spacing:.1em;padding:3px 8px;border-radius:5px;background:rgba(255,255,255,.06);
+    color:var(--muted);text-transform:uppercase}
+  #top .zgrp{display:flex;gap:6px;align-items:center}
+  #top .zgrp a{border:1px solid var(--line);border-radius:6px;padding:4px 11px;
+    font-size:12px;font-weight:700;letter-spacing:.05em;text-decoration:none}
+  #top .zgrp a.zshop{border-color:var(--z-shop);color:var(--z-shop);background:rgba(47,212,126,.10)}
+  #top .zgrp a.zmeta{border-color:var(--z-meta);color:var(--z-meta);background:rgba(255,63,154,.10)}
+  #top .zgrp a.zstats{border-color:var(--z-stats);color:var(--z-stats);background:rgba(0,200,255,.10)}
+  #top .zgrp a.zdewi{border-color:var(--z-dewi);color:var(--z-dewi);background:rgba(163,123,255,.10)}
+
   /* mobiel: alleen KPI, paneelknoppen verbergen (naast elkaar is zinloos op telefoon) */
   @media (max-width:820px){
-    #top .grp{display:none}
+    #top .grp,#top .zgrp{display:none}
+    .zone{padding:0 8px 10px;border-left-width:4px}
+    .zone-head{margin:0 -8px 10px;padding:9px 10px}
+    .zone-head .zkpi{gap:12px;width:100%;margin-left:0;order:5}
+    .zone-head .zkpi b{font-size:13px}
     .sidepane,.divider{display:none !important}
     #kpiScroll{min-width:0;padding:10px}
     .nums{gap:18px} .num .v{font-size:22px}
@@ -227,112 +290,188 @@
 <div id="top" class="hidden">
   <span class="brand"><span class="live"></span>DEWI<span class="byrick">by Rick</span></span>
   <span class="grp"><span class="lbl">Panels</span></span>
+  <span class="zgrp"><span class="lbl">Ga naar</span>
+    <a class="zshop"  href="#z-shop">SHOPIFY</a>
+    <a class="zmeta"  href="#z-meta">META</a>
+    <a class="zstats" href="#z-stats">STATS</a>
+    <a class="zdewi"  href="#z-dewi">DEWI</a></span>
   <span id="stamp"></span>
 </div>
 
 <div id="work" class="hidden">
   <div id="kpiScroll">
-    <div class="card">
-      <h2><span class="dot" style="background:var(--cyan)"></span>Website (GA4)
-        <span class="when" id="web-when"></span></h2>
-      <div class="nums" id="web-nums"></div>
-      <div class="chart" id="web-chart"></div>
-      <div class="legend"><span><i style="background:var(--cyan)"></i>Sessies</span>
-        <span><i style="background:var(--blue)"></i>Gebruikers</span></div>
-    </div>
 
-    <div class="row2">
-      <div class="card">
-        <h2><span class="dot" style="background:var(--yellow)"></span>Shop (Shopify)
-          <span class="when" id="shop-when"></span></h2>
-        <div class="nums" id="shop-nums"></div>
-        <div class="chart" id="shop-chart"></div>
-        <div class="legend"><span><i style="background:var(--yellow)"></i>Orders</span>
-          <span><i style="background:var(--green)"></i>Omzet (&euro;)</span></div>
-        <div id="shop-split"></div>
+    <!-- ==================== ZONE 1 - SHOPIFY ==================== -->
+    <section class="zone" id="z-shop" style="--acc:var(--z-shop)">
+      <div class="zone-head">
+        <span class="zi">S</span>
+        <span class="zt">Shopify</span>
+        <span class="zs">omzet &middot; winst &middot; orders</span>
+        <span class="zkpi">
+          <div>Omzet 7d<b id="zs-shop-omzet">&mdash;</b></div>
+          <div>Brutowinst<b id="zs-shop-winst">&mdash;</b></div>
+          <div>Marge<b id="zs-shop-marge">&mdash;</b></div>
+          <div>Onverzonden<b id="zs-shop-open">&mdash;</b></div>
+        </span>
+        <button class="fold" data-zone="shop">&minus;</button>
       </div>
-      <div class="card">
-        <h2><span class="dot" style="background:var(--green)"></span>Social (Meta)
-          <span class="when" id="social-when"></span></h2>
-        <div class="nums" id="social-nums"></div>
-        <div class="chart" id="social-chart"></div>
-        <div class="legend"><span><i style="background:var(--green)"></i>IG volgers</span></div>
-      </div>
-    </div>
-    <div style="height:14px"></div>
+      <div class="zone-body">
 
-    <div class="card">
-      <h2><span class="dot" style="background:var(--orange)"></span>Onverzonden bestellingen (Shopify)
-        <span class="when" id="ro-when"></span></h2>
-      <div class="nums" id="ro-nums"></div>
-      <div id="ro-table"></div>
-      <p id="ro-foot" style="color:var(--muted);font-size:11px;margin:10px 0 0"></p>
-    </div>
-    <div style="height:14px"></div>
-
-    <div class="card">
-      <h2><span class="dot" style="background:var(--green)"></span>Omzet &amp; winst &mdash; laatste 7 dagen
-        <span class="when" id="sale-when"></span></h2>
-      <div class="kanalen" id="sale-kanalen"></div>
-      <div id="sale-table"></div>
-      <p id="sale-foot" style="color:var(--muted);font-size:11px;margin:10px 0 0"></p>
-    </div>
-    <div style="height:14px"></div>
-
-    <div class="card">
-      <h2><span class="dot" style="background:var(--blue)"></span>Paid Ads (Meta)
-        <span class="when" id="ads-when"></span></h2>
-      <div class="nums" id="ads-nums"></div>
-      <div class="row2">
-        <div>
-          <div class="chart" id="ads-chart-spend"></div>
-          <div class="legend"><span><i style="background:var(--blue)"></i>Spend per day (&euro;)</span></div>
+        <div class="card">
+          <h2><span class="dot" style="background:var(--yellow)"></span>Shop (Shopify)
+            <span class="when" id="shop-when"></span></h2>
+          <div class="nums" id="shop-nums"></div>
+          <div class="chart" id="shop-chart"></div>
+          <div class="legend"><span><i style="background:var(--yellow)"></i>Orders</span>
+            <span><i style="background:var(--green)"></i>Omzet (&euro;)</span></div>
+          <div id="shop-split"></div>
         </div>
-        <div>
-          <div class="chart" id="ads-chart-reach"></div>
-          <div class="legend"><span><i style="background:var(--cyan)"></i>Impressions</span>
-            <span><i style="background:var(--yellow)"></i>Link clicks</span></div>
+
+        <div class="card">
+          <h2><span class="dot" style="background:var(--green)"></span>Omzet &amp; winst &mdash; laatste 7 dagen
+            <span class="when" id="sale-when"></span></h2>
+          <div class="kanalen" id="sale-kanalen"></div>
+          <div id="sale-table"></div>
+          <p id="sale-foot" style="color:var(--muted);font-size:11px;margin:10px 0 0"></p>
+        </div>
+
+        <div class="card">
+          <h2><span class="dot" style="background:var(--orange)"></span>Onverzonden bestellingen (Shopify)
+            <span class="when" id="ro-when"></span></h2>
+          <div class="nums" id="ro-nums"></div>
+          <div id="ro-table"></div>
+          <p id="ro-foot" style="color:var(--muted);font-size:11px;margin:10px 0 0"></p>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ==================== ZONE 2 - META ==================== -->
+    <section class="zone" id="z-meta" style="--acc:var(--z-meta)">
+      <div class="zone-head">
+        <span class="zi">M</span>
+        <span class="zt">Meta</span>
+        <span class="zs">ads &middot; budget &middot; rendement</span>
+        <span class="zkpi">
+          <div>Spend 30d<b id="zs-meta-spend">&mdash;</b></div>
+          <div>MER<b id="zs-meta-mer">&mdash;</b></div>
+          <div>Week spend<b id="zs-meta-budget">&mdash;</b></div>
+          <div>Ads live<b id="zs-meta-ads">&mdash;</b></div>
+        </span>
+        <button class="fold" data-zone="meta">&minus;</button>
+      </div>
+      <div class="zone-body">
+
+        <div class="card">
+          <h2><span class="dot" style="background:var(--blue)"></span>Paid Ads (Meta)
+            <span class="when" id="ads-when"></span></h2>
+          <div class="nums" id="ads-nums"></div>
+          <div class="row2">
+            <div>
+              <div class="chart" id="ads-chart-spend"></div>
+              <div class="legend"><span><i style="background:var(--blue)"></i>Spend per day (&euro;)</span></div>
+            </div>
+            <div>
+              <div class="chart" id="ads-chart-reach"></div>
+              <div class="legend"><span><i style="background:var(--cyan)"></i>Impressions</span>
+                <span><i style="background:var(--yellow)"></i>Link clicks</span></div>
+            </div>
+          </div>
+          <p id="ads-foot" style="color:var(--muted);font-size:11px;margin:10px 0 0"></p>
+        </div>
+
+        <div class="card">
+          <h2><span class="dot" style="background:var(--cyan)"></span>Actieve advertenties
+            <span class="when" id="live-when"></span></h2>
+          <div class="nums" id="live-nums"></div>
+          <div id="live-table"></div>
+          <p id="live-foot" style="color:var(--muted);font-size:11px;margin:10px 0 0"></p>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ==================== ZONE 3 - STATS &amp; SOCIAL ==================== -->
+    <section class="zone" id="z-stats" style="--acc:var(--z-stats)">
+      <div class="zone-head">
+        <span class="zi">&#9679;</span>
+        <span class="zt">Stats &amp; Social</span>
+        <span class="zs">verkeer &middot; volgers &middot; conversie</span>
+        <span class="zkpi">
+          <div>Sessies 28d<b id="zs-stats-sess">&mdash;</b></div>
+          <div>Conversie<b id="zs-stats-cvr">&mdash;</b></div>
+          <div>IG volgers<b id="zs-stats-ig">&mdash;</b></div>
+          <div>Blended MER<b id="zs-stats-mer">&mdash;</b></div>
+        </span>
+        <button class="fold" data-zone="stats">&minus;</button>
+      </div>
+      <div class="zone-body">
+
+        <div class="card">
+          <h2><span class="dot" style="background:var(--cyan)"></span>Website (GA4)
+            <span class="when" id="web-when"></span></h2>
+          <div class="nums" id="web-nums"></div>
+          <div class="chart" id="web-chart"></div>
+          <div class="legend"><span><i style="background:var(--cyan)"></i>Sessies</span>
+            <span><i style="background:var(--blue)"></i>Gebruikers</span></div>
+        </div>
+
+        <div class="row2">
+          <div class="card">
+            <h2><span class="dot" style="background:var(--green)"></span>Social (Meta)
+              <span class="when" id="social-when"></span>
+              <span class="src">bron: meta</span></h2>
+            <div class="nums" id="social-nums"></div>
+            <div class="chart" id="social-chart"></div>
+            <div class="legend"><span><i style="background:var(--green)"></i>IG volgers</span></div>
+          </div>
+          <div class="card">
+            <h2><span class="dot" style="background:var(--green)"></span>Funnel &amp; rendement
+              <span class="when" id="fun-when"></span>
+              <span class="src">ga4 + shopify + meta</span></h2>
+            <div class="nums" id="fun-nums"></div>
+            <div id="fun-steps"></div>
+            <p id="fun-foot" style="color:var(--muted);font-size:11px;margin:10px 0 0"></p>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ==================== ZONE 4 - DEWI ZELF ==================== -->
+    <section class="zone" id="z-dewi" style="--acc:var(--z-dewi)">
+      <div class="zone-head">
+        <span class="zi">D</span>
+        <span class="zt">DEWI</span>
+        <span class="zs">to-do&rsquo;s &middot; voorstellen &middot; systeem</span>
+        <span class="zkpi">
+          <div>Open to-do&rsquo;s<b id="zs-dewi-todo">&mdash;</b></div>
+          <div>Voorstellen<b id="zs-dewi-prop">&mdash;</b></div>
+          <div>Stille agents<b id="zs-dewi-silent">&mdash;</b></div>
+        </span>
+        <button class="fold" data-zone="dewi">&minus;</button>
+      </div>
+      <div class="zone-body">
+        <div class="row3">
+          <div class="card">
+            <h2><span class="dot" style="background:var(--orange)"></span>To-do&rsquo;s (DEWI)
+              <span class="when" id="memo-count"></span></h2>
+            <div id="memos"></div>
+          </div>
+          <div class="card">
+            <h2><span class="dot" style="background:var(--yellow)"></span>Voorstellen
+              <span class="when">wachten op goedkeuring</span>
+              <span class="prop-badge zero" id="propBadge">0</span></h2>
+            <div id="propBody"><div class="sml-msg">laden&hellip;</div></div>
+          </div>
+          <div class="card">
+            <h2><span class="dot" style="background:var(--red)"></span>Systeem &mdash; stilte-detectie</h2>
+            <div id="system"></div>
+          </div>
         </div>
       </div>
-      <p id="ads-foot" style="color:var(--muted);font-size:11px;margin:10px 0 0"></p>
-    </div>
-    <div style="height:14px"></div>
+    </section>
 
-    <div class="card">
-      <h2><span class="dot" style="background:var(--green)"></span>Funnel &amp; rendement
-        <span class="when" id="fun-when"></span></h2>
-      <div class="nums" id="fun-nums"></div>
-      <div id="fun-steps"></div>
-      <p id="fun-foot" style="color:var(--muted);font-size:11px;margin:10px 0 0"></p>
-    </div>
-    <div style="height:14px"></div>
-
-    <div class="card">
-      <h2><span class="dot" style="background:var(--cyan)"></span>Actieve advertenties
-        <span class="when" id="live-when"></span></h2>
-      <div class="nums" id="live-nums"></div>
-      <div id="live-table"></div>
-      <p id="live-foot" style="color:var(--muted);font-size:11px;margin:10px 0 0"></p>
-    </div>
-    <div style="height:0"></div>
-
-    <div class="row3">
-      <div class="card">
-        <h2><span class="dot" style="background:var(--orange)"></span>To-do's (DEWI)
-          <span class="when" id="memo-count"></span></h2>
-        <div id="memos"></div>
-      </div>
-      <div class="card">
-        <h2><span class="dot" style="background:var(--yellow)"></span>Voorstellen
-          <span class="when">wachten op goedkeuring</span>
-          <span class="prop-badge zero" id="propBadge">0</span></h2>
-        <div id="propBody"><div class="sml-msg">laden&hellip;</div></div>
-      </div>
-      <div class="card">
-        <h2><span class="dot" style="background:var(--red)"></span>Systeem &mdash; stilte-detectie</h2>
-        <div id="system"></div>
-      </div>
-    </div>
     <div id="err"></div>
   </div>
 </div>
@@ -537,6 +676,28 @@
       window.addEventListener('pointerup', up);
     });
   }
+
+  /* ================= zones: kopcijfers + in-/uitklappen ================= */
+  // zet een cijfer in de gekleurde zonekop; cls = '', 'good', 'warn' of 'bad'
+  function zset(id, txt, cls){
+    var el = $(id); if(!el) return;
+    el.textContent = txt;
+    el.className = cls || '';
+  }
+  (function initZones(){
+    var open = {};
+    try{ open = JSON.parse(localStorage.getItem('dewi_kpi_zones') || '{}') || {}; }catch(e){}
+    Array.prototype.forEach.call(document.querySelectorAll('.zone .fold'), function(b){
+      var zone = b.closest('.zone'), key = b.dataset.zone;
+      if(open[key] === false){ zone.classList.add('folded'); b.textContent = '+'; }
+      b.addEventListener('click', function(){
+        var folded = zone.classList.toggle('folded');
+        b.textContent = folded ? '+' : '\u2212';
+        open[key] = !folded;
+        try{ localStorage.setItem('dewi_kpi_zones', JSON.stringify(open)); }catch(e){}
+      });
+    });
+  })();
 
   /* ================= helpers cijfers & diagrammen ================= */
   function delta(cur, prev){
@@ -864,6 +1025,7 @@
           num('gem. order', eur2(ro.length ? roTot / ro.length : 0), '') +
           num('oudste', roOld + ' dg', '', roOld > 5 ? 'badval' : (roOld > 2 ? 'warnval' : 'goodval')) +
           num('> 5 dagen', fmt(roUrg), '', roUrg ? 'badval' : 'goodval');
+        zset('zs-shop-open', fmt(ro.length), roUrg ? 'bad' : (ro.length ? 'warn' : 'good'));
         var fulNL = { UNFULFILLED:'onverzonden', PARTIALLY_FULFILLED:'deels verzonden',
                       ON_HOLD:'on hold', SCHEDULED:'gepland', IN_PROGRESS:'bezig' };
         var finNL = { PAID:'betaald', PENDING:'in afwachting', AUTHORIZED:'geautoriseerd',
@@ -906,6 +1068,8 @@
         num('IG posts', fmt(sl.last.ig_media_count||0), '') +
         num('FB volgers', fmt(sl.last.fb_followers||0), '') +
         num('FB fans', fmt(sl.last.fb_fans||0), '');
+      zset('zs-stats-ig', fmt(igNow) + (igD ? (igD > 0 ? ' \u25B2' : ' \u25BC') + Math.abs(igD) : ''),
+           igD > 0 ? 'good' : (igD < 0 ? 'bad' : ''));
       if(sd.length >= 2){
         $('social-chart').innerHTML = dualLineChart(sd,
           { label: 'IG volgers', values: vals(soc, sd, 'ig_followers'), color: CLR.green, fill: true },
@@ -937,6 +1101,7 @@
         num('CTR', (pl.last.ctr || 0).toFixed(1) + '%', '') +
         num('CPC', '\u20AC' + (pl.last.cpc || 0).toFixed(2), '') +
         num('page likes 30d', fmt(likes30), '');
+      zset('zs-meta-spend', eur2(spend30), '');
       if(ad28.length >= 2){
         $('ads-chart-spend').innerHTML = barChart(ad28, [
           { values: vals(pad, ad28, 'spend'), color: CLR.blue }
@@ -969,6 +1134,8 @@
 
       var open = memos.slice().sort(function(a,b){ return (a.days_left||0) - (b.days_left||0); });
       $('memo-count').textContent = '('+open.length+' open)';
+      zset('zs-dewi-todo', String(open.length),
+           open.some(function(m){ return m.overdue; }) ? 'bad' : (open.length ? 'warn' : 'good'));
       $('memos').innerHTML = open.length ? open.map(function(mm){
         var cls = mm.overdue ? 'red' : (mm.in_warning_window ? 'orange' : 'grey');
         var lbl = mm.overdue ? (Math.abs(mm.days_left)+'d over tijd')
@@ -1012,6 +1179,10 @@
         num('online AOV', eur2(aov), '') +
         num('ads-spend', eur2(fSpend), '') +
         num('online omzet', eur2(fRev), '');
+      zset('zs-stats-sess', fmt(fSess), '');
+      zset('zs-stats-cvr', cvr.toFixed(2) + '%', cvr >= 1 ? 'good' : (cvr >= 0.5 ? 'warn' : 'bad'));
+      zset('zs-stats-mer', mer ? mer.toFixed(2) + 'x' : '\u2014',
+           mer >= 3 ? 'good' : (mer >= 1.5 ? 'warn' : 'bad'));
 
       var steps = [
         { l:'Sessies',      v:fSess, c:'var(--cyan)'   },
@@ -1051,6 +1222,8 @@
         var tCtr   = tImp ? (tClk / tImp * 100) : 0;
 
         $('live-when').textContent = '\u2014 laatste 30 dagen \u00b7 ' + live.length + ' ads live';
+        zset('zs-meta-mer', tRoas.toFixed(2) + 'x', tRoas >= 2 ? 'good' : (tRoas >= 1 ? 'warn' : 'bad'));
+        zset('zs-meta-ads', fmt(live.length), '');
         $('live-nums').innerHTML =
           num('spend', eur2(tSpend), '') +
           num('omzet', eur2(tRev), '') +
@@ -1064,6 +1237,7 @@
         var wSp = 0; lastDates(_pad, 7).forEach(function(d){ wSp += Number((_pad[d]||{}).spend || 0); });
         var wBud = Number((typeof ads !== 'undefined' && ads && ads.active_daily_budget_eur) || 0) * 7;
         var wDiff = wBud - wSp;
+        zset('zs-meta-budget', eur2(wSp) + ' / ' + eur2(wBud), wDiff >= 0 ? 'good' : 'warn');
         var wbudHtml = '<div class="wbud">'
           + '<span>Weekly budget <b>' + eur2(wBud) + '</b></span>'
           + '<span>Weekly spend <b>' + eur2(wSp) + '</b></span>'
@@ -1132,6 +1306,7 @@
           + (noSale.length ? ' · ' + noSale.length + ' ads met ≥25 EUR & 0 aankopen' : '');
       } else {
         $('live-table').innerHTML = '<p style="color:var(--muted)">Nog geen data \u2014 Active Ads Pull draait dagelijks 07:30.</p>';
+        zset('zs-meta-ads', '0', 'warn');
       }
 
       // bewaakt = agent met vast schema; event-driven (webhook/on approve) is niet te bewaken
@@ -1181,6 +1356,7 @@
         });
       }
       $('system').innerHTML = sysHtml;
+      zset('zs-dewi-silent', String(silent.length), silent.length ? 'bad' : 'good');
 
       $('stamp').textContent = 'bijgewerkt ' + new Date().toLocaleTimeString('nl-NL',{hour:'2-digit',minute:'2-digit'});
     }catch(e){
@@ -1228,6 +1404,7 @@
       if(r.error){ console.warn("proposals_pending:", r.error.message); body.innerHTML = '<div class="sml-msg">kon voorstellen niet laden</div>'; return; }
       var rows = r.data || [];
       if(badge){ badge.textContent = String(rows.length); badge.classList.toggle("zero", rows.length === 0); }
+      zset('zs-dewi-prop', String(rows.length), rows.length ? 'warn' : 'good');
       if(!rows.length){ body.innerHTML = '<div class="sml-msg">geen openstaande voorstellen \u2705</div>'; return; }
       var KIND = { social:{l:"SOCIAL"}, meta_ads:{l:"META ADS"}, newsletter:{l:"NIEUWSBRIEF"} };
       var escp = function(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); };
@@ -1312,6 +1489,9 @@
       });
       var tMarge = tOmzet > 0 ? (tWinst / tOmzet) * 100 : 0;
       var winstCls = tWinst < 0 ? 'red' : 'green';
+      zset('zs-shop-omzet', eur2(tOmzet), '');
+      zset('zs-shop-winst', eur2(tWinst), tWinst < 0 ? 'bad' : 'good');
+      zset('zs-shop-marge', pct1(tMarge), tMarge >= 30 ? 'good' : (tMarge >= 15 ? 'warn' : 'bad'));
 
       var kgetal = function(waarde, label, cls){
         return '<div><div class="kv ' + (cls || '') + '">' + waarde + '</div>'
