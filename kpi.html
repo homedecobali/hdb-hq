@@ -322,8 +322,8 @@
             <span class="when" id="shop-when"></span></h2>
           <div class="nums" id="shop-nums"></div>
           <div class="chart" id="shop-chart"></div>
-          <div class="legend"><span><i style="background:var(--yellow)"></i>Orders</span>
-            <span><i style="background:var(--green)"></i>Omzet (&euro;)</span></div>
+          <div class="legend"><span><i style="background:var(--green)"></i>Omzet (&euro;) &mdash; linkeras</span>
+            <span><i style="background:var(--yellow)"></i>Orders (aantal) &mdash; rechteras</span></div>
           <div id="shop-split"></div>
         </div>
 
@@ -813,6 +813,50 @@
     return svg + '</svg>';
   }
 
+  // Staven op de LINKER as (euro's) en een lijn op de RECHTER as (aantallen).
+  // Twee aparte schalen, omdat orders (5-10) anders onzichtbaar zijn naast omzet (honderden).
+  function barLineDualChart(dates, bars, line, height){
+    var w = 900, h = height || 240, padL = 52, padR = 52, padT = 12, padB = 26;
+    var iW = w - padL - padR, iH = h - padT - padB;
+    var bMax = 1, lMax = 1;
+    bars.values.forEach(function(v){ if(v > bMax) bMax = v; });
+    line.values.forEach(function(v){ if(v > lMax) lMax = v; });
+    bMax = niceMax(bMax); lMax = niceMax(lMax);
+    var n = dates.length, slot = iW / n, bw = slot * 0.62;
+    var Yb = function(v){ return padT + iH - (v / bMax) * iH; };
+    var Yl = function(v){ return padT + iH - (v / lMax) * iH; };
+    var cx = function(i){ return padL + i * slot + slot / 2; };
+    var svg = '<svg viewBox="0 0 '+w+' '+h+'" preserveAspectRatio="xMidYMid meet">';
+    for(var g = 0; g <= 4; g++){
+      var gy = padT + iH - (iH * g / 4);
+      var lv = bMax * g / 4, rv = lMax * g / 4;
+      svg += '<line x1="'+padL+'" y1="'+gy.toFixed(1)+'" x2="'+(w-padR)+'" y2="'+gy.toFixed(1)
+        + '" stroke="'+CLR.grid+'" stroke-width="1"/>'
+        + '<text x="'+(padL-8)+'" y="'+(gy+4).toFixed(1)+'" text-anchor="end" font-size="11" fill="'+bars.color+'">'
+        + fmt(Math.round(lv)) + '</text>'
+        + '<text x="'+(w-padR+8)+'" y="'+(gy+4).toFixed(1)+'" text-anchor="start" font-size="11" fill="'+line.color+'">'
+        + fmt(Math.round(rv)) + '</text>';
+    }
+    var step = Math.max(1, Math.ceil(n / 8));
+    for(var i = 0; i < n; i += step){
+      svg += '<text x="'+cx(i).toFixed(1)+'" y="'+(h-8)+'" text-anchor="middle" font-size="11" fill="'+CLR.muted+'">'
+        + dayLabel(dates[i]) + '</text>';
+    }
+    bars.values.forEach(function(v, i){
+      var y = Yb(v), bh = padT + iH - y;
+      if(bh < 1 && v > 0){ bh = 1; y = padT + iH - 1; }
+      svg += '<rect x="'+(cx(i) - bw/2).toFixed(1)+'" y="'+y.toFixed(1)+'" width="'+bw.toFixed(1)
+        + '" height="'+bh.toFixed(1)+'" rx="1.5" fill="'+bars.color+'" opacity="0.85"/>';
+    });
+    var d = '';
+    line.values.forEach(function(v, i){ d += (i ? ' L' : 'M') + cx(i).toFixed(1) + ' ' + Yl(v).toFixed(1); });
+    svg += '<path d="'+d+'" fill="none" stroke="'+line.color+'" stroke-width="2.6" stroke-linejoin="round"/>';
+    line.values.forEach(function(v, i){
+      svg += '<circle cx="'+cx(i).toFixed(1)+'" cy="'+Yl(v).toFixed(1)+'" r="3" fill="'+line.color+'"/>';
+    });
+    return svg + '</svg>';
+  }
+
   function barChart(dates, groups, lineSeries, height){
     var w = 900, h = height || 240, padL = 46, padR = 10, padT = 12, padB = 26;
     var iW = w - padL - padR, iH = h - padT - padB;
@@ -989,14 +1033,14 @@
         + '<p class="split-note">14 dagen &middot; ' + onPct + '% van de omzet komt uit de webshop. '
         + 'Winkelverkoop = handmatige/draft-orders; alleen de online-cijfers zijn relevant voor ads &amp; conversie.</p>';
       }
-      $('shop-chart').innerHTML = barChart(shd, [
-        { values: vals(shop, shd, 'orders'), color: CLR.yellow }
-      ], { values: vals(shop, shd, 'revenue'), color: CLR.green }, 230);
+      $('shop-chart').innerHTML = barLineDualChart(shd,
+        { values: vals(shop, shd, 'revenue'), color: CLR.green },
+        { values: vals(shop, shd, 'orders'),  color: CLR.yellow }, 230);
       hookHover($('shop-chart'), shd, [
-        { label: 'Orders', values: vals(shop, shd, 'orders'), color: CLR.yellow },
         { label: 'Omzet', values: vals(shop, shd, 'revenue'), color: CLR.green, format: eur2 },
+        { label: 'Orders', values: vals(shop, shd, 'orders'), color: CLR.yellow },
         { label: 'AOV', values: vals(shop, shd, 'aov'), color: CLR.muted, format: eur2 }
-      ], true);
+      ], true, { padL: 52, padR: 52 });
 
       // --- Onverzonden bestellingen (bridge_open_orders, hourly Open Orders Sync) ---
       // De sync bewaart alleen open & onverzonden orders; verzonden orders worden verwijderd.
