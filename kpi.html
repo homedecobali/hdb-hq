@@ -139,14 +139,19 @@
   .sale-sum td{border-top:1px solid var(--line);font-weight:600;color:var(--text)}
   .num .v.green{color:var(--green)}
   .num .v.red{color:var(--red)}
-  .kanaal{padding:8px 0 4px;border-top:1px solid rgba(255,255,255,.05)}
-  .kanaal:first-child{border-top:none;padding-top:0}
-  .kanaal-l{font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);
-    margin-bottom:4px}
+  .kanalen{display:flex;gap:10px;flex-wrap:wrap;margin:2px 0 14px}
+  .kanaal{flex:1 1 210px;min-width:200px;background:rgba(255,255,255,.02);
+    border:1px solid var(--line);border-radius:10px;padding:10px 12px 11px}
+  .kanaal.totaal{border-color:var(--cyan);background:rgba(0,212,255,.05)}
+  .kanaal-l{font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);
+    margin-bottom:9px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .kanaal-l b{color:var(--text);font-weight:700;margin-left:2px}
-  .kanaal:last-child .kanaal-l{color:var(--cyan)}
-  .nums.klein{gap:20px}
-  .nums.klein .num .v{font-size:19px}
+  .kanaal.totaal .kanaal-l{color:var(--cyan)}
+  .kgrid{display:grid;grid-template-columns:1fr 1fr;gap:9px 10px}
+  .kgrid .kv{font-size:17px;font-weight:800;line-height:1.05;font-variant-numeric:tabular-nums}
+  .kgrid .kv.green{color:var(--green)}
+  .kgrid .kv.red{color:var(--red)}
+  .kgrid .kl{font-size:9px;letter-spacing:.11em;text-transform:uppercase;color:var(--muted);margin-top:3px}
   .camphead .ck.winkel{color:var(--orange);font-style:normal}
   .wbud{display:flex;gap:18px;flex-wrap:wrap;align-items:center;padding:8px 4px;margin-bottom:4px;border-bottom:1px solid var(--line);font-size:11.5px;color:var(--muted)}
   .wbud b{color:var(--text);font-weight:700}
@@ -268,8 +273,7 @@
     <div class="card">
       <h2><span class="dot" style="background:var(--green)"></span>Omzet &amp; winst &mdash; laatste 7 dagen
         <span class="when" id="sale-when"></span></h2>
-      <div class="nums" id="sale-nums"></div>
-      <div id="sale-kanalen"></div>
+      <div class="kanalen" id="sale-kanalen"></div>
       <div id="sale-table"></div>
       <p id="sale-foot" style="color:var(--muted);font-size:11px;margin:10px 0 0"></p>
     </div>
@@ -1273,7 +1277,6 @@
       var rows = r.data || [];
 
       if(!rows.length){
-        $('sale-nums').innerHTML = '';
         $('sale-kanalen').innerHTML = '';
         $('sale-table').innerHTML = '<p style="color:var(--muted)">Nog geen verkopen in de laatste 7 dagen.</p>';
         $('sale-foot').textContent = 'Gevuld door de agent Weekrapport Omzet & Winst (vrijdag 07:00).';
@@ -1310,21 +1313,24 @@
       var tMarge = tOmzet > 0 ? (tWinst / tOmzet) * 100 : 0;
       var winstCls = tWinst < 0 ? 'red' : 'green';
 
-      var strook = function(label, k, groot){
+      var kgetal = function(waarde, label, cls){
+        return '<div><div class="kv ' + (cls || '') + '">' + waarde + '</div>'
+             + '<div class="kl">' + label + '</div></div>';
+      };
+      var strook = function(label, k, totaal){
         var m = k.omzet > 0 ? (k.winst / k.omzet) * 100 : 0;
         var cls = k.winst < 0 ? 'red' : 'green';
-        return '<div class="kanaal">'
+        return '<div class="kanaal' + (totaal ? ' totaal' : '') + '">'
           + '<div class="kanaal-l">' + label + '<b>' + k.orders + '</b>'
             + (k.orders === 1 ? ' order' : ' orders') + '</div>'
-          + '<div class="nums' + (groot ? '' : ' klein') + '">'
-            + num('Omzet', eur2(k.omzet))
-            + num('Kostprijs', eur2(k.kost))
-            + num('Brutowinst', eur2(k.winst), '', cls)
-            + num('Marge', pct1(m), '', cls)
+          + '<div class="kgrid">'
+            + kgetal(eur2(k.omzet), 'omzet')
+            + kgetal(eur2(k.kost), 'kostprijs')
+            + kgetal(eur2(k.winst), 'brutowinst', cls)
+            + kgetal(pct1(m), 'marge', cls)
           + '</div></div>';
       };
 
-      $('sale-nums').innerHTML = '';
       $('sale-kanalen').innerHTML =
           strook('Webshop \u00B7 ', kanaal.web, false)
         + strook('Winkel \u00B7 handmatige bon \u00B7 ', kanaal.shop, false)
