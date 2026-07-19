@@ -139,6 +139,15 @@
   .sale-sum td{border-top:1px solid var(--line);font-weight:600;color:var(--text)}
   .num .v.green{color:var(--green)}
   .num .v.red{color:var(--red)}
+  .kanaal{padding:8px 0 4px;border-top:1px solid rgba(255,255,255,.05)}
+  .kanaal:first-child{border-top:none;padding-top:0}
+  .kanaal-l{font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);
+    margin-bottom:4px}
+  .kanaal-l b{color:var(--text);font-weight:700;margin-left:2px}
+  .kanaal:last-child .kanaal-l{color:var(--cyan)}
+  .nums.klein{gap:20px}
+  .nums.klein .num .v{font-size:19px}
+  .camphead .ck.winkel{color:var(--orange);font-style:normal}
   .wbud{display:flex;gap:18px;flex-wrap:wrap;align-items:center;padding:8px 4px;margin-bottom:4px;border-bottom:1px solid var(--line);font-size:11.5px;color:var(--muted)}
   .wbud b{color:var(--text);font-weight:700}
   .wbud .u{color:var(--green);font-weight:700} .wbud .o{color:var(--red);font-weight:700}
@@ -260,6 +269,7 @@
       <h2><span class="dot" style="background:var(--green)"></span>Omzet &amp; winst &mdash; laatste 7 dagen
         <span class="when" id="sale-when"></span></h2>
       <div class="nums" id="sale-nums"></div>
+      <div id="sale-kanalen"></div>
       <div id="sale-table"></div>
       <p id="sale-foot" style="color:var(--muted);font-size:11px;margin:10px 0 0"></p>
     </div>
@@ -1264,6 +1274,7 @@
 
       if(!rows.length){
         $('sale-nums').innerHTML = '';
+        $('sale-kanalen').innerHTML = '';
         $('sale-table').innerHTML = '<p style="color:var(--muted)">Nog geen verkopen in de laatste 7 dagen.</p>';
         $('sale-foot').textContent = 'Gevuld door de agent Weekrapport Omzet & Winst (vrijdag 07:00).';
         return;
@@ -1286,21 +1297,38 @@
         if(l.unit_cost == null) o.onbekend++; else o.winst += Number(l.profit || 0);
       });
 
+      var kanaal = { web: { orders: 0, omzet: 0, kost: 0, winst: 0 },
+                     shop: { orders: 0, omzet: 0, kost: 0, winst: 0 } };
       var tOmzet = 0, tKost = 0, tWinst = 0, tVerzend = 0, tOnbekend = 0;
       volgorde.forEach(function(o){
+        o.winkel = !o.klant;
+        var k = kanaal[o.winkel ? 'shop' : 'web'];
+        k.orders++; k.omzet += o.omzet; k.kost += o.kost; k.winst += o.winst;
         tOmzet += o.omzet; tKost += o.kost; tWinst += o.winst;
         tVerzend += o.shipping; tOnbekend += o.onbekend;
       });
       var tMarge = tOmzet > 0 ? (tWinst / tOmzet) * 100 : 0;
       var winstCls = tWinst < 0 ? 'red' : 'green';
 
-      $('sale-nums').innerHTML =
-          num('Omzet', eur2(tOmzet))
-        + num('Kostprijs', eur2(tKost))
-        + num('Brutowinst', eur2(tWinst), '', winstCls)
-        + num('Marge', pct1(tMarge), '', winstCls)
-        + num('Orders', fmt(volgorde.length))
-        + num('Artikelregels', fmt(rows.length));
+      var strook = function(label, k, groot){
+        var m = k.omzet > 0 ? (k.winst / k.omzet) * 100 : 0;
+        var cls = k.winst < 0 ? 'red' : 'green';
+        return '<div class="kanaal">'
+          + '<div class="kanaal-l">' + label + '<b>' + k.orders + '</b>'
+            + (k.orders === 1 ? ' order' : ' orders') + '</div>'
+          + '<div class="nums' + (groot ? '' : ' klein') + '">'
+            + num('Omzet', eur2(k.omzet))
+            + num('Kostprijs', eur2(k.kost))
+            + num('Brutowinst', eur2(k.winst), '', cls)
+            + num('Marge', pct1(m), '', cls)
+          + '</div></div>';
+      };
+
+      $('sale-nums').innerHTML = '';
+      $('sale-kanalen').innerHTML =
+          strook('Webshop \u00B7 ', kanaal.web, false)
+        + strook('Winkel \u00B7 handmatige bon \u00B7 ', kanaal.shop, false)
+        + strook('Alles samen \u00B7 ', { orders: volgorde.length, omzet: tOmzet, kost: tKost, winst: tWinst }, true);
 
       $('sale-table').innerHTML = volgorde.map(function(o, idx){
         var marge = o.omzet > 0 ? (o.winst / o.omzet) * 100 : 0;
@@ -1308,11 +1336,11 @@
         var klantTxt = o.klant
           ? o.klant + (o.plaats ? ' \u00B7 ' + o.plaats : '')
               + (o.land && o.land !== 'Spain' ? ' (' + o.land + ')' : '')
-          : 'klant onbekend';
+          : 'winkel \u00B7 handmatige bon';
         var head = '<div class="camphead" data-i="' + idx + '">'
           + '<span class="cv">\u25B8</span>'
           + '<span class="cn">' + esc(o.naam) + '</span>'
-          + '<span class="ck' + (o.klant ? '' : ' geen') + '">' + esc(klantTxt) + '</span>'
+          + '<span class="ck' + (o.klant ? '' : ' geen winkel') + '">' + esc(klantTxt) + '</span>'
           + '<span class="cd">' + dm(o.datum) + '</span>'
           + '<span class="cm">' + o.regels.length + ' regel' + (o.regels.length === 1 ? '' : 's')
             + ' \u00B7 ' + eur2(o.omzet) + ' omzet \u00B7 '
@@ -1350,7 +1378,7 @@
         var som = '<tr class="sale-sum"><td class="thumb"></td>'
           + '<td>' + (o.klant ? esc(o.klant) + (o.plaats ? ' \u00B7 ' + esc(o.plaats) : '')
                               + (o.land ? ', ' + esc(o.land) : '')
-                             : 'Klant onbekend')
+                             : 'Winkel \u00B7 handmatig ingevoerde bon')
             + ' \u00B7 verzendkosten ' + eur2(o.shipping)
             + (o.korting > 0 ? ' \u00B7 korting ' + eur2(o.korting) : '') + '</td>'
           + '<td></td><td></td><td></td><td>' + eur2(o.omzet) + '</td><td>' + eur2(o.kost) + '</td>'
@@ -1376,9 +1404,11 @@
       var laatste = rows[0].order_created_at.slice(0, 10);
       $('sale-when').textContent = eerste.slice(8,10) + '/' + eerste.slice(5,7)
         + ' \u2013 ' + laatste.slice(8,10) + '/' + laatste.slice(5,7);
-      $('sale-foot').textContent = 'Klik op een order om de regels uit te klappen \u00B7 omzet is exclusief verzendkosten ('
+      $('sale-foot').textContent = 'Orders zonder klantgegevens zijn handmatig ingevoerde winkelbonnen \u00B7 '
+        + 'klik op een order om de regels uit te klappen \u00B7 omzet is exclusief verzendkosten ('
         + eur2(tVerzend) + ' ontvangen) \u00B7 winst = verkoopprijs min kostprijs'
         + (tOnbekend ? ' \u00B7 ' + tOnbekend + ' regel(s) zonder kostprijs tellen niet mee in de marge' : '')
+        + ' \u00B7 ' + fmt(rows.length) + ' artikelregels'
         + ' \u00B7 bijgewerkt ' + new Date(rows[0].synced_at).toLocaleString('nl-NL', { timeZone: 'Europe/Madrid' });
     }catch(e){
       $('sale-table').innerHTML = '<p style="color:var(--muted)">bridge_sales_lines niet leesbaar: '
