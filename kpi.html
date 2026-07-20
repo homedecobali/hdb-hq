@@ -440,6 +440,13 @@
         </div>
 
         <div class="card">
+          <h2><span class="dot" style="background:var(--orange)"></span>Mailings per type (Brevo Campagnes)
+            <span class="when" id="mailbd-when"></span>
+            <span class="src">bron: brevo campagnes</span></h2>
+          <div id="mailbd-body"></div>
+        </div>
+
+        <div class="card">
           <h2><span class="dot" style="background:var(--green)"></span>Funnel &amp; rendement
             <span class="when" id="fun-when"></span>
             <span class="src">ga4 + shopify + meta</span></h2>
@@ -1055,7 +1062,11 @@
         sb.from('bridge_open_orders').select('*'),
         // agent-telling uit de gedeelde bron (dewi-agents.js -> bridge_agent_index),
         // identiek aan agents.html en organisation.html; mag falen zonder de rest te blokkeren
-        DEWI_AGENTS.load(sb).catch(function(e){ return { agents: [], counts: null, error: e }; })
+        DEWI_AGENTS.load(sb).catch(function(e){ return { agents: [], counts: null, error: e }; }),
+        // Brevo-campagnes uitgesplitst per mailing-type en taal (productnieuwsbrief,
+        // verhaal-nieuwsbrief, ...). Zelfde campagnes als source='brevo' in bridge_kpi_daily,
+        // alleen fijner gesneden - dus NIET optellen. Mag falen zonder de rest te blokkeren.
+        sb.from('bridge_brevo_campaign_daily').select('*')
       ]);
       if(res[0].error) throw res[0].error;
       var kpi = res[0].data || [], memos = res[1].data || [],
@@ -1262,6 +1273,79 @@
         $('mail-chart').innerHTML = '<p style="color:var(--muted);font-size:12px;margin:30px 0">'
           + 'Nog geen Brevo-data in bridge_kpi_daily (source = <b>brevo</b>). '
           + 'Zodra de mail-sync draait verschijnt hier de grafiek.</p>';
+      }
+
+      // ---- MAILINGS PER TYPE (BREVO CAMPAGNES) ----
+      // Zelfde campagnes als hierboven, alleen uitgesplitst per mailing-type en taal.
+      // Bewust NIET optellen bij de Mail-kaart: dat zou dubbeltellen.
+      var camp = (res[7] && !res[7].error) ? (res[7].data || []) : [];
+      var campErr = res[7] ? res[7].error : null;
+      var LANG_LBL = { es: 'ES', pt: 'PT', en: 'EN', xx: '?' };
+      var TYPE_CLR = { product_news: CLR.yellow, story_news: CLR.cyan, other: CLR.muted };
+
+      // per type: de laatste verzenddag, met de talen van die dag opgeteld
+      var lastPerType = {};
+      camp.forEach(function(r){
+        var t = r.mailing_type || 'other';
+        var cur = lastPerType[t];
+        if(!cur || r.kpi_date > cur.date){
+          cur = lastPerType[t] = { date: r.kpi_date, label: r.label || t, sort: (r.sort == null ? 999 : r.sort),
+                                   campaigns: 0, sent: 0, delivered: 0, opens: 0, clicks: 0, bounces: 0, unsub: 0, langs: [] };
+        }
+        if(r.kpi_date !== cur.date) return;
+        cur.campaigns += Number(r.campaigns || 0);
+        cur.sent      += Number(r.sent || 0);
+        cur.delivered += Number(r.delivered || 0);
+        cur.opens     += Number(r.opens_unique || 0);
+        cur.clicks    += Number(r.clicks_unique || 0);
+        cur.bounces   += Number(r.hard_bounces || 0) + Number(r.soft_bounces || 0);
+        cur.unsub     += Number(r.unsubscribed || 0);
+        cur.langs.push((LANG_LBL[r.lang] || String(r.lang || '?').toUpperCase()) + ' ' + fmt(Number(r.sent || 0)));
+      });
+      var bdKeys = Object.keys(lastPerType).sort(function(a, b){
+        var d = lastPerType[b].date.localeCompare(lastPerType[a].date);
+        return d !== 0 ? d : (lastPerType[a].sort - lastPerType[b].sort);
+      });
+
+      if(bdKeys.length){
+        var newestSend = bdKeys.map(function(k){ return lastPerType[k].date; }).sort().slice(-1)[0];
+        $('mailbd-when').textContent = '\u2014 laatste verzending per type, t/m ' + newestSend;
+        var bdRows = bdKeys.map(function(k){
+          var r = lastPerType[k];
+          var dPct = r.sent ? (r.delivered / r.sent * 100) : 0;
+          var oPct = r.delivered ? (r.opens / r.delivered * 100) : 0;
+          var cPct = r.opens ? (r.clicks / r.opens * 100) : 0;
+          var clr = TYPE_CLR[k] || CLR.muted;
+          var sub = r.kpi_date;
+          return '<tr>'
+            + '<td><span style="display:inline-block;width:8px;height:8px;border-radius:50%;'
+            +   'background:' + clr + ';margin-right:7px"></span>' + esc(r.label)
+            + '<span class="camp">' + r.date + ' \u00b7 ' + fmt(r.campaigns) + ' campagne(s) \u00b7 '
+            +   esc(r.langs.join(' / ')) + '</span></td>'
+            + '<td>' + fmt(r.sent) + '</td>'
+            + '<td>' + fmt(r.delivered) + ' <span style="color:var(--muted);font-size:10.5px">('
+            +   dPct.toFixed(0) + '%)</span></td>'
+            + '<td>' + fmt(r.opens) + ' <span style="color:var(--muted);font-size:10.5px">('
+            +   oPct.toFixed(0) + '%)</span></td>'
+            + '<td>' + fmt(r.clicks) + ' <span style="color:var(--muted);font-size:10.5px">('
+            +   cPct.toFixed(0) + '%)</span></td>'
+            + '<td>' + fmt(r.unsub) + '</td>'
+            + '</tr>';
+        }).join('');
+        $('mailbd-body').innerHTML =
+          '<table class="adt"><thead><tr><th>Mailing</th><th>Verzonden</th><th>Delivered</th>'
+          + '<th>Opens uniek</th><th>Kliks uniek</th><th>Afmeldingen</th></tr></thead><tbody>'
+          + bdRows + '</tbody></table>'
+          + '<p style="color:var(--muted);font-size:11px;margin:9px 0 0">Delivered-% t.o.v. verzonden, '
+          + 'opens-% t.o.v. delivered, kliks-% t.o.v. opens. Testcampagnes tellen niet mee.</p>';
+      } else {
+        $('mailbd-when').textContent = '';
+        $('mailbd-body').innerHTML = '<div style="color:var(--muted);font-size:12px;padding:6px 0">'
+          + (campErr
+              ? 'Campagne-uitsplitsing niet beschikbaar: ' + esc(campErr.message || campErr)
+              : 'Nog geen campagne-data per type. De uitsplitsing verschijnt na de eerstvolgende '
+                + 'run van <b>HDB \u00b7 OFFICE \u00b7 Metrics Mail (Brevo)</b> (dagelijks 07:45).')
+          + '</div>';
       }
 
       // ---- PAID ADS (META) ----
