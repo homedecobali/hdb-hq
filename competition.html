@@ -4,9 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DEWI - Concurrentie</title>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.7/dist/umd/supabase.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="dewi-config.js"></script>
-<script src="dewi-frame.js"></script><!-- uniforme fullscreen / cockpit-toggles -->
 <style>
   :root{
     --bg:#070b12; --panel:#0d1420; --panel2:#111a29; --line:#1c2940;
@@ -21,8 +20,11 @@
   header{display:flex;align-items:center;gap:18px;padding:14px 22px;
     border-bottom:1px solid var(--line);background:var(--panel);position:sticky;top:0;z-index:5}
   header .brand{font-weight:900;letter-spacing:.28em;color:var(--cyan);font-size:15px}
-  /* de nav is vervallen; de paneel-toggle van dewi-frame.js gaat naar rechts */
-  header .dewi-toggle{margin-left:auto}
+  header nav{display:flex;gap:6px;margin-left:auto}
+  header nav a{color:var(--muted);text-decoration:none;padding:6px 14px;border:1px solid transparent;border-radius:6px}
+  header nav a:hover{color:var(--text);border-color:var(--line)}
+  header nav a.active{color:var(--pink);border-color:var(--pink)}
+  header nav a:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
 
   .wrap{max-width:3800px;margin:0 auto;padding:14px 22px;display:flex;flex-direction:column;gap:14px}
   @media (min-width:2200px){ .wrap{padding:20px 32px;gap:20px} }
@@ -94,7 +96,7 @@
   tr:last-child td{border-bottom:none}
   td a{color:var(--cyan);text-decoration:none} td a:hover{text-decoration:underline}
   .dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:7px;vertical-align:baseline}
-  .dot.ok{background:var(--green)} .dot.bad{background:var(--red)}
+  .dot.ok{background:var(--green)} .dot.bad{background:var(--red)} .dot.warn{background:var(--amber)}
   .bar-wrap{display:inline-block;width:90px;height:8px;background:var(--panel2);border:1px solid var(--line);border-radius:4px;vertical-align:middle;margin-right:8px;overflow:hidden}
   .bar{height:100%;background:var(--cyan)}
   #source-notes{white-space:pre-wrap;font-size:13px;opacity:.9}
@@ -103,13 +105,18 @@
 <body>
 <header>
   <span class="brand">DEWI</span>
+  <nav>
+    <a href="kpi.html">Overzicht</a>
+    <a href="agents.html">Agents</a>
+    <a href="competition.html" class="active">Concurrentie</a>
+  </nav>
 </header>
 
 <div class="wrap">
 
   <!-- 1. Stuurfactoren: versheid, dekking en databasis van het playbook -->
   <section class="panel" id="status">
-    <h2>Playbook-status &mdash; Competitor Intel &amp; Playbook draait wekelijks ma 06:00, voor de creatie-agents</h2>
+    <h2>Playbook-status &mdash; Competitor Intel &amp; Ad Playbook draait wekelijks ma 06:00, 2 uur voor de Build Factory</h2>
     <div class="stats"><div class="loading" style="grid-column:1/-1">Laden&hellip;</div></div>
     <div class="banner" id="fallback-banner"></div>
   </section>
@@ -121,8 +128,8 @@
       <div class="step"><b>1 &middot; Google SERP</b><span>12 roterende zoekopdrachten (uit 50, ES+PT) per week; nieuwe shops komen automatisch in de concurrentenlijst.</span></div>
       <div class="step"><b>2 &middot; Meta Ad Library</b><span>Actieve ads van alle gevolgde concurrenten met page-ID, gerangschikt op looptijd: langer actief = bewezen renderend.</span></div>
       <div class="step"><b>3 &middot; Claude distilleert</b><span>Hooks, CTA's, structuren, do's &amp; don'ts per taal &times; segment + gescoorde best practices.</span></div>
-      <div class="step"><b>4 &middot; Supabase</b><span>ad_research_playbook (4 combinaties, 8 dagen geldig) + competitor_best_practices + competitor_ads.</span></div>
-      <div class="step"><b>5 &middot; Creatie-agents</b><span>Build Ad Stills, Build Ads Carousel en de nieuwsbrief schrijven hun copy op deze versie.</span></div>
+      <div class="step"><b>4 &middot; Supabase</b><span>ad_research_playbook (4 combinaties, 14 dagen geldig) + competitor_best_practices + competitor_ads.</span></div>
+      <div class="step"><b>5 &middot; Build Factory &amp; Social</b><span>Stills, Carousel en Unboxing-video's schrijven hun copy op deze versie.</span></div>
     </div>
   </section>
 
@@ -160,8 +167,8 @@
   <!-- 6. Wie we volgen + run-historie -->
   <div class="grid g2">
     <section class="panel" id="competitors">
-      <h2>Concurrenten die we volgen &mdash; live uit Supabase</h2>
-      <div class="pad note">Bron van waarheid: de tabel <span class="mono">competitors</span>. De workflow <span class="mono">HDB &middot; OFFICE &middot; Competitor Intel &amp; Playbook</span> vult deze wekelijks aan via SERP-onderzoek en scant de Meta Ad Library van elke rij met een <span class="mono">fb_page_id</span>. Concurrent toevoegen = rij toevoegen in die tabel.</div>
+      <h2>Concurrenten &mdash; wie voedt het playbook, wie is alleen context</h2>
+      <div class="pad note">Bron van waarheid: de tabel <span class="mono">competitors</span>. Elke shop krijgt een fit-score op onze niche &mdash; Bali-herkomst (0-3), ambacht (0-3), uniciteit (0-2) en DTC ES/PT (0-2). Alleen echte niche-concurrenten met een score van 6 of hoger worden gevolgd in de Meta Ad Library en voeden het playbook. Ketens, bouwmarkten en marktplaatsen staan apart als benchmark: ze bezetten de SERP, maar hun advertenties bepalen onze copy niet.</div>
       <div id="comp-table"><div class="loading">Laden&hellip;</div></div>
     </section>
     <section class="panel" id="runs">
@@ -189,13 +196,12 @@
 
   const LANG_LABEL = { es:"Spaans (ES)", pt:"Portugees (PT)" };
   const SEG_LABEL = { product:"Product", lifestyle:"Lifestyle" };
-  const TIER_LABEL = { niche_direct:"Directe niche", generic_retail:"Generiek retail", marketplace:"Marktplaats", wholesale:"Groothandel" };
   const AREA_LABEL = { hook:"Hook", cta:"CTA", adcopy:"Ad copy", creative:"Creative", offer:"Aanbod", social_organic:"Organisch social", seo:"SEO" };
 
   const [{data: pbRows, error: pbErr},{data: runRows},{data: compRows},{data: bpRows}] = await Promise.all([
     sb.from("ad_research_playbook").select("*").order("created_at",{ascending:false}).limit(60),
-    sb.from("runs").select("*").ilike("workflow_name","%Competitor Intel%").order("created_at",{ascending:false}).limit(14),
-    sb.from("competitors").select("*").order("serp_hits",{ascending:false}).limit(60),
+    sb.from("runs").select("*").ilike("workflow_name","%Ad%Playbook%").order("created_at",{ascending:false}).limit(14),
+    sb.from("competitors").select("*").order("fit_score",{ascending:false,nullsFirst:false}).order("serp_hits",{ascending:false}).limit(200),
     sb.from("competitor_best_practices").select("*").order("score",{ascending:false}).order("created_at",{ascending:false}).limit(12)
   ]);
 
@@ -220,7 +226,7 @@
     const vu = newest.valid_until ? new Date(newest.valid_until + "T23:59:59") : null;
     const daysLeft = vu ? Math.ceil((vu - Date.now())/86400000) : null;
     if(daysLeft == null){ freshCls="warn"; freshTxt="Onbekend"; freshSub="Geen geldigheidsdatum op de snapshot"; }
-    else if(daysLeft < 0){ freshCls="bad"; freshTxt="Verlopen"; freshSub="Geldig tot "+fmtD(newest.valid_until)+" \u00b7 creatie-agents schrijven op oude data"; }
+    else if(daysLeft < 0){ freshCls="bad"; freshTxt="Verlopen"; freshSub="Geldig tot "+fmtD(newest.valid_until)+" \u00b7 Build Factory schrijft op oude data"; }
     else if(daysLeft <= 3){ freshCls="warn"; freshTxt=daysLeft+" dagen"; freshSub="Geldig tot "+fmtD(newest.valid_until); }
     else { freshCls="ok"; freshTxt=daysLeft+" dagen"; freshSub="Geldig tot "+fmtD(newest.valid_until); }
   }
@@ -350,19 +356,53 @@
     bpEl.innerHTML = "<div class='loading'>Nog geen best practices opgeslagen. De eerstvolgende research-run (ma 06:00) vult dit paneel.</div>";
   }
 
-  // ---- 6a. concurrententabel live uit competitors ----
+  // ---- 6a. concurrenten live uit competitors, gesplitst op rol ----
   const comps = compRows || [];
-  document.querySelector("#comp-table .loading").outerHTML = comps.length
-    ? "<table><thead><tr><th>#</th><th>Concurrent</th><th>Markt</th><th>Type</th><th>Ad-tracking</th></tr></thead><tbody>"+
-      comps.map((c,i)=>"<tr>"+
-        "<td class='mono'>"+(i+1)+"</td>"+
-        "<td>"+(c.domain?"<a href='https://"+esc(c.domain)+"' target='_blank' rel='noopener'>"+esc(c.name)+"</a>":esc(c.name))+"</td>"+
+  const isTracked = c => c.tracked === true || (c.role === "peer" && Number(c.fit_score||0) >= 6);
+  const peers = comps.filter(c => c.role === "peer");
+  const others = comps.filter(c => c.role !== "peer");
+  const ROLE_LABEL = { benchmark:"Benchmark", supplier:"Groothandel", inspiration:"Inspiratie" };
+
+  function scoreCell(c){
+    const s = Number(c.fit_score);
+    if (!Number.isFinite(s)) return "<span class='note'>&mdash;</span>";
+    return "<span class='bar-wrap' title='Bali "+(c.bali_link??"?")+"/3 &middot; ambacht "+(c.craft_score??"?")+"/3 &middot; uniciteit "+(c.uniqueness??"?")+"/2 &middot; markt "+(c.market_fit??"?")+"/2'>"+
+           "<span class='bar' style='width:"+(s*10)+"%'></span></span> <span class='mono'>"+s+"</span>";
+  }
+  function nameCell(c){
+    return c.domain ? "<a href='https://"+esc(c.domain)+"' target='_blank' rel='noopener'>"+esc(c.name)+"</a>" : esc(c.name);
+  }
+
+  let html = "";
+  if(peers.length){
+    html += "<table><thead><tr><th>Niche-concurrent</th><th>Markt</th><th>Fit</th><th>Ad-tracking</th><th>Waarom</th></tr></thead><tbody>"+
+      peers.map(c=>"<tr>"+
+        "<td>"+nameCell(c)+"</td>"+
         "<td>"+esc(c.country||"\u2014")+"</td>"+
-        "<td class='note'>"+esc(TIER_LABEL[c.tier]||c.tier||"\u2014")+"</td>"+
-        "<td>"+(c.fb_page_id?"<span class='dot ok'></span>Ad Library":"<span class='dot bad'></span><span class='note'>geen page-ID</span>")+"</td>"+
-      "</tr>").join("")+
-      "</tbody></table>"
-    : "<div class='loading'>Geen concurrenten in de tabel <span class='mono'>competitors</span>.</div>";
+        "<td>"+scoreCell(c)+"</td>"+
+        "<td>"+(isTracked(c)
+            ? (c.fb_page_id ? "<span class='dot ok'></span>Ad Library" : "<span class='dot warn'></span><span class='note'>page-ID ontbreekt</span>")
+            : "<span class='dot bad'></span><span class='note'>score te laag</span>")+"</td>"+
+        "<td class='note'>"+esc(c.fit_reason||"")+"</td>"+
+      "</tr>").join("")+"</tbody></table>";
+  } else {
+    html += "<div class='loading'>Nog geen niche-concurrenten beoordeeld.</div>";
+  }
+
+  if(others.length){
+    html += "<div class='pad note' style='margin-top:18px;border-top:1px solid var(--line);padding-top:14px;'>"+
+      "<b>Geen concurrenten &mdash; alleen context.</b> Deze partijen domineren de zoekresultaten op prijs en assortiment, maar concurreren niet op ambacht, uniciteit of Bali-herkomst. Ze worden <u>niet</u> gescand in de Ad Library en hun copy voedt het playbook niet.</div>"+
+      "<table><thead><tr><th>Partij</th><th>Markt</th><th>Rol</th><th>Fit</th><th>Waarom niet</th></tr></thead><tbody>"+
+      others.map(c=>"<tr>"+
+        "<td>"+nameCell(c)+"</td>"+
+        "<td>"+esc(c.country||"\u2014")+"</td>"+
+        "<td class='note'>"+esc(ROLE_LABEL[c.role]||c.role||"\u2014")+"</td>"+
+        "<td>"+scoreCell(c)+"</td>"+
+        "<td class='note'>"+esc(c.fit_reason||"")+"</td>"+
+      "</tr>").join("")+"</tbody></table>";
+  }
+
+  document.querySelector("#comp-table .loading").outerHTML = html;
 
   // ---- 6b. run-historie met ads-per-scan ----
   const runsEl = document.querySelector("#runs .loading");
@@ -383,7 +423,7 @@
         "</tr>";
       }).join("")+"</tbody></table>";
   } else {
-    runsEl.textContent = "Nog geen runs gelogd voor de Competitor Intel &amp; Playbook-workflow.";
+    runsEl.textContent = "Nog geen runs gelogd voor de Competitor Intel & Ad Playbook-workflow.";
   }
 })();
 </script>
