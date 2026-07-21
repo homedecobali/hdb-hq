@@ -7,7 +7,13 @@ window.DEWI_CONFIG = {
 
   // n8n-webhook die executies + pipeline-stappen teruggeeft (workflow "DEWI · Agent Run API").
   // Vervangt het /api/agent-run proxy, zodat het dashboard statisch kan blijven.
-  AGENT_RUN_API: "https://homedecobali.app.n8n.cloud/webhook/dewi/agent-run"
+  AGENT_RUN_API: "https://homedecobali.app.n8n.cloud/webhook/dewi/agent-run",
+
+  // Uniforme venstertoggles (dewi-frame.js):
+  //   COCKPIT_URL = waar de "COCKPIT"-knop heen springt
+  //   FRAME_POS   = "bottom-right" (default) of "top-right"
+  COCKPIT_URL: "kpi.html",
+  FRAME_POS: "bottom-right"
 };
 // compat: code die nog BRIDGE_CONFIG leest blijft werken
 window.BRIDGE_CONFIG = window.DEWI_CONFIG;
