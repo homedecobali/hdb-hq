@@ -256,6 +256,9 @@
       <span class="sub">ORGANIGRAM</span>
     </div>
     <span class="sub" id="connTxt">· verbinden…</span>
+    <!-- Ankerpunt: dewi-swarm.js hangt de CREW-knop direct achter #depsBtn.
+         De DEPS-knop is vervallen, dus dit lege element bepaalt de plek. -->
+    <span id="depsBtn" style="display:none"></span>
     <button class="depbtn" id="logoutBtn" title="Uitloggen"><span class="ic">⏻</span>EXIT</button>
     <div class="spacer"></div>
     <div class="metric"><div class="v" id="mNodes">0</div><div class="l">AGENTS ZICHTBAAR</div></div>
@@ -277,6 +280,7 @@
 </div>
 
 <script src="dewi-agents.js"></script><!-- één bron van waarheid voor agent-tellingen -->
+<script src="dewi-swarm.js" defer></script><!-- bewegende avatars + CREW-knop -->
 <script src="dewi-frame.js"></script><!-- uniforme paneel-toggle -->
 <script type="module">
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.110.7";
