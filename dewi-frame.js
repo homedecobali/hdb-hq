@@ -73,10 +73,7 @@
       ".dewi-toggle:focus-visible{outline:2px solid #00d4ff;outline-offset:2px}",
       ".dewi-toggle .ic{font-size:14px;letter-spacing:0;line-height:1}",
       ".dewi-toggle.in-header{margin-left:10px}",
-      ".dewi-toggle.dewi-hidden{display:none}",
-
-      /* op smalle schermen alleen het icoon */
-      "@media(max-width:620px){.dewi-toggle .tx{display:none}.dewi-toggle{padding:10px 12px}}"
+      ".dewi-toggle.dewi-hidden{display:none}"
     ].join("");
     (document.head || document.documentElement).appendChild(s);
   }
