@@ -3,11 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>The Bridge - Agents</title>
+<title>DEWI - Agents</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<script src="bridge-config.js"></script>
-<script src="bridge-frame.js"></script>
-<script src="bridge-agents.js"></script>
+<script src="dewi-config.js"></script>
+<script src="dewi-agents.js"></script><!-- één bron van waarheid voor agent-tellingen -->
 <style>
   :root{
     --bg:#070b12; --panel:#0d1420; --panel2:#111a29; --line:#1c2940;
@@ -36,6 +35,7 @@
   .panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;overflow:hidden}
   .panel h2{margin:0;padding:12px 16px;font-size:11px;letter-spacing:.22em;color:var(--muted);
     border-bottom:1px solid var(--line);text-transform:uppercase}
+  /* telling in de paneelkop (bron: dewi-agents.js) */
   .panel h2 .h2-counts{letter-spacing:.04em;text-transform:none;font-weight:400;color:var(--text)}
 
   /* agentlijst */
@@ -49,6 +49,7 @@
   .dot{width:9px;height:9px;border-radius:50%;flex:none;background:var(--muted)}
   .dot.ok{background:var(--green)} .dot.error{background:var(--red)}
   .dot.stale{background:var(--amber)} .dot.paused{background:var(--muted)}
+  .dot.other{background:var(--muted);opacity:.6}
   .agent-row small{color:var(--muted);margin-left:auto;font-size:11px}
 
   /* detail */
@@ -104,9 +105,9 @@
 </head>
 <body>
 <header>
-  <span class="brand">THE&nbsp;BRIDGE</span>
+  <span class="brand">DEWI</span>
   <nav>
-    <a href="/">Overzicht</a>
+    <a href="kpi.html">Overzicht</a>
     <a href="agents.html" class="active">Agents</a>
     <a href="competition.html">Concurrentie</a>
   </nav>
@@ -114,7 +115,7 @@
 
 <div class="layout">
   <section class="panel">
-    <h2 id="agents-h2">Agents</h2>
+    <h2 id="agents-title">Agents</h2>
     <div id="agent-list"><div class="loading">Laden&hellip;</div></div>
   </section>
 
@@ -145,32 +146,33 @@
 
 <script>
 (async function(){
-  const cfg = window.BRIDGE_CONFIG || {};
+  const cfg = window.DEWI_CONFIG || window.BRIDGE_CONFIG || {};
   if(!cfg.SUPABASE_ANON_KEY || cfg.SUPABASE_ANON_KEY.startsWith("PLAK_")){
-    document.body.innerHTML = "<p style='padding:40px;color:#ff5f6b'>bridge-config.js is nog niet ingevuld: kopieer de anon key uit index.html.</p>";
+    document.body.innerHTML = "<p style='padding:40px;color:#ff5f6b'>dewi-config.js is nog niet ingevuld: kopieer de anon key uit organisation.html.</p>";
     return;
   }
   const sb = supabase.createClient(cfg.SUPABASE_URL, cfg.SUPABASE_ANON_KEY);
   const { data: { session } } = await sb.auth.getSession();
-  if(!session){ location.href = "/"; return; }
+  if(!session){ location.href = "organisation.html"; return; }
 
-  const esc = s => String(s ?? "").replace(/[&<>\"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+  const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
   const fmtDT = t => t ? new Date(t).toLocaleString("nl-NL",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"}) : "-";
   const fmtMs = ms => ms == null ? "" : (ms >= 1000 ? (ms/1000).toFixed(1)+" s" : ms+" ms");
-  const DEPT_LABELS = {mgmt:"Management",ops:"Operations",sales:"Sales",admin:"Admin & Fin.",legal:"Admin & Fin.",finance:"Admin & Fin.",intel:"Office",mktg:"Marketing",marketing:"Marketing",advertising:"Advertising",infra:"Infra"};
+  const DEPT_LABELS = {mgmt:"Management",catalog:"Catalogus",seo:"SEO",intel:"Office",mktg:"Marketing",marketing:"Marketing",advertising:"Advertising",infra:"Infra"};
 
-  // --- data laden (agents + telling via de gedeelde module: 1 bron, 1 formule) ---
-  let agents, counts;
-  try{
-    const [shared, stepsRes] = await Promise.all([
-      window.BRIDGE_AGENTS.load(sb),
-      sb.from("bridge_agent_steps").select("*")
-    ]);
-    agents = shared.agents; counts = shared.counts;
-    var stepDefs = stepsRes.data;
-  }catch(e){
-    document.getElementById("agent-list").innerHTML = "<div class='loading'>Kon agents niet laden: "+esc(e.message)+"</div>"; return;
-  }
+  // --- data laden ---
+  // Agentlijst + telling komen uit dewi-agents.js (bron: bridge_agent_index),
+  // dezelfde bron die kpi.html en organisation.html voor hun telling gebruiken.
+  const [idx, {data: stepDefs}] = await Promise.all([
+    DEWI_AGENTS.load(sb).catch(e => ({error:e})),
+    sb.from("bridge_agent_steps").select("*")
+  ]);
+  if(idx.error){ document.getElementById("agent-list").innerHTML = "<div class='loading'>Kon agents niet laden: "+esc(idx.error.message)+"</div>"; return; }
+  const agents = idx.agents;
+
+  // telling bovenin het paneel, bijv. "Agents — 73 totaal · 54 ok · 15 verouderd · 4 gepauzeerd"
+  document.getElementById("agents-title").innerHTML =
+    "Agents <span class='h2-counts'>&mdash; " + DEWI_AGENTS.summaryHTML(idx.counts) + "</span>";
 
   const stepsByAgent = {};
   (stepDefs||[]).forEach(r => { (stepsByAgent[r.agent_id] = stepsByAgent[r.agent_id] || []).push(r); });
@@ -180,10 +182,6 @@
   const listEl = document.getElementById("agent-list");
   listEl.innerHTML = "";
   let currentDept = null;
-  /* Dot per rij komt uit dezelfde classify() als de telling in de kop,
-     dus een dot kan per definitie nooit meer afwijken van de telling.
-     Mapping naar bestaande CSS-klassen: running -> ok, idle -> (default grijs). */
-  const DOT_CLS = { ok:"ok", running:"ok", error:"error", stale:"stale", paused:"paused", idle:"" };
   agents.forEach(a => {
     const dept = a.bridge_dept || a.department || "overig";
     if(dept !== currentDept){
@@ -194,15 +192,14 @@
     }
     const btn = document.createElement("button");
     btn.className = "agent-row"; btn.dataset.agentId = a.agent_id;
-    const dotCls = DOT_CLS[window.BRIDGE_AGENTS.classify(a)] || "";
+    // dezelfde classificatie als de telling in de kop (dewi-agents.js) —
+    // een dot kan dus nooit meer afwijken van de samenvatting erboven
+    const st = DEWI_AGENTS.classify(a);
+    const dotCls = st === "running" ? "ok" : (st === "idle" ? "other" : st);
     btn.innerHTML = "<span class='dot "+dotCls+"'></span><span>"+esc(a.agent_name)+"</span><small>"+esc(a.schedule_human||"")+"</small>";
     btn.addEventListener("click", () => selectAgent(a, btn));
     listEl.appendChild(btn);
   });
-  (function(){
-    const h = document.getElementById("agents-h2");
-    if(h) h.innerHTML = "Agents \u2014 <span class='h2-counts'>" + window.BRIDGE_AGENTS.summaryHTML(counts) + "</span>";
-  })();
 
   // --- detail ---
   const dBody = document.getElementById("detail-body");
@@ -231,7 +228,7 @@
   // --- run-historie (Supabase, samenvattingen) ---
   async function loadRuns(agent){
     const el = document.getElementById("runs-body");
-    if(!agent.run_token){ el.innerHTML = "<div class='loading'>Deze agent logt onder de WP-Sync-Engine; zie de Engine-runs.</div>"; return; }
+    if(!agent.run_token){ el.innerHTML = "<div class='loading'>Geen run-token gekoppeld aan deze agent; runs zijn alleen in n8n zichtbaar.</div>"; return; }
     el.innerHTML = "<div class='loading'>Laden&hellip;</div>";
     const {data, error} = await sb.from("bridge_agent_runs").select("*")
       .eq("workflow", agent.run_token).order("run_at",{ascending:false}).limit(20);
@@ -244,19 +241,17 @@
       }).join("")+"</tbody></table>";
   }
 
-  // --- executies + pipeline (via /api/agent-run) ---
-  // Het access-token wordt VERS per aanroep opgehaald. De sessie die bij het
-  // laden werd opgehaald bevat een token dat na ~1 uur verloopt; de client
-  // ververst zichzelf op de achtergrond (tabel-reads blijven werken), maar een
-  // vastgehouden token verouderde stil -> /api/agent-run gaf 401. getSession()
-  // levert het actuele (auto-ververste) token.
+  // --- executies + pipeline (via de n8n-webhook "DEWI · Agent Run API") ---
+  // Statische hosting (GitHub Pages) heeft geen backend; n8n levert de JSON.
+  // Simpele GET zonder custom headers -> geen CORS-preflight nodig.
+  const AGENT_RUN_API = (window.DEWI_CONFIG && window.DEWI_CONFIG.AGENT_RUN_API)
+    || "https://homedecobali.app.n8n.cloud/webhook/dewi/agent-run";
   async function apiGet(qs){
-    const { data:{ session: live } } = await sb.auth.getSession();
-    const token = live && live.access_token;
-    if(!token){ location.href = "/"; throw new Error("sessie verlopen"); }
-    const r = await fetch("/api/agent-run?"+qs, { headers: { authorization: "Bearer "+token }});
-    if(!r.ok) throw new Error((await r.json().catch(()=>({}))).detail || ("API "+r.status));
-    return r.json();
+    const r = await fetch(AGENT_RUN_API+"?"+qs);
+    if(!r.ok) throw new Error("API "+r.status);
+    const j = await r.json();
+    if(j && j.message && !j.executions && !j.steps) throw new Error(j.message);
+    return j;
   }
 
   async function loadExecutions(agent){
@@ -266,7 +261,7 @@
     document.getElementById("rawnodes").style.display = "none";
     if(!agent.n8n_workflow_id){
       picker.innerHTML = ""; pipe.innerHTML = "";
-      note.textContent = "Geen n8n-workflow gekoppeld aan deze agent (Engine-onderdeel) - alleen run-historie beschikbaar.";
+      note.textContent = "Geen n8n-workflow gekoppeld aan deze agent - alleen run-historie beschikbaar.";
       return;
     }
     picker.innerHTML = "<span class='loading'>Executies ophalen&hellip;</span>"; pipe.innerHTML = ""; note.textContent = "";
