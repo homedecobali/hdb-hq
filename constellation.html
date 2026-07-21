@@ -8,6 +8,7 @@
 <script src="dewi-config.js"></script>
 <script src="dewi-frame.js"></script><!-- uniforme paneel-toggle -->
 <script src="dewi-agents.js"></script><!-- één bron van waarheid voor agent-tellingen -->
+<script src="dewi-swarm-radial.js" defer></script><!-- bewegende avatars + CREW-knop -->
 <style>
   :root{
     --bg:#070b12; --panel:rgba(13,20,31,0.72); --line:rgba(0,212,255,0.16);
@@ -537,6 +538,7 @@ function applyRow(r){ if(!r||!r.agent_id)return;
   renderMetrics();
   refreshAgentCountsDebounced();
   paintNodes(); if(selected===r.agent_id)renderPanel();
+  if(window.DEWI_SWARM_RADIAL) DEWI_SWARM_RADIAL.event(r.agent_id, r.status);
   if(a&&(r.status==="running"||r.status==="error")){ pushEvent(a,r.status==="error"); if(r.status==="running")spawn(r.agent_id,a.color); }
 }
 async function loadRegistryLayout(sb){
