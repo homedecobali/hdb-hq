@@ -20,12 +20,7 @@
   header{display:flex;align-items:center;gap:18px;padding:14px 22px;
     border-bottom:1px solid var(--line);background:var(--panel);position:sticky;top:0;z-index:5}
   header .brand{font-weight:900;letter-spacing:.28em;color:var(--cyan);font-size:15px}
-  header nav{display:flex;gap:6px;margin-left:auto}
-  header nav a{color:var(--muted);text-decoration:none;padding:6px 14px;border:1px solid transparent;border-radius:6px}
-  header nav a:hover{color:var(--text);border-color:var(--line)}
-  header nav a.active{color:var(--pink);border-color:var(--pink)}
-  header nav a:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
-
+  header .dewi-toggle{margin-left:auto}
   .wrap{max-width:3800px;margin:0 auto;padding:14px 22px;display:flex;flex-direction:column;gap:14px}
   @media (min-width:2200px){ .wrap{padding:20px 32px;gap:20px} }
 
@@ -105,11 +100,6 @@
 <body>
 <header>
   <span class="brand">DEWI</span>
-  <nav>
-    <a href="kpi.html">Overzicht</a>
-    <a href="agents.html">Agents</a>
-    <a href="competition.html" class="active">Concurrentie</a>
-  </nav>
 </header>
 
 <div class="wrap">
