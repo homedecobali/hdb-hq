@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>DEWI · Command Center</title>
+<title>THE BRIDGE · Command Center</title>
 <style>
   :root{
     --bg:#070b12; --panel:rgba(13,20,31,0.72); --line:rgba(0,212,255,0.16);
@@ -153,23 +153,6 @@
   .ac-sched .schedtxt{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
   .ac-sched .ac24{flex:0 0 auto;font-size:9px;letter-spacing:.2px}
   .ac-sched .ac24 b{font-weight:800;font-variant-numeric:tabular-nums;color:var(--cyan)}
-  /* workflownaam onder de agent: kort staartje, volledige naam in tooltip, klik = n8n */
-  .ac-wf{display:block;font-size:9px;line-height:1.25;margin-top:1px;color:var(--dim);opacity:.75;
-    text-decoration:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
-  a.ac-wf:hover{color:var(--cyan);opacity:1;text-decoration:underline}
-  .pnl-wf{color:var(--text);text-decoration:none}
-  a.pnl-wf:hover{color:var(--cyan);text-decoration:underline}
-  /* rond icoontje rechts op de kaart: klik = workflow openen in n8n
-     (zelfde patroon als de stap-rijen in de KPI-stack) */
-  .wf-ic{flex:0 0 auto;width:19px;height:19px;border-radius:50%;display:grid;place-items:center;
-    margin-left:4px;border:1px solid var(--hair);background:rgba(255,255,255,.03);
-    color:var(--dim);text-decoration:none;transition:all .15s ease}
-  .wf-ic svg{width:11px;height:11px;display:block;fill:none;stroke:currentColor;
-    stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
-  a.wf-ic:hover{color:#06131a;border-color:var(--cyan);background:var(--cyan);
-    box-shadow:0 0 10px color-mix(in srgb,var(--cyan) 55%,transparent)}
-  .wf-ic.off{opacity:.35;cursor:default}
-  .pnl-wf-ic{display:inline-grid;vertical-align:-4px}
   /* laatst-gedraaid badge rechts op de kaart */
   .ac-run{flex:0 0 auto;display:flex;flex-direction:column;align-items:flex-end;gap:1px;
     margin-left:auto;padding-left:6px;text-align:right;line-height:1.05}
@@ -177,9 +160,17 @@
   .ac-run .rt{font-size:9px;color:var(--dim);font-variant-numeric:tabular-nums;letter-spacing:.2px;white-space:nowrap}
   .ac-run.run-ok  .rk{color:var(--green)} .ac-run.run-ok  .rt{color:#9fc7b1}
   .ac-run.run-err .rk{color:var(--red)}   .ac-run.run-err .rt{color:#e2a3a5}
-  .ac-run.run-stale .rk{color:var(--amber)} .ac-run.run-stale .rt{color:#e8c98a}
   .ac-run.run-go  .rk{color:var(--cyan);animation:jc-blink .9s infinite}
   .ac-run.run-go  .rt{color:#8fd6e8}
+
+  /* n8n-workflow deep-link op de kaart */
+  .ac-wf{flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;
+    width:23px;height:23px;border-radius:7px;margin-left:5px;color:var(--dim);
+    border:1px solid transparent;text-decoration:none;cursor:pointer;
+    transition:color .13s,background .13s,border-color .13s}
+  .ac-wf svg{width:14px;height:14px;display:block}
+  .ac-wf:hover{color:var(--a);background:color-mix(in srgb,var(--a) 15%, transparent);
+    border-color:color-mix(in srgb,var(--a) 42%, transparent)}
 
   /* expand-caret + uitgeklapte kaart-highlight */
   .ac-caret{flex:0 0 auto;margin-left:2px;font-size:10px;color:var(--dim);
@@ -198,7 +189,6 @@
     background:rgba(0,0,0,.24);border:1px solid var(--hair);border-radius:8px}
   .exec-list .ex-k{flex:0 0 12px;text-align:center;font-size:11px;font-weight:800;color:var(--dim)}
   .exec-list .ex-k.run-ok{color:var(--green)} .exec-list .ex-k.run-err{color:var(--red)}
-  .exec-list .ex-k.run-stale{color:var(--amber)}
   .exec-list .ex-k.run-go{color:var(--cyan)}
   .exec-list .ex-when{color:var(--text);font-variant-numeric:tabular-nums;letter-spacing:.2px}
   .exec-list .ex-dur{margin-left:auto;color:var(--dim);font-size:10px;font-variant-numeric:tabular-nums}
@@ -287,7 +277,6 @@
     color:var(--dim);font:700 11px system-ui;letter-spacing:1px;padding:7px 12px;border-radius:11px;
     cursor:pointer;display:inline-flex;align-items:center;gap:7px;transition:color .15s,background .15s,box-shadow .15s}
   .depbtn .ic{font-size:12px}
-  a.depbtn{text-decoration:none}
   .depbtn:hover{color:var(--text)}
   .depbtn.active{background:linear-gradient(180deg,rgba(181,140,255,.22),rgba(181,140,255,.07));
     color:var(--violet);box-shadow:inset 0 0 0 1px rgba(181,140,255,.45)}
@@ -312,7 +301,40 @@
   .det .deprow .hl .ts{color:var(--dim);font-size:10.5px;font-variant-numeric:tabular-nums}
   .det .rdyline .v.ready{color:var(--green)} .det .rdyline .v.degraded{color:var(--amber)} .det .rdyline .v.blocked{color:var(--red)}
 
-  /* (Voorstellen-paneel verplaatst naar kpi.html) */
+  /* === Suspect Match Loop (floating overlay) ====================== */
+  #smlPill{position:fixed;left:16px;bottom:16px;z-index:60;display:flex;align-items:center;gap:7px;
+    padding:8px 13px;border:1px solid var(--line);border-radius:999px;background:var(--panel);
+    backdrop-filter:blur(8px);color:var(--text);font:600 11px/1 system-ui;letter-spacing:.08em;
+    cursor:pointer;user-select:none;box-shadow:0 4px 18px rgba(0,0,0,.4)}
+  #smlPill:hover{border-color:var(--cyan)}
+  #smlPill .ic{color:var(--violet);font-size:13px}
+  #smlPanel{position:fixed;left:16px;bottom:60px;z-index:60;width:312px;
+    border:1px solid var(--line);border-radius:14px;background:var(--panelSolid);
+    box-shadow:0 10px 40px rgba(0,0,0,.55);overflow:hidden;
+    opacity:0;transform:translateY(8px) scale(.98);pointer-events:none;transition:.18s ease}
+  #smlPanel.open{opacity:1;transform:none;pointer-events:auto}
+  #smlPanel .sml-hd{display:flex;align-items:center;justify-content:space-between;gap:10px;
+    padding:11px 14px;border-bottom:1px solid var(--hair);background:var(--panel2)}
+  #smlPanel .sml-hd .t{font:700 11px/1 system-ui;letter-spacing:.12em;color:var(--cyan)}
+  #smlPanel .sml-hd .s{font:500 10px/1 system-ui;color:var(--dim)}
+  #smlBody{padding:10px 12px;display:flex;flex-direction:column;gap:8px}
+  .sml-arm{border:1px solid var(--hair);border-radius:10px;padding:8px 10px;background:rgba(255,255,255,.012)}
+  .sml-arm-h{display:flex;align-items:center;justify-content:space-between;margin-bottom:7px}
+  .sml-tag{font:700 9px/1 system-ui;letter-spacing:.1em;padding:3px 7px;border-radius:6px}
+  .sml-tag.champ{color:#0a1018;background:var(--green)}
+  .sml-tag.chal{color:#0a1018;background:var(--amber)}
+  .sml-w{font:600 10px/1 ui-monospace,monospace;color:var(--dim)}
+  .sml-arm-b{display:flex;gap:6px}
+  .sml-stat{flex:1;text-align:center;background:rgba(0,0,0,.25);border-radius:7px;padding:6px 2px}
+  .sml-v{font:700 14px/1 system-ui;color:var(--text)}
+  .sml-v .sml-sub{font:500 10px/1 system-ui;color:var(--dim)}
+  .sml-l{font:600 8px/1 system-ui;letter-spacing:.08em;color:var(--dim);margin-top:3px;text-transform:uppercase}
+  .sml-verdict{font:600 10px/1.35 system-ui;padding:7px 9px;border-radius:8px;background:var(--panel2);color:var(--text)}
+  .sml-verdict.win{color:var(--green);border:1px solid rgba(62,224,143,.3)}
+  .sml-verdict.hold{color:var(--cyan);border:1px solid var(--line)}
+  .sml-verdict.neutral{color:var(--amber);border:1px solid rgba(255,181,71,.25)}
+  .sml-foot{font:500 9px/1.3 system-ui;color:var(--dim);text-align:center}
+  .sml-msg{font:500 11px/1.4 system-ui;color:var(--dim);padding:10px;text-align:center}
   .agent-card.paused{opacity:.5}
   .agent-card.paused .mini-av .sd{filter:grayscale(1)}
   .ac-paused{margin-left:6px;font:800 8px/1 system-ui;letter-spacing:.1em;color:#ffb547;
@@ -338,20 +360,21 @@
     font:700 12px system-ui;letter-spacing:2px;color:#06131a;background:linear-gradient(180deg,#19e3ff,#00b7dd)}
   .auth-card button:disabled{opacity:.6;cursor:wait}
 </style>
+<script src="bridge-frame.js"></script>
 </head>
 <body>
 <div id="authGate">
   <div class="auth-card">
-    <div class="auth-orb">🏝</div>
-    <div class="auth-title">D E W I</div>
-    <div class="auth-sub">HOME DECO BALI · COMMAND CENTER</div>
+    <div class="auth-orb">🛢</div>
+    <div class="auth-title">T H E - B R I D G E</div>
+    <div class="auth-sub">GRUPO SOLTURA · COMMAND CENTER</div>
     <form id="authForm">
       <label for="authEmail">EMAIL</label>
-      <input type="email" id="authEmail" autocomplete="username" placeholder="info@homedecobali.com" required>
+      <input type="email" id="authEmail" autocomplete="username" placeholder="you@gruposoltura.com" required>
       <label for="authPass">PASSWORD</label>
       <input type="password" id="authPass" autocomplete="current-password" placeholder="••••••••" required>
       <div id="authErr"></div>
-      <button type="submit" id="authBtn">ENTER DEWI</button>
+      <button type="submit" id="authBtn">ENTER THE BRIDGE</button>
     </form>
   </div>
 </div>
@@ -359,7 +382,7 @@
   <header>
     <div class="brand">
       <span class="dot" id="connDot"></span>
-      <span class="ttl">D E W I</span>
+      <span class="ttl">T H E - B R I D G E</span>
       <span class="byrick">by Rick</span>
       <span class="sub">COMMAND CENTER</span>
     </div>
@@ -368,7 +391,6 @@
       <button data-view="radial"><span class="ic">🌐</span>CONSTELLATION</button>
       <button data-view="org" class="active"><span class="ic">🏢</span>ORGANIGRAM</button>
     </div>
-    <a class="depbtn" id="cockpitBtn" href="kpi.html" title="Naar de KPI-cockpit"><span class="ic">📊</span>COCKPIT</a>
     <button class="depbtn" id="depsBtn" title="Toon afhankelijkheidslijnen (constellation)"><span class="ic">🔗</span>DEPS</button>
     <button class="depbtn" id="logoutBtn" title="Uitloggen"><span class="ic">⏻</span>EXIT</button>
     <div class="spacer"></div>
@@ -406,100 +428,122 @@
         <div class="org-connect"><span class="org-trunk"></span></div>
         <div class="org-board" id="orgBoard"></div>
       </div>
-      <div class="org-foot">Organigram · live · <b>homedecobali</b> · klik een agent voor de <b>laatste 10 executies</b> · agents gesorteerd op <b>runs/24u</b> (meeste eerst) · <b style="color:#ffd166">MANAGEMENT</b> overziet alle afdelingen</div>
+      <div class="org-foot">Organigram · live · <b>gruposoltura-crm</b> · klik een agent voor de <b>laatste 10 executies</b> · agents gesorteerd op <b>runs/24u</b> (meeste eerst) · <b style="color:#ffd166">MANAGEMENT</b> overziet alle afdelingen</div>
     </div>
   </div>
 </div>
 
-<script src="dewi-agents.js"></script><!-- één bron van waarheid voor agent-tellingen -->
-<script src="dewi-swarm.js" defer></script><!-- één bron van waarheid voor agent-tellingen -->
+<div id="smlPanel">
+  <div class="sml-hd"><span class="t">SUSPECT MATCH LOOP</span><span class="s">champion vs challenger · ma 09:00</span></div>
+  <div id="smlBody"><div class="sml-msg">laden…</div></div>
+</div>
+<div id="smlPill"><span class="ic">⚖</span><span>MATCH LOOP</span></div>
+
+<script src="bridge-agents.js"></script>
 <script type="module">
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 /* === CONFIG ============================================================ */
-const SUPABASE_URL  = "https://jucubuoftjehwancegma.supabase.co";
-const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp1Y3VidW9mdGplaHdhbmNlZ21hIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI2OTYwMDIsImV4cCI6MjA5ODI3MjAwMn0.gKYBE76kVv5XdMb-GuFAELdSp5R7OjCIiUzw7hW2Jus";
+const SUPABASE_URL  = "https://wuvpbwowdycsdlrqkaoq.supabase.co";
+const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind1dnBid293ZHljc2RscnFrYW9xIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA5OTQ5MTYsImV4cCI6MjA5NjU3MDkxNn0.S5S0KcYHOrMjLl9ApRmvRKPOd_EjgJ5gYnzgqL-c8hQ";
 const SB = createClient(SUPABASE_URL, SUPABASE_ANON);
 /* ======================================================================= */
 const C = { cyan:"#00d4ff", green:"#3ee08f", amber:"#ffb547", violet:"#b58cff", red:"#E31E24", advert:"#ff5fa2", grey:"#8aa0b5", gold:"#ffd166", dim:"#5e7c8e", text:"#cfe2ec" };
-/* ---- workflownaam bij de agent -------------------------------------
-   De naam volgt de conventie 'HDB · <AFDELING> · <Naam>'. Op de kaart
-   tonen we alleen het staartje na de laatste '·' (de afdeling staat al
-   in de kolom waar de kaart hangt); de volledige naam zit in de tooltip.
-   Ontbreekt workflow_name, dan renderen we niets -- zo blijft de kaart
-   schoon als de registry-view even wegvalt en de fallback-indeling draait. */
-const N8N_BASE = "https://homedecobali.app.n8n.cloud/workflow/";
-const escH = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-const shortWf = n => { const p = String(n||"").split("\u00b7"); return (p[p.length-1]||"").trim(); };
-function wfHTML(a, cls){
-  if(!a || !a.wf) return "";
-  const full = escH(a.wf), short = escH(shortWf(a.wf)) || full;
-  return a.wfid
-    ? `<a class="${cls}" href="${N8N_BASE}${encodeURIComponent(a.wfid)}" target="_blank" rel="noopener" title="${full} — openen in n8n">${short}</a>`
-    : `<span class="${cls}" title="${full}">${short}</span>`;
-}
-/* ---- workflow-icoontje --------------------------------------------
-   Klein rond knopje met een 'nodes'-glyph. Is er een n8n_workflow_id,
-   dan is het een echte link naar de workflow (nieuw tabblad); zonder id
-   tonen we het knopje gedimd zodat de kaart-layout niet verspringt. */
-const WF_GLYPH = `<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="12" r="2.4"/><circle cx="18" cy="6" r="2.4"/><circle cx="18" cy="18" r="2.4"/><path d="M8.1 10.9 15.9 7.1M8.1 13.1 15.9 16.9"/></svg>`;
-function wfIcon(a, extra=""){
-  if(!a || !a.wf) return "";
-  const full = escH(a.wf);
-  return a.wfid
-    ? `<a class="wf-ic ${extra}" href="${N8N_BASE}${encodeURIComponent(a.wfid)}" target="_blank" rel="noopener" title="${full} — openen in n8n">${WF_GLYPH}</a>`
-    : `<span class="wf-ic off ${extra}" title="${full} — geen n8n-id bekend">${WF_GLYPH}</span>`;
-}
-const STATUS = { ok:{c:C.green,l:"Healthy"}, running:{c:C.cyan,l:"Running"}, idle:{c:C.dim,l:"Idle"}, error:{c:C.red,l:"Error"},
-                 stale:{c:C.amber,l:"Verouderd"},   // geslaagd, maar te lang geleden voor zijn schema
-                 paused:{c:"#ffb547",l:"Paused"} };
+const STATUS = { ok:{c:C.green,l:"Healthy"}, running:{c:C.cyan,l:"Running"}, idle:{c:C.dim,l:"Idle"}, error:{c:C.red,l:"Error"}, paused:{c:"#ffb547",l:"Paused"} };
 
 /* Afdelingen + agents — FALLBACK.
-   Supabase 'bridge_layout' wordt de bron van de indeling zodra die view in het
-   HDB-project bestaat; deze array is het ingebouwde vangnet als de registry
-   onbereikbaar is of de sanity-check niet haalt. Nieuwe agents voeg je dan toe
-   in de 'agents' tabel (bridge_dept/cluster_id/grp/...), NIET meer hier.
-   Baseline: 2026-07-11 (n8n homedecobali, 19 agents). */
+   Sinds de registry-migratie (2026-07-04) is Supabase 'bridge_layout' de bron
+   van de indeling; deze array is het ingebouwde vangnet als de registry
+   onbereikbaar is of de sanity-check niet haalt. Nieuwe agents voeg je toe in
+   de 'agents' tabel (bridge_dept/cluster_id/grp/...), NIET meer hier.
+   Deze fallback alleen bijwerken bij een bewuste her-baseline.
+   Laatste her-baseline: 2026-07-12 (registry-stand, 73 agents; + hot-lead-scout, hot-lead-publisher, match-feedback). */
 const FALLBACK_DEPTS = [
   { id:"mgmt", name:"MANAGEMENT", color:C.gold, icon:"🧭",
     agents:[
-      {id:"health-check",name:"Agent Health Check",sched:"08:00 Daily"},
-      {id:"agent-dash",name:"Agent Dashboard",sched:"webhook · live"}],
+      {id:"integrity-check",name:"Data Integrity",sched:"05:45 Daily",grp:"morning",step:1},
+      {id:"roll-call",name:"Morning Roll-Call",sched:"06:00 Daily",grp:"morning",step:2},
+      {id:"ops-supervisor",name:"Ops Supervisor (Jack)",sched:"06:15 Daily",grp:"morning",step:3}],
     clusters:[
-      {id:"bewaking",label:"Bewaking",members:["health-check","agent-dash"]}]},
-  { id:"catalog", name:"CATALOGUS", color:C.cyan, icon:"🛋",
+      {id:"morning-report",label:"Morning Report",members:["integrity-check","roll-call","ops-supervisor"]}]},
+  { id:"ops", name:"OPERATIONS", color:C.cyan, icon:"🖥",
     agents:[
-      {id:"shopify-sync",name:"Shopify Sync",sched:"daily"}],
-    clusters:[]},
-  { id:"seo", name:"SEO", color:C.green, icon:"🔎",
-    agents:[
-      {id:"seo-research",name:"Keyword Research",sched:"weekly",grp:"seo",step:1},
-      {id:"seo-enrich",name:"Enrichment",sched:"weekly",grp:"seo",step:2},
-      {id:"seo-publish",name:"Publish (3-talig)",sched:"on approve",grp:"seo",step:3}],
-    clusters:[]},
-  { id:"mktg", name:"MARKETING", color:C.red, icon:"📣",
-    agents:[
-      {id:"social-posts",name:"Social Posts FB/IG",sched:"Zo+Wo 09:00"},
-      {id:"reels-machine",name:"Reels Content Machine",sched:"daily · 9:16",paused:true},
-      {id:"news-weekly",name:"Newsletter Weekly 5",sched:"Do 09:00",grp:"news",step:1},
-      {id:"news-unsub",name:"Newsletter Afmelden",sched:"webhook",grp:"news",step:2}],
-    clusters:[]},
-  { id:"advertising", name:"ADVERTISING", color:C.advert, icon:"🎯",
-    agents:[
-      {id:"build-stills",name:"Build Ad Stills",sched:"wekelijks"},
-      {id:"build-carousel",name:"Build Ads Carousel",sched:"4-wekelijks"},
-      {id:"build-videos",name:"Build Videos (Unboxing)",sched:"wekelijks"},
-      {id:"ads-publish",name:"Publish Campaigns",sched:"on approve",grp:"adspipe",step:1},
-      {id:"ads-manage",name:"Manage Scale/Pause",sched:"daily",grp:"adspipe",step:2},
-      {id:"ads-prune",name:"Prune Losing Ads",sched:"daily",grp:"adspipe",step:3},
-      {id:"mix-guard",name:"Creative Mix Guard",sched:"weekly"}],
+      {id:"cont-sync",name:"Contacts Sync",sched:"hourly"},{id:"cont-recon",name:"Contacts Reconcile",sched:"03:30"},
+      {id:"prop-sync",name:"Properties Sync",sched:"05:00"},{id:"prop-recon",name:"Properties Reconcile",sched:"03:45"},
+      {id:"req-sync",name:"Requests Sync",sched:"incremental"},{id:"seo-enrich",name:"Agent SEO",sched:"09:15 Daily"},
+      {id:"gsc-sync",name:"GSC Sync",sched:"Mon 07:00 weekly"},
+      {id:"view-batch",name:"Property View Processor",sched:"hourly"},{id:"viewing",name:"Viewing Logger",sched:"06:00"}],
     clusters:[
-      {id:"builders",label:"Creative Builders",members:["build-stills","build-carousel","build-videos"]},
-      {id:"ads-pipe",label:"Ads 1-2-3",members:["ads-publish","ads-manage","ads-prune"]}]},
+      {id:"data-sync",label:"Data Sync",members:["cont-sync","prop-sync","req-sync","cont-recon","prop-recon"]}]},
+  { id:"sales", name:"SALES", color:C.green, icon:"👥",
+    agents:[
+      {id:"lead-proc",name:"Lead Processor",sched:"webhook"},{id:"appointment",name:"Appointment Agent",sched:"email"},
+      {id:"idealista",name:"Idealista Leads",sched:"email"},{id:"idealista-feed",name:"Idealista Feed",sched:"daily 18:00"},
+      {id:"purchase-info",name:"Purchase Info",sched:"webhook"},{id:"contract",name:"Contract Generator",sched:"sheet"},
+      {id:"hot-lead-scout",name:"Hot Lead Scout",sched:"daily 10:00",grp:"hotlead",step:1},
+      {id:"hot-lead-publisher",name:"Hot Lead Publisher",sched:"on approve",grp:"hotlead",step:2}],
+    clusters:[
+      {id:"idealista-grp",label:"Idealista",members:["idealista","idealista-feed"]},
+      {id:"hotlead",label:"Hot Leads",members:["hot-lead-scout","hot-lead-publisher"]}]},
+  { id:"admin", name:"ADMIN & FIN.", color:C.amber, icon:"⚖",
+    agents:[
+      {id:"modelo",name:"Modelo Reminder",sched:"07:00"},
+      {id:"invoice",name:"Weekly VAT Report",sched:"Fri 09:00"}],
+    clusters:[]},
   { id:"intel", name:"OFFICE", color:C.violet, icon:"🧠",
     agents:[
-      {id:"ga4-pull",name:"GA4 Metrics Pull",sched:"06:30 Daily"},
-      {id:"ad-playbook",name:"Ad Viral Playbook",sched:"Ma 06:00"}],
-    clusters:[]},
+      {id:"gmail",name:"Gmail Triage",sched:"30 min"},{id:"briefing",name:"Morning Briefing",sched:"08:00"},
+      {id:"ga4",name:"GA4 Stats",sched:"07:50"},
+      {id:"kpi-brevo",name:"K.P.I. Sync Brevo",sched:"06:40 Daily"},{id:"kpi-ga4",name:"K.P.I. Sync GA4",sched:"06:45 Daily"},
+      {id:"kpi-social",name:"K.P.I. Sync Social",sched:"06:50 Daily"},{id:"kpi-metaads",name:"K.P.I. Sync Meta Ads",sched:"06:55 Daily"},
+      {id:"brevo-events",name:"Brevo Events",sched:"webhook"}],
+    clusters:[
+      {id:"kpi-sync",label:"K.P.I. SYNC",members:["kpi-brevo","kpi-ga4","kpi-social","kpi-metaads","brevo-events"]}]},
+  { id:"mktg", name:"MARKETING", color:C.red, icon:"📣",
+    agents:[
+      {id:"top10",name:"Weekly Top10",sched:"Mon 09:00",paused:true},{id:"price-red",name:"Price Reduced",sched:"Wed 10:00"},
+      {id:"welcome",name:"Welcome Seller",sched:"event"},{id:"toolate",name:"Too Late",sched:"daily 11:00"},
+      {id:"review",name:"Google Review Invite",sched:"daily 10:00"},{id:"review_viewing",name:"Review Invite Viewing",sched:"daily 11:00"},
+      {id:"research",name:"Competitor Research",sched:"monthly · day 1 · 06:00"},{id:"improve",name:"Improvement Planner",sched:"monthly · day 3 · 07:00"},
+      {id:"news",name:"News Curation",sched:"Mon/Thu/Sun 09:00",grp:"news",step:1},{id:"news-mailing",name:"Weekly News",sched:"Fri 10:00",grp:"news",step:2},
+      {id:"new-listing",name:"New Listing",sched:"event"},{id:"new-listing-pub",name:"New Listing Publisher",sched:"on approve"},
+      {id:"seller-update",name:"Seller Weekly Update",sched:"Fri 16:00"},{id:"suspect-matches",name:"Suspect Matches",sched:"Mon 09:00"},
+      {id:"photo-enhance",name:"Photo Enhancer",sched:"3x daags 12/15/18h"},
+      {id:"match-feedback",name:"Match Feedback",sched:"event"}],
+    clusters:[
+      {id:"mailings",label:"Mailings",members:["top10","price-red","welcome","toolate","news-mailing","new-listing","new-listing-pub","seller-update","suspect-matches","match-feedback"]},
+      {id:"reviews",label:"Reviews",members:["review","review_viewing"]},
+      {id:"research-grp",label:"Research",members:["research","improve"]}]},
+  { id:"advertising", name:"ADVERTISING", color:C.advert, icon:"🎯",
+    agents:[
+      {id:"social-proposer",name:"Social Proposer",sched:"Sun+Mon 08:00",grp:"social",step:1},
+      {id:"social-lifestyle",name:"Lifestyle Proposer",sched:"Thu 08:00",grp:"social",step:2},
+      {id:"social-publisher",name:"Social Publisher",sched:"on approve",grp:"social",step:3},
+      {id:"metaads-builder",name:"MetaAds Builder",sched:"Sun 12:00",grp:"metaads",step:1},
+      {id:"metaads-executer",name:"MetaAds Executer",sched:"on approve",grp:"metaads",step:2},
+      {id:"metaads-manager",name:"MetaAds Manager",sched:"daily 09:00",grp:"metaads",step:3},
+      {id:"sellerleads-builder",name:"MetaAds SellerLeads",sched:"manual · one-off",paused:true},
+      {id:"competitor-scan",name:"Competitor Scan",sched:"Sat 08:00 weekly"},
+      {id:"ad-playbook",name:"Ad Viral Playbook",sched:"Mon 06:00"},
+      {id:"meta-ads-proposer",name:"Meta Ads Proposer",sched:"manual",paused:true},
+      {id:"meta-ads-video",name:"Meta Ads Video",sched:"manual",paused:true}],
+    clusters:[
+      {id:"social",label:"Social 1-2-3",members:["social-proposer","social-lifestyle","social-publisher"]},
+      {id:"meta-pipe",label:"Meta Ads 1-2-3",members:["metaads-builder","metaads-executer","metaads-manager"]},
+      {id:"meta-prop",label:"Ad Proposers",members:["meta-ads-proposer","meta-ads-video"]}]},
+  { id:"infra", name:"INFRA", color:C.grey, icon:"⚙",
+    agents:[
+      {id:"dash-updater",name:"Dashboard Updater",sched:"07:30 Daily"},{id:"command-sync",name:"Command Center Sync",sched:"10 min · 06-23h"},
+      {id:"prop-dispatch",name:"Proposal Dispatcher",sched:"webhook"},
+      {id:"sb-heartbeat",name:"Heartbeat",sched:"00:00 Daily"},{id:"run-purge",name:"Run Log Purge",sched:"04:00 Daily"},
+      {id:"prop-expiry",name:"Proposal Expiry",sched:"04:15 Daily"},{id:"silence-check",name:"Silence Check",sched:"07:20 Daily"},
+      {id:"memo-alert",name:"Memo Alert",sched:"07:10 Daily"},{id:"session-notes",name:"Session Notes",sched:"event"},
+      {id:"agent-notes",name:"Agent Notes Sync",sched:"Zo 06:00 weekly"},{id:"bounce-cleanup",name:"Bounce Cleanup",sched:"Zo 06:30 weekly"},
+      {id:"error-alert",name:"Error Alert",sched:"on error"},{id:"error-enforcer",name:"Error Enforcer",sched:"daily"},
+      {id:"active-sync",name:"Active Props Sync",sched:"05:00"},{id:"new-sync",name:"New Props Sync",sched:"08:45"},
+      {id:"workflow-backup",name:"Workflow Backup",sched:"Daily 02:30"}],
+    clusters:[
+      {id:"props-sync",label:"Props Sync",members:["active-sync","new-sync"]},
+      {id:"housekeep",label:"Housekeeping",members:["sb-heartbeat","run-purge","prop-expiry","silence-check","memo-alert","session-notes","agent-notes","bounce-cleanup","error-alert","error-enforcer"]}]},
 ];
 let DEPTS = FALLBACK_DEPTS;
 
@@ -517,9 +561,11 @@ function buildDerived(){
 buildDerived();
 /* geordende pijplijn-groepen (org view): agents met a.grp blijven samen + in a.step-volgorde */
 const GRP = {
-  adspipe:{label:"META ADS",    flow:"PUBLICEER \u2192 BEHEER \u2192 OPSCHONEN"},
-  seo:    {label:"SEO",         flow:"RESEARCH \u2192 ENRICH \u2192 PUBLISH"},
-  news:   {label:"NIEUWSBRIEF", flow:"SAMENSTELLEN \u2192 AFMELDEN"}
+  KPI:    {label:"KPI",            flow:"BREVO \u2192 GA4 \u2192 SOCIAL \u2192 ADS \u2192 EVENTS"},
+  metaads:{label:"META ADS",       flow:"BOUW \u2192 PUBLICEER \u2192 BEHEER"},
+  social: {label:"SOCIAL",         flow:"VOORSTEL \u2192 PUBLICEER"},
+  morning:{label:"MORNING REPORT", flow:"CHECK \u2192 ROLL-CALL \u2192 SUPERVISOR"},
+  news:   {label:"NIEUWS",         flow:"CURATIE \u2192 MAILING"}
 };
 
 /* gedeelde state */
@@ -543,7 +589,15 @@ const fmtRun=ts=>{ if(!ts)return"—"; const d=new Date(ts); if(isNaN(d))return"
   const p=n=>String(n).padStart(2,"0");
   return `${p(d.getDate())}/${p(d.getMonth()+1)} ${p(d.getHours())}:${p(d.getMinutes())}`; };
 const RUNGLYPH={ ok:{ch:"✓",cls:"run-ok"}, running:{ch:"⟳",cls:"run-go"},
-  error:{ch:"✕",cls:"run-err"}, stale:{ch:"!",cls:"run-stale"}, idle:{ch:"·",cls:""} };
+  error:{ch:"✕",cls:"run-err"}, idle:{ch:"·",cls:""} };
+/* ---- n8n workflow deep-link (per agent) ---- */
+const N8N_BASE="https://gruposoltura.app.n8n.cloud";
+const wfUrl=id=>`${N8N_BASE}/workflow/${id}`;
+const WF_ICON='<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">'+
+  '<path d="M7 12 L17 6.5 M7 12 L17 17.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>'+
+  '<circle cx="5" cy="12" r="2.5" fill="currentColor"/>'+
+  '<circle cx="19" cy="6" r="2.5" fill="currentColor"/>'+
+  '<circle cx="19" cy="18" r="2.5" fill="currentColor"/></svg>';
 
 /* ---- dependencies / readiness ---- */
 const readiness = {};        // agent_id -> { agent_id, readiness, deps:[{upstream,name,kind,severity,health,upstream_last_run}] }
@@ -704,7 +758,7 @@ function positionSvg(){
 function buildNodes(){
   nodesEl.innerHTML="";
   const core=document.createElement("div"); core.className="node core";
-  core.innerHTML=`<div class="orb">🏝</div><div style="margin-top:6px;font-size:11px;letter-spacing:2px;color:${C.cyan};font-weight:700">SHOP CORE</div><div style="font-size:9.5px;color:${C.dim}">Supabase · EU-Ireland</div>`;
+  core.innerHTML=`<div class="orb">🛢</div><div style="margin-top:6px;font-size:11px;letter-spacing:2px;color:${C.cyan};font-weight:700">CRM CORE</div><div style="font-size:9.5px;color:${C.dim}">Supabase · EU-Frankfurt</div>`;
   core.id="n-core"; nodesEl.appendChild(core);
   DEPTS.forEach(d=>{ const el=document.createElement("div"); el.className="node hub"; el.id="n-hub-"+d.id;
     el.innerHTML=`<div class="box" style="border:1.4px solid ${d.color};box-shadow:0 0 16px ${d.color}55;font-size:22px">${d.icon}</div><div class="nm" style="color:${d.color}">${d.name}</div>`;
@@ -830,7 +884,6 @@ function renderPanel(){
       <div style="font-size:11px;letter-spacing:1.5px;color:${a.color}">${a.deptName}</div>
       <div style="font-size:18px;font-weight:700;margin:4px 0 3px">${a.name}</div>
       <div style="font-size:12.5px;color:${C.dim};margin-bottom:12px">Schedule: ${a.sched}</div>
-      ${a.wf?`<div class="row"><span class="k">Workflow</span><span class="v">${wfHTML(a,"pnl-wf")} ${wfIcon(a,"pnl-wf-ic")}</span></div>`:""}
       <div class="row"><span class="k">Status</span><span class="v" style="color:${st.c}">${st.l}</span></div>
       <div class="row"><span class="k">Last run</span><span class="v">${ago(r.last_run)}</span></div>
       <div class="row"><span class="k">Runs total</span><span class="v">${r.run_count??0}</span></div>
@@ -838,7 +891,7 @@ function renderPanel(){
       ${rdyHtml}${depsHtml}`;
     p.querySelector(".close").onclick=()=>{selected=null;renderPanel();};
   } else {
-    const c={ok:0,running:0,idle:0,error:0,paused:0,stale:0}; AGENTS.forEach(a=>{const st=statusOf(a.id); if(c[st]!==undefined)c[st]++;});
+    const c={ok:0,running:0,idle:0,error:0,paused:0}; AGENTS.forEach(a=>c[statusOf(a.id)]++);
     p.className="";
     p.innerHTML=`<div class="lbl" style="margin-bottom:10px">⚡ SYSTEM STATUS</div>
       <div class="statgrid">${Object.entries(STATUS).map(([k,v])=>`<div class="stat"><span class="c" style="background:${v.c};box-shadow:0 0 7px ${v.c}"></span>${v.l}<span class="n" style="color:${v.c}">${c[k]}</span></div>`).join("")}</div>
@@ -851,39 +904,42 @@ function pushEvent(a,err){ events.unshift({t:new Date(),agent:a.name,dept:a.dept
 }
 
 /* === SHARED METRICS ==================================================== */
-/* De headertelling (AGENTS TOT. / ONLINE / VEROUDERD / ERRORS) komt uit de
-   gedeelde bron dewi-agents.js (view bridge_agent_index) — exact dezelfde
-   bron en telformule als agents.html en de systeemkaart in kpi.html.
-   Alleen als die bron (nog) niet geladen is, valt de header terug op de
-   lokale layouttelling, zodat het scherm nooit leeg blijft. */
+/* Headertelling (AGENTS TOT./ONLINE/VEROUDERD/ERRORS) komt uit de gedeelde
+   module bridge-agents.js (bron: view 'bridge_agent_index') zodat dit getal
+   ALTIJD gelijk is aan agents.html en kpi.html. Zolang de gedeelde bron nog
+   niet geladen is, valt renderMetrics terug op de lokale telling zodat het
+   scherm nooit leeg blijft - maar zodra de bron er is bepaalt de fallback
+   het getal niet meer.
+   NB: NODES/AGENTS ZICHTBAAR (links) blijft bewust uit de layout komen; dat
+   is letterlijk "wat er in dit diagram getekend is", geen totaaltelling. */
 let sharedCounts=null, _cntT=null;
 async function refreshAgentCounts(){
-  if(!window.DEWI_AGENTS) return;
+  if(!window.BRIDGE_AGENTS) return;
   try{
-    const {counts}=await DEWI_AGENTS.load(SB);
-    sharedCounts=counts;
-    if(AGENTS && AGENTS.length!==counts.total)
-      console.warn("Agent-telling: layout (bridge_layout/fallback) toont "+AGENTS.length
-        +" agents, maar de canonieke bron (bridge_agent_index) telt "+counts.total
-        +". Werk de registry-views bij zodat beide dezelfde agents bevatten.");
+    const r=await window.BRIDGE_AGENTS.load(SB);
+    sharedCounts=r.counts;
+    /* drift-detectie: layout (bridge_layout/fallback) vs canonieke telling */
+    if(AGENTS && AGENTS.length!==sharedCounts.total)
+      console.warn("Agent-drift: layout toont "+AGENTS.length+" agents, bridge_agent_index telt "+sharedCounts.total);
     renderMetrics();
-  }catch(e){ console.warn("agent-telling (bridge_agent_index):", e.message||e); }
+  }catch(e){ console.warn("bridge-agents telling:",e.message||e); }
 }
-function refreshAgentCountsDebounced(){ clearTimeout(_cntT); _cntT=setTimeout(refreshAgentCounts, 800); }
-
+function refreshAgentCountsDebounced(){ clearTimeout(_cntT); _cntT=setTimeout(refreshAgentCounts,800); }
 function renderMetrics(){
-  const c={ok:0,running:0,idle:0,error:0,paused:0,stale:0}; AGENTS.forEach(a=>{const st=statusOf(a.id); if(c[st]!==undefined)c[st]++;});
   if(currentView==="radial"){ $("mNodes").textContent=UNITS.length; $("mNodesL").textContent="NODES ZICHTBAAR"; }
   else { $("mNodes").textContent=AGENTS.length; $("mNodesL").textContent="AGENTS ZICHTBAAR"; }
-  const s=sharedCounts;
-  const total = s ? s.total        : AGENTS.length;
-  const online= s ? (s.ok+s.running): (c.ok+c.running);
-  const err   = s ? s.error        : c.error;
-  const stale = s ? s.stale        : c.stale;
-  $("mAgents").textContent=total;
-  $("mOnline").textContent=online;
-  $("mErr").textContent=err; $("mErr").style.color=err?C.red:C.dim;
-  $("mStale").textContent=stale; $("mStale").style.color=stale?C.amber:C.dim;
+  if(sharedCounts){
+    $("mAgents").textContent=sharedCounts.total;
+    $("mOnline").textContent=sharedCounts.ok+sharedCounts.running;
+    $("mStale").textContent=sharedCounts.stale; $("mStale").style.color=sharedCounts.stale?C.amber:C.dim;
+    $("mErr").textContent=sharedCounts.error; $("mErr").style.color=sharedCounts.error?C.red:C.dim;
+    return;
+  }
+  /* fallback: lokale telling zolang de gedeelde bron nog niet geladen is */
+  const c={ok:0,running:0,idle:0,error:0,paused:0}; AGENTS.forEach(a=>c[statusOf(a.id)]++);
+  $("mAgents").textContent=AGENTS.length;
+  $("mOnline").textContent=c.ok+c.running;
+  $("mErr").textContent=c.error; $("mErr").style.color=c.error?C.red:C.dim;
 }
 
 function renderRadial(){ UNITS=visibleUnits(); computePositions(); buildEdges(); positionSvg(); buildDepEdges(); buildNodes(); positionNodes(); renderMetrics(); renderPanel(); }
@@ -917,12 +973,14 @@ function initials(name){
 
 /* persona's per afdeling (figureheads — vrij te hernoemen) */
 const ORG_MGR = {
-  mgmt:{persona:"Dewi",   role:"Ops Supervisor",  skin:"#c98d5e", hair:"#1f2128", style:"ponytail", acc:"headset",       expr:"smile", blush:true},
-  catalog:{persona:"Wayan",role:"Catalog Lead",   skin:"#b57a4a", hair:"#23242a", style:"short",    acc:"round-glasses", expr:"calm"},
-  seo:{persona:"Made",    role:"SEO Lead",        skin:"#c98d5e", hair:"#1f2128", style:"buzz",     acc:"glasses",       expr:"calm"},
-  mktg:{persona:"Komang", role:"Marketing Lead",  skin:"#d29a66", hair:"#23242a", style:"bob",      acc:"none",          expr:"grin", blush:true},
-  advertising:{persona:"Ketut",role:"Advertising Lead",skin:"#a9744f",hair:"#23242a",style:"curly", acc:"sunglasses",    expr:"smile"},
-  intel:{persona:"Putu",  role:"Office Lead",     skin:"#c98d5e", hair:"#1f2128", style:"wavy",     acc:"none",          expr:"grin"},
+  mgmt:{persona:"Jack", role:"Ops Supervisor",   skin:"#e8b48c", hair:"#3a2c25", style:"short",    acc:"headset",       expr:"smile"},
+  ops:{persona:"Sven",  role:"Operations Lead",  skin:"#f2c9a0", hair:"#6b4a2f", style:"buzz",     acc:"round-glasses", expr:"calm"},
+  sales:{persona:"Mara",role:"Sales Lead",       skin:"#f6d3b3", hair:"#4a3326", style:"wavy",     acc:"headset",       expr:"grin"},
+  admin:{persona:"Fred",role:"Finance Lead",     skin:"#caa07a", hair:"#3a3f4a", style:"short",    acc:"glasses",       expr:"calm"},
+  intel:{persona:"Gwen",role:"Office Lead",      skin:"#f2c9a0", hair:"#caa84a", style:"ponytail", acc:"none",          expr:"grin", blush:true},
+  mktg:{persona:"Mia",  role:"Marketing Lead",   skin:"#e8b48c", hair:"#b5553f", style:"bob",      acc:"none",          expr:"grin", blush:true},
+  advertising:{persona:"Sol",role:"Advertising Lead",skin:"#a9744f",hair:"#23242a",style:"curly",  acc:"sunglasses",    expr:"smile"},
+  infra:{persona:"Ada", role:"Infra Lead",       skin:"#8a5a3b", hair:"#1f2128", style:"buzz",     acc:"cap",           expr:"calm"},
 };
 
 /* ---- SVG face builder ---- */
@@ -1002,10 +1060,9 @@ function agentCardHTML(a){
         <div class="ac-meta">
           <div class="ac-name">${nm}${a.paused?'<span class="ac-paused">PAUSED</span>':''}</div>
           <div class="ac-sched"><span class="schedtxt">${a.sched}</span><span class="ac24" data-24="${a.id}"></span></div>
-          ${a.wf?`<span class="ac-wf" title="${escH(a.wf)}">${escH(shortWf(a.wf))||escH(a.wf)}</span>`:""}
         </div>
         <div class="ac-run" data-run="${a.id}" title="laatst gedraaid"><span class="rk">·</span><span class="rt">—</span></div>
-        ${wfIcon(a)}
+        ${a.wf?`<a class="ac-wf" href="${wfUrl(a.wf)}" target="_blank" rel="noopener" title="Open workflow in n8n" data-wf="${a.id}">${WF_ICON}</a>`:''}
         <span class="ac-caret">⌄</span>
       </div>
       <div class="ac-exec" data-exec="${a.id}"><div class="inner"></div></div>
@@ -1043,10 +1100,9 @@ function wireAgentCards(scope){
     orgAgentDots[id]=card.querySelector(".sd");
     orgAgentRun[id]=card.querySelector(".ac-run");
     orgAgentDep[id]=card.querySelector(".ac-dep");
-    card.addEventListener("click",e=>{
-      if(e.target.closest(".wf-ic")) return;                  // icoontje opent n8n, niet de accordion
-      toggleExec(id,unit);
-    });   // klik = laatste 10 executies uit/in klappen
+    const wf=card.querySelector(".ac-wf");
+    if(wf) wf.addEventListener("click",e=>e.stopPropagation());   // link opent n8n, niet de accordeon
+    card.addEventListener("click",()=>toggleExec(id,unit));   // klik = laatste 10 executies uit/in klappen
   });
 }
 function wireManager(scope,d){
@@ -1085,8 +1141,8 @@ function fmtRunFull(ts){ if(!ts)return"—"; const d=new Date(ts); if(isNaN(d))r
   return `${NL_DOW[d.getDay()]} ${p(d.getDate())}/${p(d.getMonth()+1)} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`; }
 function fmtDur(ms){ if(ms==null)return"—"; if(ms<1000)return ms+"ms"; const s=ms/1000; return (s<10?s.toFixed(1):Math.round(s))+"s"; }
 async function load24h(){ if(!sbClient)return;
-  const {data,error}=await sbClient.from("dewi_runs_24h").select("workflow,runs_24h");
-  if(error){ console.warn("dewi_runs_24h:",error.message); return; }
+  const {data,error}=await sbClient.from("jarvis_runs_24h").select("workflow,runs_24h");
+  if(error){ console.warn("jarvis_runs_24h:",error.message); return; }
   const byWf={}; (data||[]).forEach(r=>byWf[r.workflow]=r.runs_24h);
   for(const id in BY_ID){ const tok=(rows[id]||{}).run_token; runs24[id]= tok?(byWf[tok]||0):0; } }
 function sortDepts(){
@@ -1121,9 +1177,9 @@ async function loadExec(id){
   const tok=(rows[id]||{}).run_token;
   if(!tok){ execCache[id]="notoken"; return; }
   if(!sbClient)return;
-  try{ const {data,error}=await sbClient.from("dewi_runs_public")
+  try{ const {data,error}=await sbClient.from("jarvis_runs_public")
       .select("run_at,status,duration_ms").eq("workflow",tok).order("run_at",{ascending:false}).limit(10);
-    if(error){ console.warn("dewi_runs_public:",error.message); execCache[id]="error"; return; }
+    if(error){ console.warn("jarvis_runs_public:",error.message); execCache[id]="error"; return; }
     execCache[id]=(data&&data.length)?data:"none";
   }catch(e){ execCache[id]="error"; } }
 function renderExec(id,panel){
@@ -1228,9 +1284,6 @@ $("depsBtn").addEventListener("click",()=>{ showDeps=!showDeps;
     if(showDeps && currentView!=="radial"){ setView("radial"); } else { buildDepEdges(); }
   }); });
 
-/* cockpit-knop alleen tonen als losse pagina (niet als paneel in de cockpit) */
-if(window.self!==window.top){ const cb=$("cockpitBtn"); if(cb) cb.style.display="none"; }
-
 /* === BOOT ============================================================= */
 buildSvgStatic(); renderRadial(); buildOrgOnce();
 new ResizeObserver(()=>{ if(currentView==="radial") layoutRadial(); }).observe(stage);
@@ -1242,7 +1295,7 @@ function applyRow(r){ if(!r||!r.agent_id)return;
   rows[r.agent_id]={status:r.status,last_run:r.last_run,run_count:r.run_count,last_error:r.last_error,run_token:r.run_token};
   const a=BY_ID[r.agent_id];
   renderMetrics(); updateOrgStatus();
-  refreshAgentCountsDebounced();   // headertelling meebewegen met live statuswijzigingen (gedeelde bron)
+  refreshAgentCountsDebounced();   // header live mee laten bewegen met de canonieke bron
   if(currentView==="radial"){ paintNodes(); if(selected===r.agent_id)renderPanel(); }
   if(a&&(r.status==="running"||r.status==="error")){ pushEvent(a,r.status==="error"); if(r.status==="running")spawn(r.agent_id,a.color); }
 }
@@ -1267,14 +1320,14 @@ async function loadRegistryLayout(sb){
     const {data,error}=await sb.from("bridge_layout").select("*");
     if(error||!data||!data.length){ console.warn("bridge_layout:",(error&&error.message)||"leeg"); return false; }
     const deptIds=new Set(data.map(r=>r.bridge_dept));
-    if(deptIds.size<4||data.length<12){
+    if(deptIds.size<6||data.length<25){
       console.warn("bridge_layout sanity gefaald ("+deptIds.size+" depts / "+data.length+" agents) -> fallback"); return false; }
     const dm={};
     for(const r of data){
       if(!dm[r.bridge_dept]) dm[r.bridge_dept]={id:r.bridge_dept,name:r.dept_name,color:r.dept_color,icon:r.dept_icon,_s:r.dept_sort||100,agents:[],_cl:{}};
       const d=dm[r.bridge_dept];
-      const a={id:r.agent_id,name:r.agent_name,sched:r.schedule_human||"\u2014",_s:r.agent_sort||100,
-               wf:r.workflow_name||null,wfid:r.n8n_workflow_id||null};
+      const a={id:r.agent_id,name:r.agent_name,sched:r.schedule_human||"\u2014",_s:r.agent_sort||100};
+      if(r.n8n_workflow_id) a.wf=r.n8n_workflow_id;
       if(r.grp){ a.grp=r.grp; a.step=r.grp_step||0; }
       if(r.paused) a.paused=true;
       d.agents.push(a);
@@ -1306,14 +1359,58 @@ async function start(){
   buildOrgOnce();                  // herbouw organigram in gesorteerde volgorde
   if(currentView==="radial") renderRadial();
   updateOrgStatus(); renderMetrics(); fillRuns24();
-  refreshAgentCounts();            // headertelling uit de gedeelde bron (dewi-agents.js)
-  setConn(true,"live · homedecobali");
+  refreshAgentCounts();            // headertelling direct uit de canonieke bron
+  setConn(true,"live · gruposoltura-crm");
   loadReadiness();
-  sb.channel("agent_status_live").on("postgres_changes",{event:"*",schema:"public",table:"agent_status"},p=>{ applyRow(p.new); refreshReadiness(); }).subscribe(s=>{ if(s==="SUBSCRIBED")setConn(true,"live · homedecobali"); });
-  setInterval(async()=>{ await load24h(); fillRuns24(); refreshAgentCounts(); }, 5*60*1000);   // ververs 24u-tellers + gedeelde agenttelling (zonder herordening)
+  loadSuspectLoop();
+  sb.channel("agent_status_live").on("postgres_changes",{event:"*",schema:"public",table:"agent_status"},p=>{ applyRow(p.new); refreshReadiness(); }).subscribe(s=>{ if(s==="SUBSCRIBED")setConn(true,"live · gruposoltura-crm"); });
+  setInterval(async()=>{ await load24h(); fillRuns24(); loadSuspectLoop(); refreshAgentCounts(); }, 5*60*1000);   // ververs 24u-tellers (zonder herordening)
   const {data:hb}=await sb.from("heartbeat").select("last_ping").order("last_ping",{ascending:false}).limit(1);
   if(hb&&hb[0]&&$("hb"))$("hb").innerHTML=`Heartbeat online · last ping <b style="color:${C.green}">${ago(hb[0].last_ping)}</b>`;
 }
+
+/* === Suspect Match Loop (live champion vs challenger) ============== */
+async function loadSuspectLoop(){
+  if(!sbClient) return;
+  const wrap=document.getElementById("smlBody"); if(!wrap) return;
+  try{
+    const {data,error}=await sbClient.from("suspect_match_loop_public").select("*");
+    if(error){ wrap.innerHTML='<div class="sml-msg">kon loop niet laden</div>'; return; }
+    const champ=(data||[]).find(r=>r.role==="champion");
+    const chal =(data||[]).find(r=>r.role==="challenger");
+    if(!champ){ wrap.innerHTML='<div class="sml-msg">geen champion ingesteld</div>'; return; }
+    const minS=champ.min_sample||0, margin=Number(champ.promote_margin||0);
+    const rate=r=> r==null?"\u2014":(Number(r)*100).toFixed(2)+"%";
+    const wv=r=>`${r.w_category}/${r.w_proptype}/${r.w_price_tight}/${r.w_price_loose}`;
+    const armRow=(r,label,cls)=> !r
+      ? `<div class="sml-arm"><div class="sml-arm-h"><span class="sml-tag ${cls}">${label}</span><span class="sml-w">geen</span></div></div>`
+      : `<div class="sml-arm">
+           <div class="sml-arm-h"><span class="sml-tag ${cls}">${label}</span><span class="sml-w">w ${wv(r)}</span></div>
+           <div class="sml-arm-b">
+             <div class="sml-stat"><div class="sml-v">${rate(r.matched_conv_rate)}</div><div class="sml-l">conv</div></div>
+             <div class="sml-stat"><div class="sml-v">${r.matched_n||0}<span class="sml-sub">/${minS}</span></div><div class="sml-l">matched</div></div>
+             <div class="sml-stat"><div class="sml-v">${r.pending_n||0}</div><div class="sml-l">in flight</div></div>
+           </div></div>`;
+    let verdict, vcls="neutral";
+    if(!chal){ verdict="geen challenger actief"; }
+    else if((chal.matched_n||0)<minS || (champ.matched_n||0)<minS){
+      const need=Math.max(minS-(champ.matched_n||0), minS-(chal.matched_n||0), 0);
+      verdict=`verzamelt data \u00b7 nog ${need} matched nodig`; }
+    else{
+      const cr=Number(champ.matched_conv_rate||0), hr=Number(chal.matched_conv_rate||0);
+      const dpp=((hr-cr)*100).toFixed(2);
+      if(hr>=cr+margin){ verdict=`challenger wint (+${dpp}pp) \u2192 promotie bij volgende roll`; vcls="win"; }
+      else if(hr<cr){ verdict=`champion houdt stand (challenger ${dpp}pp)`; vcls="hold"; }
+      else{ verdict=`gelijk binnen marge (+${dpp}pp) \u00b7 doormeten`; vcls="neutral"; } }
+    wrap.innerHTML =
+      armRow(champ,"CHAMPION","champ") +
+      armRow(chal,"CHALLENGER","chal") +
+      `<div class="sml-verdict ${vcls}">${verdict}</div>` +
+      `<div class="sml-foot">split ${champ.split_pct}% \u00b7 venster ${champ.window_days}d \u00b7 marge ${(margin*100).toFixed(1)}pp \u00b7 floor ${champ.min_match_score}</div>`;
+  }catch(e){ wrap.innerHTML='<div class="sml-msg">fout bij laden</div>'; }
+}
+(function(){ const p=document.getElementById("smlPill");
+  if(p) p.addEventListener("click",()=>document.getElementById("smlPanel").classList.toggle("open")); })();
 
 /* === AUTH GATE (Supabase login) ======================================= */
 const authGate=$("authGate"), authForm=$("authForm"), authErr=$("authErr"), authBtn=$("authBtn");
@@ -1335,8 +1432,7 @@ authForm.addEventListener("submit", async ev=>{
     email:$("authEmail").value.trim(),
     password:$("authPass").value
   });
-  authBtn.disabled=false; authBtn.textContent="ENTER DEWI";
-  if(!error){ location.replace("kpi.html"); return; }   // na login door naar de cockpit
+  authBtn.disabled=false; authBtn.textContent="ENTER THE BRIDGE";
   if(error){
     authErr.textContent=/invalid login credentials/i.test(error.message)
       ? "Onjuiste e-mail of wachtwoord"
