@@ -1049,12 +1049,34 @@
   }
 
   /* ================= data laden ================= */
+
+  // PostgREST levert standaard maximaal 1000 rijen per request. bridge_kpi_daily
+  // is daaroverheen gegroeid, waardoor er zonder foutmelding metrics wegvielen
+  // (o.a. de omzetregels van de laatste dagen: wel orders en AOV zichtbaar,
+  // maar omzet 0,00). Daarom halen we hier expliciet per pagina op.
+  // De order-kolommen moeten samen uniek genoeg zijn, anders schuiven rijen
+  // tussen twee pagina's door en mis je er alsnog een paar.
+  async function fetchAll(table, orderCols){
+    var out = [], from = 0, size = 1000;
+    for(var guard = 0; guard < 20; guard++){
+      var q = sb.from(table).select('*');
+      orderCols.forEach(function(c){ q = q.order(c, { ascending: true }); });
+      var r = await q.range(from, from + size - 1);
+      if(r.error) return { data: out, error: r.error };
+      var got = r.data || [];
+      out = out.concat(got);
+      if(got.length < size) break;
+      from += size;
+    }
+    return { data: out, error: null };
+  }
+
   async function load(){
     var errEl = $('err'); errEl.textContent = '';
     loadProposals();   // voorstellen-blok (eigen foutafhandeling, blokkeert de rest niet)
     try{
       var res = await Promise.all([
-        sb.from('bridge_kpi_daily').select('*'),
+        fetchAll('bridge_kpi_daily', ['kpi_date','source','metric']),
         sb.from('bridge_memos').select('*'),
         sb.from('bridge_agent_silence').select('*'),
         sb.from('bridge_ads_summary').select('*'),
@@ -1066,7 +1088,7 @@
         // Brevo-campagnes uitgesplitst per mailing-type en taal (productnieuwsbrief,
         // verhaal-nieuwsbrief, ...). Zelfde campagnes als source='brevo' in bridge_kpi_daily,
         // alleen fijner gesneden - dus NIET optellen. Mag falen zonder de rest te blokkeren.
-        sb.from('bridge_brevo_campaign_daily').select('*')
+        fetchAll('bridge_brevo_campaign_daily', ['kpi_date'])
       ]);
       if(res[0].error) throw res[0].error;
       var kpi = res[0].data || [], memos = res[1].data || [],
