@@ -7,23 +7,32 @@
 
    Bron:      Supabase-view  'bridge_agent_index'
               (1 rij per agent: agent_id, agent_name, bridge_dept,
-               schedule_human, paused, last_status, last_run, ...)
+               schedule_human, paused, last_status, last_run,
+               expected_interval_hours, ...)
    Regels:    - paused                          -> gepauzeerd
               - last_status = 'error'           -> fout
               - last_status = 'stale'           -> verouderd (per-agent schema)
               - last_status = 'running'         -> ok (telt mee als draaiend)
               - last_status = 'idle' / geen run -> idle (nog niet gedraaid)
-              - laatste run ouder dan 48u       -> verouderd (vangnet)
+              - laatste run ouder dan het per-agent interval
+                (expected_interval_hours) -> verouderd (vangnet)
               - anders                          -> ok
 
-   Wil je de regels aanpassen (bijv. andere stale-drempel)? Doe dat HIER,
-   dan veranderen alle panelen tegelijk mee.
+   Let op: de vangnet gebruikt het PER-AGENT interval, gelijk aan de
+   stilte-detectie (bridge_agent_silence). Een platte drempel (voorheen 48u)
+   vlagde weekly-agents met een 192u-schema onterecht als 'verouderd' en liet
+   de header de stilte-detectie tegenspreken. Event-driven agents (geen
+   interval) worden niet op tijd gevlagd — een webhook die niemand aanroept
+   is niet kapot.
+
+   Wil je de regels aanpassen? Doe dat HIER, dan veranderen alle panelen mee.
    ===================================================================== */
 (function (global) {
   "use strict";
 
   var VIEW = "bridge_agent_index";   // de canonieke bron
-  var STALE_HOURS = 48;              // vangnet-drempel, zelfde als voorheen in agents.html
+  var STALE_HOURS = 48;              // fallback-constante; niet meer als platte
+                                     // drempel gebruikt (zie classify)
 
   /* Eén classificatiefunctie voor ALLE panelen. */
   function classify(a, now) {
@@ -33,7 +42,11 @@
     if (a.last_status === "stale") return "stale";
     if (a.last_status === "running") return "running";
     if (a.last_status === "idle" || !a.last_run) return "idle";
-    if (new Date(a.last_run).getTime() < now - STALE_HOURS * 3600 * 1000) return "stale";
+    // Vangnet: alleen tijd-gebaseerd verouderd verklaren als er een per-agent
+    // interval bekend is (zelfde logica als bridge_agent_silence). Geen platte
+    // drempel meer — die vlagde weekly-agents (192u) onterecht als verouderd.
+    var iv = a.expected_interval_hours;
+    if (iv != null && new Date(a.last_run).getTime() < now - iv * 3600 * 1000) return "stale";
     return "ok";
   }
 
