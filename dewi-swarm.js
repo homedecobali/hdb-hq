@@ -37,8 +37,8 @@
     eventSpeed: 150,      // snelheid event-figuur (px/sec)
     pauseMs:    [250, 1700],   // "even bij het bureau blijven staan"
     trailMax:   160,
-    size:        24,      // figuurhoogte-basis (px)
-    eventSize:   30,
+    size:        30,      // figuurhoogte-basis (px)
+    eventSize:   36,
     corridorGap: 14,      // afstand van de horizontale gang onder de lanes
     remeasureMs: 1000
   };
