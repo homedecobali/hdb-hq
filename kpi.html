@@ -1122,6 +1122,10 @@
     return { data: out, error: null };
   }
 
+  // Netto omzet van gisteren, berekend in loadSales() uit bridge_sales_lines en
+  // gedeeld met de tegel in load(). Zo maakt de (parallelle) laadvolgorde niet uit.
+  var nettoGisteren = null;
+
   async function load(){
     var errEl = $('err'); errEl.textContent = '';
     loadProposals();   // voorstellen-blok (eigen foutafhandeling, blokkeert de rest niet)
@@ -1182,6 +1186,7 @@
       var yRow = shop[madridDay(-1)] || {}, yPrevRow = shop[madridDay(-2)] || {};
       $('shop-nums').innerHTML =
         num('omzet gisteren', eur2(yRow.revenue||0), delta(yRow.revenue, yPrevRow.revenue)) +
+        num('netto gisteren', '<span id="shop-netto-y">' + (nettoGisteren != null ? eur2(nettoGisteren) : '\u2014') + '</span>', '') +
         num('orders', fmt(yRow.orders||0), delta(yRow.orders, yPrevRow.orders)) +
         num('AOV', eur2(yRow.aov||0), '') +
         num('nieuwe klanten', fmt(yRow.new_customers||0), '');
@@ -1903,6 +1908,19 @@
         d.omzet += o.omzet; d.kost += o.kost; d.winst += o.winst;
         d.verzend += o.shipping; d.onbekend += o.onbekend;
       });
+
+      // Netto omzet van gisteren in de Shopify-tegel bovenin, uit exact dezelfde
+      // regelsom als het dagtotaal (winkeltijd Europe/Madrid), zodat de tegel en
+      // het orderoverzicht op de cent aansluiten.
+      var yKey = (function(){
+        var iso = new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Madrid' });
+        var d = new Date(iso + 'T12:00:00Z'); d.setUTCDate(d.getUTCDate() - 1);
+        return d.toISOString().slice(0, 10);
+      })();
+      var yNettoEl = document.getElementById('shop-netto-y');
+      nettoGisteren = perDag[yKey] ? perDag[yKey].omzet : 0;
+      if(yNettoEl){ yNettoEl.textContent = eur2(nettoGisteren); }
+
       var dagtotaalHtml = function(d){
         var marge = d.omzet > 0 ? (d.winst / d.omzet) * 100 : 0;
         var wCls  = d.winst < 0 ? 'lose' : 'win';
