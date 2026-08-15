@@ -1765,24 +1765,27 @@
           o = byOrder[l.order_name] = { naam: l.order_name, datum: l.order_created_at,
             status: l.financial_status, shipping: Number(l.shipping || 0),
             klant: l.customer_name, plaats: l.customer_city, land: l.customer_country,
-            omzet: 0, kost: 0, winst: 0, korting: 0, onbekend: 0, regels: [] };
+            omzet: 0, btw: 0, kost: 0, winst: 0, korting: 0, onbekend: 0, regels: [] };
           volgorde.push(o);
         }
         o.regels.push(l);
-        o.omzet += Number(l.net || 0);
+        // Shopify-prijzen zijn incl. BTW; de kostprijs is ex BTW. Daarom rekenen we
+        // alles op NETTO omzet (ex BTW) = net - tax, zodat de marge klopt.
+        o.btw   += Number(l.tax || 0);
+        o.omzet += Number(l.net || 0) - Number(l.tax || 0);
         o.kost  += Number(l.cost || 0);
         o.korting += Number(l.discount || 0);
         if(l.unit_cost == null) o.onbekend++; else o.winst += Number(l.profit || 0);
       });
 
-      var kanaal = { web: { orders: 0, omzet: 0, kost: 0, winst: 0 },
-                     shop: { orders: 0, omzet: 0, kost: 0, winst: 0 } };
-      var tOmzet = 0, tKost = 0, tWinst = 0, tVerzend = 0, tOnbekend = 0;
+      var kanaal = { web: { orders: 0, omzet: 0, btw: 0, kost: 0, winst: 0 },
+                     shop: { orders: 0, omzet: 0, btw: 0, kost: 0, winst: 0 } };
+      var tOmzet = 0, tBtw = 0, tKost = 0, tWinst = 0, tVerzend = 0, tOnbekend = 0;
       volgorde.forEach(function(o){
         o.winkel = !o.klant;
         var k = kanaal[o.winkel ? 'shop' : 'web'];
-        k.orders++; k.omzet += o.omzet; k.kost += o.kost; k.winst += o.winst;
-        tOmzet += o.omzet; tKost += o.kost; tWinst += o.winst;
+        k.orders++; k.omzet += o.omzet; k.btw += o.btw; k.kost += o.kost; k.winst += o.winst;
+        tOmzet += o.omzet; tBtw += o.btw; tKost += o.kost; tWinst += o.winst;
         tVerzend += o.shipping; tOnbekend += o.onbekend;
       });
       var tMarge = tOmzet > 0 ? (tWinst / tOmzet) * 100 : 0;
@@ -1802,7 +1805,8 @@
           + '<div class="kanaal-l">' + label + '<b>' + k.orders + '</b>'
             + (k.orders === 1 ? ' order' : ' orders') + '</div>'
           + '<div class="kgrid">'
-            + kgetal(eur2(k.omzet), 'omzet')
+            + kgetal(eur2(k.omzet), 'netto omzet')
+            + kgetal(eur2(k.btw), 'btw')
             + kgetal(eur2(k.kost), 'kostprijs')
             + kgetal(eur2(k.winst), 'brutowinst', cls)
             + kgetal(pct1(m), 'marge', cls)
@@ -1812,7 +1816,7 @@
       $('sale-kanalen').innerHTML =
           strook('Webshop \u00B7 ', kanaal.web, false)
         + strook('Winkel \u00B7 handmatige bon \u00B7 ', kanaal.shop, false)
-        + strook('Alles samen \u00B7 ', { orders: volgorde.length, omzet: tOmzet, kost: tKost, winst: tWinst }, true);
+        + strook('Alles samen \u00B7 ', { orders: volgorde.length, omzet: tOmzet, btw: tBtw, kost: tKost, winst: tWinst }, true);
 
       $('sale-table').innerHTML = volgorde.map(function(o, idx){
         var marge = o.omzet > 0 ? (o.winst / o.omzet) * 100 : 0;
@@ -1827,7 +1831,7 @@
           + '<span class="ck' + (o.klant ? '' : ' geen winkel') + '">' + esc(klantTxt) + '</span>'
           + '<span class="cd">' + dm(o.datum) + '</span>'
           + '<span class="cm">' + o.regels.length + ' regel' + (o.regels.length === 1 ? '' : 's')
-            + ' \u00B7 ' + eur2(o.omzet) + ' omzet \u00B7 '
+            + ' \u00B7 ' + eur2(o.omzet) + ' netto \u00B7 '
             + '<b class="' + wCls + '">' + eur2(o.winst) + '</b>'
             + (o.onbekend ? ' \u00B7 <b class="flat">' + o.onbekend + ' zonder kostprijs</b>'
                           : ' \u00B7 ' + pct1(marge))
@@ -1836,8 +1840,9 @@
         var cellen = o.regels.map(function(l){
           var heeft = l.unit_cost != null;
           var w = Number(l.profit || 0);
-          var net = Number(l.net || 0);
-          var m = heeft && net > 0 ? (w / net) * 100 : 0;
+          var btw = Number(l.tax || 0);
+          var netto = Number(l.net || 0) - btw;          // netto omzet, ex BTW
+          var m = heeft && netto > 0 ? (w / netto) * 100 : 0;
           var cls = w < 0 ? 'lose' : 'win';
           return '<tr>'
             + '<td class="thumb">' + (l.image_url
@@ -1850,7 +1855,9 @@
             + '<td>' + eur2(l.gross) + '</td>'
             + '<td>' + (Number(l.discount) > 0 ? '<span class="lose">-' + eur2(l.discount) + '</span>'
                                                : '<span class="nil">\u2014</span>') + '</td>'
-            + '<td>' + eur2(net) + '</td>'
+            + '<td>' + (btw > 0 ? '<span class="camp">-' + eur2(btw) + '</span>'
+                                : '<span class="nil">\u2014</span>') + '</td>'
+            + '<td>' + eur2(netto) + '</td>'
             + '<td>' + (heeft ? eur2(l.cost) : '<span class="warn">n.v.t.</span>') + '</td>'
             + '<td>' + (heeft ? '<span class="' + cls + '">' + eur2(w) + '</span>'
                               : '<span class="nil">\u2014</span>') + '</td>'
@@ -1865,13 +1872,14 @@
                              : 'Winkel \u00B7 handmatig ingevoerde bon')
             + ' \u00B7 verzendkosten ' + eur2(o.shipping)
             + (o.korting > 0 ? ' \u00B7 korting ' + eur2(o.korting) : '') + '</td>'
-          + '<td></td><td></td><td></td><td>' + eur2(o.omzet) + '</td><td>' + eur2(o.kost) + '</td>'
+          + '<td></td><td></td><td>' + (o.btw > 0 ? '-' + eur2(o.btw) : '\u2014') + '</td>'
+          + '<td>' + eur2(o.omzet) + '</td><td>' + eur2(o.kost) + '</td>'
           + '<td><span class="' + wCls + '">' + eur2(o.winst) + '</span></td>'
           + '<td><span class="' + wCls + '">' + pct1(marge) + '</span></td></tr>';
 
         var body = '<div class="campads hidden"><table class="adt"><thead><tr>'
-          + '<th></th><th>Artikel &amp; SKU</th><th>Aantal</th><th>Bruto</th><th>Korting</th>'
-          + '<th>Verkoop</th><th>Kostprijs</th><th>Winst</th><th>Marge</th>'
+          + '<th></th><th>Artikel &amp; SKU</th><th>Aantal</th><th>Bruto omzet</th><th>Korting</th>'
+          + '<th>BTW</th><th>Netto omzet</th><th>Kostprijs</th><th>Winst</th><th>Marge</th>'
           + '</tr></thead><tbody>' + cellen + som + '</tbody></table></div>';
 
         return '<div class="campblk">' + head + body + '</div>';
@@ -1889,8 +1897,8 @@
       $('sale-when').textContent = eerste.slice(8,10) + '/' + eerste.slice(5,7)
         + ' \u2013 ' + laatste.slice(8,10) + '/' + laatste.slice(5,7);
       $('sale-foot').textContent = 'Orders zonder klantgegevens zijn handmatig ingevoerde winkelbonnen \u00B7 '
-        + 'klik op een order om de regels uit te klappen \u00B7 omzet is exclusief verzendkosten ('
-        + eur2(tVerzend) + ' ontvangen) \u00B7 winst = verkoopprijs min kostprijs'
+        + 'klik op een order om de regels uit te klappen \u00B7 netto omzet = na korting en ex BTW (' + eur2(tBtw)
+        + ' BTW), exclusief verzendkosten (' + eur2(tVerzend) + ' ontvangen) \u00B7 winst = netto omzet min kostprijs (beide ex BTW)'
         + (tOnbekend ? ' \u00B7 ' + tOnbekend + ' regel(s) zonder kostprijs tellen niet mee in de marge' : '')
         + ' \u00B7 ' + fmt(rows.length) + ' artikelregels'
         + ' \u00B7 bijgewerkt ' + new Date(rows[0].synced_at).toLocaleString('nl-NL', { timeZone: 'Europe/Madrid' });
