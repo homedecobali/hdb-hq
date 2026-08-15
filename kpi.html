@@ -156,6 +156,19 @@
   .kgrid .kv.red{color:var(--red)}
   .kgrid .kl{font-size:9px;letter-spacing:.11em;text-transform:uppercase;color:var(--muted);margin-top:3px}
   .camphead .ck.winkel{color:var(--orange);font-style:normal}
+  /* ---- dagtotaal-strook onder de eerste order van elke dag ---- */
+  .dagtotaal{display:flex;align-items:center;gap:12px;flex-wrap:wrap;
+    margin:2px 0 6px;padding:8px 10px;border-radius:8px;
+    background:rgba(0,212,255,.05);border:1px solid rgba(0,212,255,.22);
+    border-left:3px solid var(--cyan)}
+  .dagtotaal .dgt-d{font-size:10px;letter-spacing:.12em;text-transform:uppercase;
+    font-weight:800;color:var(--cyan);flex:none;min-width:118px}
+  .dagtotaal .dgt-cells{display:flex;gap:6px 16px;flex-wrap:wrap;margin-left:auto}
+  .dagtotaal .dc{display:flex;flex-direction:column;line-height:1.1;text-align:right}
+  .dagtotaal .dcl{font-size:8.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+  .dagtotaal .dcv{font-size:13px;font-weight:800;color:var(--text);font-variant-numeric:tabular-nums;margin-top:2px}
+  .dagtotaal .dcv.win{color:var(--green)} .dagtotaal .dcv.lose{color:var(--red)}
+  .dagtotaal .dcv.nil{color:var(--muted);font-weight:600}
   .wbud{display:flex;gap:18px;flex-wrap:wrap;align-items:center;padding:8px 4px;margin-bottom:4px;border-bottom:1px solid var(--line);font-size:11.5px;color:var(--muted)}
   .wbud b{color:var(--text);font-weight:700}
   .wbud .u{color:var(--green);font-weight:700} .wbud .o{color:var(--red);font-weight:700}
@@ -1742,6 +1755,29 @@
         .formatToParts(d).forEach(function(x){ p[x.type] = x.value; });
       return p.day + '/' + p.month + ' ' + p.hour + ':' + p.minute;
     };
+    // Daggroepering in winkeltijd (Europe/Madrid), gelijk aan dm(), zodat
+    // nachtorders op dezelfde dag vallen als in bridge_kpi_daily.
+    var dagKey = function(iso){
+      if(!iso) return '';
+      var s = String(iso).replace(' ', 'T').replace(/([+-]\d{2})$/, '$1:00');
+      var d = new Date(s);
+      if(isNaN(d.getTime())) return String(iso).slice(0,10);
+      var p = {};
+      new Intl.DateTimeFormat('en-CA', { timeZone:'Europe/Madrid',
+        year:'numeric', month:'2-digit', day:'2-digit' })
+        .formatToParts(d).forEach(function(x){ p[x.type] = x.value; });
+      return p.year + '-' + p.month + '-' + p.day;
+    };
+    var dagLabel = function(iso){
+      var s = String(iso).replace(' ', 'T').replace(/([+-]\d{2})$/, '$1:00');
+      var d = new Date(s);
+      if(isNaN(d.getTime())) return dagKey(iso);
+      var p = {};
+      new Intl.DateTimeFormat('nl-NL', { timeZone:'Europe/Madrid',
+        weekday:'short', day:'2-digit', month:'2-digit' })
+        .formatToParts(d).forEach(function(x){ p[x.type] = x.value; });
+      return p.weekday + ' ' + p.day + '/' + p.month;
+    };
     try{
       var since = new Date(Date.now() - 7 * 24 * 3600 * 1000).toISOString();
       var r = await sb.from('bridge_sales_lines').select('*')
@@ -1765,10 +1801,11 @@
           o = byOrder[l.order_name] = { naam: l.order_name, datum: l.order_created_at,
             status: l.financial_status, shipping: Number(l.shipping || 0),
             klant: l.customer_name, plaats: l.customer_city, land: l.customer_country,
-            omzet: 0, btw: 0, kost: 0, winst: 0, korting: 0, onbekend: 0, regels: [] };
+            omzet: 0, btw: 0, kost: 0, winst: 0, korting: 0, bruto: 0, onbekend: 0, regels: [] };
           volgorde.push(o);
         }
         o.regels.push(l);
+        o.bruto += Number(l.gross || 0);
         // Shopify-prijzen zijn incl. BTW; de kostprijs is ex BTW. Daarom rekenen we
         // alles op NETTO omzet (ex BTW) = net - tax, zodat de marge klopt.
         o.btw   += Number(l.tax || 0);
@@ -1817,6 +1854,38 @@
           strook('Webshop \u00B7 ', kanaal.web, false)
         + strook('Winkel \u00B7 handmatige bon \u00B7 ', kanaal.shop, false)
         + strook('Alles samen \u00B7 ', { orders: volgorde.length, omzet: tOmzet, btw: tBtw, kost: tKost, winst: tWinst }, true);
+
+      // Dagtotalen: per (winkeltijd-)dag optellen. volgorde is nieuw->oud,
+      // dus de dagKeys-index laat zien welke order de eerste van zijn dag is.
+      var dagKeys = volgorde.map(function(o){ return dagKey(o.datum); });
+      var perDag = {};
+      volgorde.forEach(function(o){
+        var key = dagKey(o.datum);
+        var d = perDag[key] || (perDag[key] = { iso: o.datum, orders: 0,
+          bruto: 0, korting: 0, btw: 0, omzet: 0, kost: 0, winst: 0, onbekend: 0 });
+        d.orders++; d.bruto += o.bruto; d.korting += o.korting; d.btw += o.btw;
+        d.omzet += o.omzet; d.kost += o.kost; d.winst += o.winst; d.onbekend += o.onbekend;
+      });
+      var dagtotaalHtml = function(d){
+        var marge = d.omzet > 0 ? (d.winst / d.omzet) * 100 : 0;
+        var wCls  = d.winst < 0 ? 'lose' : 'win';
+        var cel = function(label, val, cls){
+          return '<span class="dc"><span class="dcl">' + label + '</span>'
+            + '<span class="dcv ' + (cls || '') + '">' + val + '</span></span>';
+        };
+        return '<div class="dagtotaal">'
+          + '<span class="dgt-d">' + dagLabel(d.iso) + '</span>'
+          + '<span class="dgt-cells">'
+            + cel('Aantal', d.orders + (d.orders === 1 ? ' order' : ' orders'))
+            + cel('Bruto omzet', eur2(d.bruto))
+            + cel('Korting', d.korting > 0 ? '-' + eur2(d.korting) : '\u2014', d.korting > 0 ? '' : 'nil')
+            + cel('BTW', d.btw > 0 ? '-' + eur2(d.btw) : '\u2014', d.btw > 0 ? '' : 'nil')
+            + cel('Netto omzet', eur2(d.omzet))
+            + cel('Kostprijs', eur2(d.kost))
+            + cel('Winst', eur2(d.winst), wCls)
+            + cel('Marge', d.onbekend ? '\u2014' : pct1(marge), d.onbekend ? 'nil' : wCls)
+          + '</span></div>';
+      };
 
       $('sale-table').innerHTML = volgorde.map(function(o, idx){
         var marge = o.omzet > 0 ? (o.winst / o.omzet) * 100 : 0;
@@ -1882,7 +1951,12 @@
           + '<th>BTW</th><th>Netto omzet</th><th>Kostprijs</th><th>Winst</th><th>Marge</th>'
           + '</tr></thead><tbody>' + cellen + som + '</tbody></table></div>';
 
-        return '<div class="campblk">' + head + body + '</div>';
+        var blok = '<div class="campblk">' + head + body + '</div>';
+        // Eerste order van de dag (nieuw->oud): plaats de dagtotaal eronder.
+        if(idx === 0 || dagKeys[idx - 1] !== dagKeys[idx]){
+          blok += dagtotaalHtml(perDag[dagKeys[idx]]);
+        }
+        return blok;
       }).join('');
 
       Array.prototype.forEach.call(document.querySelectorAll('#sale-table .camphead'), function(h){
