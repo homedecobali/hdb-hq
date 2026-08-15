@@ -169,6 +169,9 @@
   .dagtotaal .dcv{font-size:13px;font-weight:800;color:var(--text);font-variant-numeric:tabular-nums;margin-top:2px}
   .dagtotaal .dcv.win{color:var(--green)} .dagtotaal .dcv.lose{color:var(--red)}
   .dagtotaal .dcv.nil{color:var(--muted);font-weight:600}
+  .dagtotaal .dc.tot{padding-right:14px;border-right:1px solid rgba(0,212,255,.28)}
+  .dagtotaal .dc.tot .dcl{color:var(--cyan)}
+  .dagtotaal .dcv.big{font-size:15px;color:var(--cyan)}
   .wbud{display:flex;gap:18px;flex-wrap:wrap;align-items:center;padding:8px 4px;margin-bottom:4px;border-bottom:1px solid var(--line);font-size:11.5px;color:var(--muted)}
   .wbud b{color:var(--text);font-weight:700}
   .wbud .u{color:var(--green);font-weight:700} .wbud .o{color:var(--red);font-weight:700}
@@ -1043,6 +1046,39 @@
   var esc  = function(v){ return String(v == null ? '' : v)
     .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); };
 
+  /* ---- Winkeltijd (Europe/Madrid) is de enige waarheid in dit dashboard ----
+     Alle Shopify-cijfers zijn op Madrid-tijd gedagd. Datum/tijd wordt daarom
+     altijd in Madrid getoond, ongeacht waar het dashboard geopend wordt
+     (de tijdzone van de bezoeker blijft volledig buiten beschouwing). */
+  var MAD_TZ = 'Europe/Madrid';
+  function madParts(iso, opts){
+    var s = String(iso == null ? '' : iso).replace(' ', 'T').replace(/([+-]\d{2})$/, '$1:00');
+    var d = new Date(s);
+    if(isNaN(d.getTime())) return null;
+    var p = {};
+    new Intl.DateTimeFormat('en-GB', Object.assign({ timeZone: MAD_TZ }, opts))
+      .formatToParts(d).forEach(function(x){ p[x.type] = x.value; });
+    return p;
+  }
+  function madYMD(iso){            // 'YYYY-MM-DD' in winkeltijd (daggrens)
+    var p = madParts(iso, { year:'numeric', month:'2-digit', day:'2-digit' });
+    return p ? (p.year + '-' + p.month + '-' + p.day) : String(iso).slice(0,10);
+  }
+  function madDM(iso){            // 'dd/MM' in winkeltijd
+    var p = madParts(iso, { day:'2-digit', month:'2-digit' });
+    return p ? (p.day + '/' + p.month) : (String(iso).slice(8,10) + '/' + String(iso).slice(5,7));
+  }
+  function madDMHM(iso){          // 'dd/MM HH:mm' in winkeltijd
+    var p = madParts(iso, { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit', hour12:false });
+    return p ? (p.day + '/' + p.month + ' ' + p.hour + ':' + p.minute) : String(iso).slice(0,16);
+  }
+  function madClockNow(){        // 'HH:mm' nu, in winkeltijd
+    var p = {};
+    new Intl.DateTimeFormat('en-GB', { timeZone: MAD_TZ, hour:'2-digit', minute:'2-digit', hour12:false })
+      .formatToParts(new Date()).forEach(function(x){ p[x.type] = x.value; });
+    return p.hour + ':' + p.minute;
+  }
+
   function pivot(rows, source){
     var out = {};
     rows.forEach(function(r){
@@ -1212,9 +1248,7 @@
         var roRows = ro.map(function(r){
           var d   = ageOf(r);
           var cls = d > 5 ? 'red' : (d > 2 ? 'orange' : 'green');
-          var d2  = new Date(r.order_created_at);
-          var when = String(r.order_created_at).slice(0,10) + ' '
-            + ('0' + d2.getHours()).slice(-2) + ':' + ('0' + d2.getMinutes()).slice(-2);
+          var when = madDMHM(r.order_created_at);
           var fin = finNL[r.financial_status] || String(r.financial_status || '\u2014').toLowerCase();
           var ful = fulNL[r.fulfillment_status] || String(r.fulfillment_status || '\u2014').toLowerCase();
           return '<tr>'
@@ -1668,7 +1702,7 @@
       $('system').innerHTML = sysHtml;
       zset('zs-dewi-silent', String(silent.length), silent.length ? 'bad' : 'good');
 
-      $('stamp').textContent = 'bijgewerkt ' + new Date().toLocaleTimeString('nl-NL',{hour:'2-digit',minute:'2-digit'});
+      $('stamp').textContent = 'bijgewerkt ' + madClockNow() + ' Madrid';
     }catch(e){
       errEl.textContent = 'Fout bij laden: ' + (e.message || e);
     }
@@ -1855,16 +1889,29 @@
         + strook('Winkel \u00B7 handmatige bon \u00B7 ', kanaal.shop, false)
         + strook('Alles samen \u00B7 ', { orders: volgorde.length, omzet: tOmzet, btw: tBtw, kost: tKost, winst: tWinst }, true);
 
+      // "Totale omzet" per dag uit dezelfde bron als de tegel "omzet gisteren"
+      // (bridge_kpi_daily, Shopify Total sales = netto na korting + btw + verzending).
+      // Zo is de dagtotaal-regel per definitie gelijk aan de tegel bovenin.
+      var revByDay = {};
+      try{
+        var rk = await sb.from('bridge_kpi_daily').select('kpi_date,value')
+          .eq('source', 'shopify').eq('metric', 'revenue');
+        (rk.data || []).forEach(function(x){
+          revByDay[String(x.kpi_date).slice(0, 10)] = Number(x.value);
+        });
+      }catch(e){ revByDay = {}; }
+
       // Dagtotalen: per (winkeltijd-)dag optellen. volgorde is nieuw->oud,
       // dus de dagKeys-index laat zien welke order de eerste van zijn dag is.
       var dagKeys = volgorde.map(function(o){ return dagKey(o.datum); });
       var perDag = {};
       volgorde.forEach(function(o){
         var key = dagKey(o.datum);
-        var d = perDag[key] || (perDag[key] = { iso: o.datum, orders: 0,
-          bruto: 0, korting: 0, btw: 0, omzet: 0, kost: 0, winst: 0, onbekend: 0 });
+        var d = perDag[key] || (perDag[key] = { key: key, iso: o.datum, orders: 0,
+          bruto: 0, korting: 0, btw: 0, omzet: 0, kost: 0, winst: 0, verzend: 0, onbekend: 0 });
         d.orders++; d.bruto += o.bruto; d.korting += o.korting; d.btw += o.btw;
-        d.omzet += o.omzet; d.kost += o.kost; d.winst += o.winst; d.onbekend += o.onbekend;
+        d.omzet += o.omzet; d.kost += o.kost; d.winst += o.winst;
+        d.verzend += o.shipping; d.onbekend += o.onbekend;
       });
       var dagtotaalHtml = function(d){
         var marge = d.omzet > 0 ? (d.winst / d.omzet) * 100 : 0;
@@ -1873,9 +1920,16 @@
           return '<span class="dc"><span class="dcl">' + label + '</span>'
             + '<span class="dcv ' + (cls || '') + '">' + val + '</span></span>';
         };
+        // Totale omzet = Shopify Total sales (tegel-bron); valt terug op de eigen
+        // regelsom (netto ex btw + btw + verzending) als de kpi-rij nog ontbreekt.
+        var totaal = (revByDay[d.key] != null)
+          ? revByDay[d.key]
+          : Math.round((d.omzet + d.btw + d.verzend) * 100) / 100;
         return '<div class="dagtotaal">'
           + '<span class="dgt-d">' + dagLabel(d.iso) + '</span>'
           + '<span class="dgt-cells">'
+            + '<span class="dc tot"><span class="dcl">Totale omzet</span>'
+              + '<span class="dcv big">' + eur2(totaal) + '</span></span>'
             + cel('Aantal', d.orders + (d.orders === 1 ? ' order' : ' orders'))
             + cel('Bruto omzet', eur2(d.bruto))
             + cel('Korting', d.korting > 0 ? '-' + eur2(d.korting) : '\u2014', d.korting > 0 ? '' : 'nil')
@@ -1966,12 +2020,12 @@
         });
       });
 
-      var eerste = rows[rows.length - 1].order_created_at.slice(0, 10);
-      var laatste = rows[0].order_created_at.slice(0, 10);
-      $('sale-when').textContent = eerste.slice(8,10) + '/' + eerste.slice(5,7)
-        + ' \u2013 ' + laatste.slice(8,10) + '/' + laatste.slice(5,7);
+      $('sale-when').textContent = madDM(rows[rows.length - 1].order_created_at)
+        + ' \u2013 ' + madDM(rows[0].order_created_at);
       $('sale-foot').textContent = 'Orders zonder klantgegevens zijn handmatig ingevoerde winkelbonnen \u00B7 '
-        + 'klik op een order om de regels uit te klappen \u00B7 netto omzet = na korting en ex BTW (' + eur2(tBtw)
+        + 'klik op een order om de regels uit te klappen \u00B7 dagtotaal \u201cTotale omzet\u201d = Shopify Total sales '
+        + '(netto na korting + BTW + verzending) en is gelijk aan \u201comzet gisteren\u201d bovenin \u00B7 '
+        + 'netto omzet = na korting en ex BTW (' + eur2(tBtw)
         + ' BTW), exclusief verzendkosten (' + eur2(tVerzend) + ' ontvangen) \u00B7 winst = netto omzet min kostprijs (beide ex BTW)'
         + (tOnbekend ? ' \u00B7 ' + tOnbekend + ' regel(s) zonder kostprijs tellen niet mee in de marge' : '')
         + ' \u00B7 ' + fmt(rows.length) + ' artikelregels'
