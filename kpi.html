@@ -1117,11 +1117,23 @@
 
       var shop = pivot(kpi, 'shopify'); var shd = lastDates(shop, 14); var shl = lastTwo(shop);
       $('shop-when').textContent = shl.lastDate ? '\u2014 14 dagen, t/m ' + shl.lastDate : '';
+      // "Omzet gisteren" = de laatste VOLLEDIGE dag in winkeltijd (Europe/Madrid),
+      // niet de nieuwste rij. Zodra er vandaag een order binnenkomt is dat de
+      // nieuwste rij, en toonde de tegel per ongeluk vandaag onder het label
+      // "gisteren". Op datum opzoeken i.p.v. lastTwo(), zodat een lopende dag of
+      // een gat in de reeks de tegel niet naar de verkeerde dag laat springen.
+      var madridDay = function(shift){
+        var iso = new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Madrid' });
+        var d = new Date(iso + 'T12:00:00Z');
+        d.setUTCDate(d.getUTCDate() + shift);
+        return d.toISOString().slice(0, 10);
+      };
+      var yRow = shop[madridDay(-1)] || {}, yPrevRow = shop[madridDay(-2)] || {};
       $('shop-nums').innerHTML =
-        num('omzet gisteren', eur2(shl.last.revenue||0), delta(shl.last.revenue, shl.prev.revenue)) +
-        num('orders', fmt(shl.last.orders||0), delta(shl.last.orders, shl.prev.orders)) +
-        num('AOV', eur2(shl.last.aov||0), '') +
-        num('nieuwe klanten', fmt(shl.last.new_customers||0), '');
+        num('omzet gisteren', eur2(yRow.revenue||0), delta(yRow.revenue, yPrevRow.revenue)) +
+        num('orders', fmt(yRow.orders||0), delta(yRow.orders, yPrevRow.orders)) +
+        num('AOV', eur2(yRow.aov||0), '') +
+        num('nieuwe klanten', fmt(yRow.new_customers||0), '');
 
       // Kanaal-splitsing over dezelfde 14 dagen: online (webshop) vs winkel (draft/POS).
       // Zonder deze splitsing vervuilt winkelomzet je webshop-conversie en je ads-ROAS.
@@ -1554,25 +1566,25 @@
           return ads3.slice().sort(function(a,b){ return Number(b.spend||0)-Number(a.spend||0); }).map(function(r){
             var roas = Number(r.roas||0), sp = Number(r.spend||0), rv = adRev(r);
             var cls  = roas >= 2 ? 'win' : (roas > 0 ? 'flat' : (sp >= 25 ? 'lose' : 'flat'));
-            var star = /\[CAT\]/.test(r.ad_name||'') ? ' ⭐' : '';
+            var star = /\[CAT\]/.test(r.ad_name||'') ? ' \u2b50' : '';
             return '<tr>'
-              + '<td>' + esc(r.ad_name || '—') + star + '</td>'
+              + '<td>' + esc(r.ad_name || '\u2014') + star + '</td>'
               + '<td>' + eur2(sp) + '</td>'
               + '<td>' + eur2(rv) + '</td>'
               + '<td>' + fmt(r.purchases) + '</td>'
-              + '<td class="' + cls + '">' + (roas ? roas.toFixed(2) + 'x' : '—') + '</td>'
+              + '<td class="' + cls + '">' + (roas ? roas.toFixed(2) + 'x' : '\u2014') + '</td>'
               + '<td>' + Number(r.frequency||0).toFixed(2) + '</td>'
-              + '<td>' + (r.cpa != null ? eur2(r.cpa) : '—') + '</td>'
+              + '<td>' + (r.cpa != null ? eur2(r.cpa) : '\u2014') + '</td>'
               + '</tr>';
           }).join('');
         }
         $('live-table').innerHTML = wbudHtml + camps.map(function(c, idx){
           var head = '<div class="camphead" data-i="' + idx + '">'
-            + '<span class="cv">▸</span>'
+            + '<span class="cv">\u25B8</span>'
             + '<span class="cn">' + esc(c.name) + '</span>'
-            + '<span class="cm">' + eur2(c.spend) + ' spend · ' + eur2(c.rev) + ' omzet · '
-              + '<b class="' + merCls(c.mer) + '">MER ' + c.mer.toFixed(2) + 'x</b> · '
-              + fmt(c.pur) + ' aankopen · ' + c.ads.length + ' ads</span>'
+            + '<span class="cm">' + eur2(c.spend) + ' spend \u00b7 ' + eur2(c.rev) + ' omzet \u00b7 '
+              + '<b class="' + merCls(c.mer) + '">MER ' + c.mer.toFixed(2) + 'x</b> \u00b7 '
+              + fmt(c.pur) + ' aankopen \u00b7 ' + c.ads.length + ' ads</span>'
             + '</div>';
           var body = '<div class="campads hidden"><table class="adt"><thead><tr>'
             + '<th>Advertentie</th><th>Adspend</th><th>Omzet</th><th>Aankopen</th><th>ROAS</th><th>Freq.</th><th>CPA</th>'
@@ -1582,13 +1594,13 @@
         Array.prototype.forEach.call(document.querySelectorAll('#live-table .camphead'), function(h){
           h.addEventListener('click', function(){
             var collapsed = h.nextElementSibling.classList.toggle('hidden');
-            h.querySelector('.cv').textContent = collapsed ? '▸' : '▾';
+            h.querySelector('.cv').textContent = collapsed ? '\u25B8' : '\u25BE';
           });
         });
 
         var noSale = live.filter(function(r){ return !Number(r.purchases) && Number(r.spend||0) >= 25; });
-        $('live-foot').textContent = camps.length + ' campagnes · klik om ads uit te klappen · Omzet = ROAS × adspend · weekbudget = dagbudget × 7'
-          + (noSale.length ? ' · ' + noSale.length + ' ads met ≥25 EUR & 0 aankopen' : '');
+        $('live-foot').textContent = camps.length + ' campagnes \u00b7 klik om ads uit te klappen \u00b7 Omzet = ROAS \u00d7 adspend \u00b7 weekbudget = dagbudget \u00d7 7'
+          + (noSale.length ? ' \u00b7 ' + noSale.length + ' ads met \u226525 EUR & 0 aankopen' : '');
       } else {
         $('live-table').innerHTML = '<p style="color:var(--muted)">Nog geen data \u2014 Active Ads Pull draait dagelijks 07:30.</p>';
         zset('zs-meta-ads', '0', 'warn');
@@ -1702,7 +1714,7 @@
           + '<button class="prop-btn no" data-kind="' + escp(r.kind) + '" data-id="' + escp(r.id) + '" data-action="skip">\u2715 AFWIJZEN</button>'
           + '</div></div></div>';
       }).join('')
-      + '<div class="sml-foot">&eacute;&eacute;n klik &middot; bevestiging opent in een nieuw tabblad</div>';
+      + '<div class="sml-foot">\u00e9\u00e9n klik &middot; bevestiging opent in een nieuw tabblad</div>';
     }catch(e){ console.warn("proposals:", e); body.innerHTML = '<div class="sml-msg">fout bij laden</div>'; }
   }
   (function(){
@@ -1716,7 +1728,20 @@
   /* ---- Omzet & winst, laatste 7 dagen, per order uitklapbaar ---- */
   async function loadSales(){
     var pct1 = function(v){ return Number(v).toFixed(1).replace('.', ',') + '%'; };
-    var dm   = function(iso){ return iso.slice(8,10) + '/' + iso.slice(5,7) + ' ' + iso.slice(11,16); };
+    var dm   = function(iso){
+      if(!iso) return '';
+      // bridge_sales_lines levert UTC ('YYYY-MM-DD HH:MM:SS+00'); toon in winkeltijd
+      // (Europe/Madrid) zodat de datum in de lijst spoort met de dagtelling in
+      // bridge_kpi_daily. Zonder dit vielen nachtorders zichtbaar op de verkeerde dag.
+      var s = String(iso).replace(' ', 'T').replace(/([+-]\d{2})$/, '$1:00');
+      var d = new Date(s);
+      if(isNaN(d.getTime())) return String(iso).slice(8,10) + '/' + String(iso).slice(5,7) + ' ' + String(iso).slice(11,16);
+      var p = {};
+      new Intl.DateTimeFormat('nl-NL', { timeZone:'Europe/Madrid', day:'2-digit',
+        month:'2-digit', hour:'2-digit', minute:'2-digit', hour12:false })
+        .formatToParts(d).forEach(function(x){ p[x.type] = x.value; });
+      return p.day + '/' + p.month + ' ' + p.hour + ':' + p.minute;
+    };
     try{
       var since = new Date(Date.now() - 7 * 24 * 3600 * 1000).toISOString();
       var r = await sb.from('bridge_sales_lines').select('*')
