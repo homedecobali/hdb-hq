@@ -156,11 +156,13 @@
   .kgrid .kv.red{color:var(--red)}
   .kgrid .kl{font-size:9px;letter-spacing:.11em;text-transform:uppercase;color:var(--muted);margin-top:3px}
   .camphead .ck.winkel{color:var(--orange);font-style:normal}
-  /* ---- dagtotaal-strook onder de eerste order van elke dag ---- */
+  /* ---- dagtotaal-kop boven de orders van elke dag ---- */
   .dagtotaal{display:flex;align-items:center;gap:12px;flex-wrap:wrap;
-    margin:2px 0 6px;padding:8px 10px;border-radius:8px;
+    margin:14px 0 4px;padding:8px 10px;border-radius:8px;
     background:rgba(0,212,255,.05);border:1px solid rgba(0,212,255,.22);
     border-left:3px solid var(--cyan)}
+  #sale-table .campblk:first-child .dagtotaal,
+  .dagtotaal:first-child{margin-top:2px}
   .dagtotaal .dgt-d{font-size:10px;letter-spacing:.12em;text-transform:uppercase;
     font-weight:800;color:var(--cyan);flex:none;min-width:118px}
   .dagtotaal .dgt-cells{display:flex;gap:6px 16px;flex-wrap:wrap;margin-left:auto}
@@ -1889,18 +1891,6 @@
         + strook('Winkel \u00B7 handmatige bon \u00B7 ', kanaal.shop, false)
         + strook('Alles samen \u00B7 ', { orders: volgorde.length, omzet: tOmzet, btw: tBtw, kost: tKost, winst: tWinst }, true);
 
-      // "Totale omzet" per dag uit dezelfde bron als de tegel "omzet gisteren"
-      // (bridge_kpi_daily, Shopify Total sales = netto na korting + btw + verzending).
-      // Zo is de dagtotaal-regel per definitie gelijk aan de tegel bovenin.
-      var revByDay = {};
-      try{
-        var rk = await sb.from('bridge_kpi_daily').select('kpi_date,value')
-          .eq('source', 'shopify').eq('metric', 'revenue');
-        (rk.data || []).forEach(function(x){
-          revByDay[String(x.kpi_date).slice(0, 10)] = Number(x.value);
-        });
-      }catch(e){ revByDay = {}; }
-
       // Dagtotalen: per (winkeltijd-)dag optellen. volgorde is nieuw->oud,
       // dus de dagKeys-index laat zien welke order de eerste van zijn dag is.
       var dagKeys = volgorde.map(function(o){ return dagKey(o.datum); });
@@ -1920,11 +1910,10 @@
           return '<span class="dc"><span class="dcl">' + label + '</span>'
             + '<span class="dcv ' + (cls || '') + '">' + val + '</span></span>';
         };
-        // Totale omzet = Shopify Total sales (tegel-bron); valt terug op de eigen
-        // regelsom (netto ex btw + btw + verzending) als de kpi-rij nog ontbreekt.
-        var totaal = (revByDay[d.key] != null)
-          ? revByDay[d.key]
-          : Math.round((d.omzet + d.btw + d.verzend) * 100) / 100;
+        // Alles uit één bron (bridge_sales_lines) en sluitend:
+        //   Totale omzet = netto (ex btw, na korting) + btw + verzending  = Shopify Total sales
+        //   Bruto - Korting = netto + btw ;  Winst = netto - Kostprijs
+        var totaal = Math.round((d.omzet + d.btw + d.verzend) * 100) / 100;
         return '<div class="dagtotaal">'
           + '<span class="dgt-d">' + dagLabel(d.iso) + '</span>'
           + '<span class="dgt-cells">'
@@ -1935,6 +1924,7 @@
             + cel('Korting', d.korting > 0 ? '-' + eur2(d.korting) : '\u2014', d.korting > 0 ? '' : 'nil')
             + cel('BTW', d.btw > 0 ? '-' + eur2(d.btw) : '\u2014', d.btw > 0 ? '' : 'nil')
             + cel('Netto omzet', eur2(d.omzet))
+            + cel('Verzending', d.verzend > 0 ? eur2(d.verzend) : '\u2014', d.verzend > 0 ? '' : 'nil')
             + cel('Kostprijs', eur2(d.kost))
             + cel('Winst', eur2(d.winst), wCls)
             + cel('Marge', d.onbekend ? '\u2014' : pct1(marge), d.onbekend ? 'nil' : wCls)
@@ -2006,9 +1996,10 @@
           + '</tr></thead><tbody>' + cellen + som + '</tbody></table></div>';
 
         var blok = '<div class="campblk">' + head + body + '</div>';
-        // Eerste order van de dag (nieuw->oud): plaats de dagtotaal eronder.
+        // Dagtotaal als KOP boven de eerste (nieuwste) order van de dag, zodat
+        // alle orders van die dag eronder bij elkaar staan.
         if(idx === 0 || dagKeys[idx - 1] !== dagKeys[idx]){
-          blok += dagtotaalHtml(perDag[dagKeys[idx]]);
+          blok = dagtotaalHtml(perDag[dagKeys[idx]]) + blok;
         }
         return blok;
       }).join('');
@@ -2023,10 +2014,10 @@
       $('sale-when').textContent = madDM(rows[rows.length - 1].order_created_at)
         + ' \u2013 ' + madDM(rows[0].order_created_at);
       $('sale-foot').textContent = 'Orders zonder klantgegevens zijn handmatig ingevoerde winkelbonnen \u00B7 '
-        + 'klik op een order om de regels uit te klappen \u00B7 dagtotaal \u201cTotale omzet\u201d = Shopify Total sales '
-        + '(netto na korting + BTW + verzending) en is gelijk aan \u201comzet gisteren\u201d bovenin \u00B7 '
-        + 'netto omzet = na korting en ex BTW (' + eur2(tBtw)
-        + ' BTW), exclusief verzendkosten (' + eur2(tVerzend) + ' ontvangen) \u00B7 winst = netto omzet min kostprijs (beide ex BTW)'
+        + 'klik op een order om de regels uit te klappen \u00B7 alle cijfers komen uit \u00e9\u00e9n bron (bridge_sales_lines) '
+        + 'en sluiten op elkaar aan: Totale omzet = netto + BTW + verzending (= Shopify Total sales, gelijk aan '
+        + '\u201comzet gisteren\u201d bovenin), Bruto \u2212 korting = netto + BTW, winst = netto \u2212 kostprijs \u00B7 '
+        + 'netto omzet = na korting en ex BTW (' + eur2(tBtw) + ' BTW op artikelen; verzending wordt incl. eventuele BTW getoond)'
         + (tOnbekend ? ' \u00B7 ' + tOnbekend + ' regel(s) zonder kostprijs tellen niet mee in de marge' : '')
         + ' \u00B7 ' + fmt(rows.length) + ' artikelregels'
         + ' \u00B7 bijgewerkt ' + new Date(rows[0].synced_at).toLocaleString('nl-NL', { timeZone: 'Europe/Madrid' });
