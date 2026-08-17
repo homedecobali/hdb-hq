@@ -319,6 +319,27 @@
 <div id="work" class="hidden">
   <div id="kpiScroll">
 
+    <!-- ==================== VOORSTELLEN (verschijnt alleen als er openstaande voorstellen zijn) ==================== -->
+    <section class="zone hidden" id="z-prop" style="--acc:var(--yellow)">
+      <div class="zone-head">
+        <span class="zi">!</span>
+        <span class="zt">Voorstellen</span>
+        <span class="zs">wachten op goedkeuring</span>
+        <span class="zkpi">
+          <div>Openstaand<b id="zs-prop-count">&mdash;</b></div>
+        </span>
+        <button class="fold" data-zone="prop">&minus;</button>
+      </div>
+      <div class="zone-body">
+        <div class="card">
+          <h2><span class="dot" style="background:var(--yellow)"></span>Voorstellen
+            <span class="when">wachten op goedkeuring</span>
+            <span class="prop-badge zero" id="propBadge">0</span></h2>
+          <div id="propBody"><div class="sml-msg">laden&hellip;</div></div>
+        </div>
+      </div>
+    </section>
+
     <!-- ==================== ZONE 1 - SHOPIFY ==================== -->
     <section class="zone" id="z-shop" style="--acc:var(--z-shop)">
       <div class="zone-head">
@@ -495,12 +516,6 @@
             <h2><span class="dot" style="background:var(--orange)"></span>To-do&rsquo;s (DEWI)
               <span class="when" id="memo-count"></span></h2>
             <div id="memos"></div>
-          </div>
-          <div class="card">
-            <h2><span class="dot" style="background:var(--yellow)"></span>Voorstellen
-              <span class="when">wachten op goedkeuring</span>
-              <span class="prop-badge zero" id="propBadge">0</span></h2>
-            <div id="propBody"><div class="sml-msg">laden&hellip;</div></div>
           </div>
           <div class="card">
             <h2><span class="dot" style="background:var(--red)"></span>Systeem &mdash; stilte-detectie</h2>
@@ -1736,16 +1751,23 @@
       + "&id=" + encodeURIComponent(id) + "&action=" + encodeURIComponent(action), "_blank", "noopener");
     setTimeout(loadProposals, 4000); setTimeout(loadProposals, 12000);
   }
+  // toont/verbergt het Voorstellen-paneel bovenaan; het verschijnt alleen als er echt voorstellen zijn
+  function setPropPanel(visible){
+    var p = $("z-prop"); if(!p) return;
+    p.classList.toggle("hidden", !visible);
+  }
   async function loadProposals(){
     var body = $("propBody"), badge = $("propBadge");
     if(!body) return;
     try{
       var r = await sb.from("proposals_pending").select("*").order("created_at",{ascending:true});
-      if(r.error){ console.warn("proposals_pending:", r.error.message); body.innerHTML = '<div class="sml-msg">kon voorstellen niet laden</div>'; return; }
+      if(r.error){ console.warn("proposals_pending:", r.error.message); setPropPanel(false); body.innerHTML = '<div class="sml-msg">kon voorstellen niet laden</div>'; return; }
       var rows = r.data || [];
       if(badge){ badge.textContent = String(rows.length); badge.classList.toggle("zero", rows.length === 0); }
       zset('zs-dewi-prop', String(rows.length), rows.length ? 'warn' : 'good');
-      if(!rows.length){ body.innerHTML = '<div class="sml-msg">geen openstaande voorstellen \u2705</div>'; return; }
+      zset('zs-prop-count', String(rows.length), rows.length ? 'warn' : 'good');
+      if(!rows.length){ setPropPanel(false); body.innerHTML = '<div class="sml-msg">geen openstaande voorstellen \u2705</div>'; return; }
+      setPropPanel(true);
       var KIND = { social:{l:"SOCIAL"}, meta_ads:{l:"META ADS"}, newsletter:{l:"NIEUWSBRIEF"} };
       var escp = function(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); };
       body.innerHTML = rows.map(function(r){
@@ -1769,7 +1791,7 @@
           + '</div></div></div>';
       }).join('')
       + '<div class="sml-foot">\u00e9\u00e9n klik &middot; bevestiging opent in een nieuw tabblad</div>';
-    }catch(e){ console.warn("proposals:", e); body.innerHTML = '<div class="sml-msg">fout bij laden</div>'; }
+    }catch(e){ console.warn("proposals:", e); setPropPanel(false); body.innerHTML = '<div class="sml-msg">fout bij laden</div>'; }
   }
   (function(){
     var b = $("propBody");
