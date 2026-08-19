@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DEWI · Voorstel-voorbeeld</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="dewi-config.js"></script>
+<style>
+  :root{
+    --bg:#04070d; --panel:#0d1420; --line:#1c2940;
+    --cyan:#00d4ff; --blue:#3da5ff; --green:#4fd1a1; --orange:#e67e22;
+    --red:#ff5d5d; --yellow:#ffd400; --muted:#7d8ca3; --text:#dfe8f5;
+    --social:#ff5fa2;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--bg);color:var(--text);
+    font:15px/1.5 "Segoe UI",system-ui,-apple-system,sans-serif}
+  a{color:var(--cyan);text-decoration:none}
+  a:hover{text-decoration:underline}
+  .wrap{max-width:720px;margin:0 auto;padding:18px 16px 120px}
+
+  .top{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:16px}
+  .brand{font-weight:900;letter-spacing:.28em;color:var(--cyan);font-size:14px}
+  .brand .live{display:inline-block;width:8px;height:8px;border-radius:50%;
+    background:var(--green);box-shadow:0 0 8px var(--green);margin-right:8px;vertical-align:middle}
+  .back{margin-left:auto;font-size:13px}
+
+  .head{background:var(--panel);border:1px solid var(--line);border-radius:12px;
+    padding:14px 16px;margin-bottom:16px}
+  .kindrow{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-bottom:8px}
+  .tag{font:800 10px/1 system-ui;letter-spacing:.09em;padding:4px 8px;border-radius:6px;color:#0a1018}
+  .tag.social{background:var(--social)}
+  .tag.meta_ads{background:var(--cyan)}
+  .tag.newsletter{background:var(--green)}
+  .tag.other{background:var(--muted)}
+  .status{font:700 10px/1 system-ui;letter-spacing:.08em;text-transform:uppercase;
+    padding:4px 8px;border-radius:6px;border:1px solid var(--line);color:var(--muted)}
+  .status.pending{color:var(--yellow);border-color:rgba(255,212,0,.4)}
+  .status.approved,.status.applied{color:var(--green);border-color:rgba(79,209,161,.4)}
+  .status.skipped,.status.error{color:var(--red);border-color:rgba(255,93,93,.4)}
+  .h-title{font-size:18px;font-weight:800;margin:2px 0 3px}
+  .h-sub{color:var(--muted);font-size:14px}
+  .h-meta{color:var(--muted);font-size:12px;margin-top:9px;border-top:1px solid var(--line);padding-top:9px}
+  .h-meta b{color:var(--text);font-weight:600}
+
+  .post{background:var(--panel);border:1px solid var(--line);border-radius:12px;
+    overflow:hidden;margin-bottom:18px}
+  .post-badge{display:flex;align-items:center;gap:10px;padding:11px 14px;
+    border-bottom:1px solid var(--line);flex-wrap:wrap}
+  .post-n{font:800 11px/1 system-ui;letter-spacing:.1em;text-transform:uppercase;color:var(--social)}
+  .post-headline{font-weight:700;font-size:14px}
+  .post-img{display:block;width:100%;height:auto;background:#060b13}
+  .post-noimg{padding:40px 14px;text-align:center;color:var(--muted);font-size:13px;
+    border-bottom:1px solid var(--line)}
+  .post-body{padding:14px 16px}
+  .prod{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin-bottom:12px;
+    padding-bottom:12px;border-bottom:1px dashed var(--line)}
+  .prod .p-name{font-weight:700;font-size:14px}
+  .prod .p-price{color:var(--green);font-weight:800;font-size:15px}
+  .prod .p-meta{color:var(--muted);font-size:12px;width:100%}
+
+  .cap-lbl{font:700 10px/1 system-ui;letter-spacing:.1em;text-transform:uppercase;
+    color:var(--muted);margin:14px 0 6px;display:flex;align-items:center;gap:8px}
+  .cap-lbl .flag{font-size:12px;letter-spacing:0;text-transform:none;color:var(--blue)}
+  .caption{white-space:pre-wrap;font-size:14px;line-height:1.55;
+    background:rgba(255,255,255,.02);border:1px solid var(--line);border-radius:8px;padding:11px 13px}
+  .tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+  .chip{font-size:12px;color:var(--cyan);background:rgba(0,212,255,.08);
+    border:1px solid rgba(0,212,255,.25);border-radius:99px;padding:3px 9px}
+  .chip.warn{color:var(--orange);background:rgba(230,126,34,.10);border-color:rgba(230,126,34,.35)}
+  .note{color:var(--muted);font-size:11px;margin-top:8px}
+
+  pre.raw{white-space:pre-wrap;word-break:break-word;font-size:12px;line-height:1.5;
+    background:rgba(255,255,255,.02);border:1px solid var(--line);border-radius:8px;padding:12px}
+
+  .bar{position:fixed;left:0;right:0;bottom:0;background:rgba(6,11,19,.92);
+    backdrop-filter:blur(8px);border-top:1px solid var(--line);padding:12px 16px;
+    display:flex;gap:10px;justify-content:center}
+  .bar .inner{width:100%;max-width:720px;display:flex;gap:10px}
+  .btn{flex:1;font:800 13px/1 system-ui;letter-spacing:.05em;padding:14px 0;border-radius:9px;
+    border:1px solid var(--line);background:rgba(0,0,0,.25);color:var(--text);cursor:pointer;text-align:center}
+  .btn.ok{border-color:rgba(79,209,161,.5);color:var(--green)}
+  .btn.ok:hover{background:var(--green);color:#06121c}
+  .btn.no{border-color:rgba(255,93,93,.5);color:var(--red)}
+  .btn.no:hover{background:var(--red);color:#fff}
+  .msg{padding:14px 16px;text-align:center;color:var(--muted)}
+  .msg.err{color:var(--red)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <span class="brand"><span class="live"></span>DEWI</span>
+    <a class="back" href="kpi.html">&larr; naar dashboard</a>
+  </div>
+  <div id="content"><div class="msg">Laden&hellip;</div></div>
+</div>
+<div class="bar" id="actionbar" style="display:none">
+  <div class="inner">
+    <button class="btn ok" id="btnOk">&#10003; PUBLICEER</button>
+    <button class="btn no" id="btnNo">&#10007; AFWIJZEN</button>
+  </div>
+</div>
+
+<script>
+(function(){
+  var CFG = window.DEWI_CONFIG || window.BRIDGE_CONFIG || {};
+  var SB_URL = CFG.SUPABASE_URL || 'https://jucubuoftjehwancegma.supabase.co';
+  var SB_KEY = CFG.SUPABASE_ANON_KEY || '';
+  var PROP_DISPATCH_URL = "https://homedecobali.app.n8n.cloud/webhook/proposal-dispatch";
+  var content = document.getElementById('content');
+  var bar = document.getElementById('actionbar');
+
+  var $ = function(id){ return document.getElementById(id); };
+  function el(tag, cls, txt){
+    var e = document.createElement(tag);
+    if(cls) e.className = cls;
+    if(txt != null) e.textContent = txt;
+    return e;
+  }
+  function qparam(name){
+    var m = new RegExp('[?&]' + name + '=([^&]+)').exec(location.search);
+    return m ? decodeURIComponent(m[1].replace(/\+/g,' ')) : null;
+  }
+  function eur(v){
+    var n = Number(v);
+    if(!isFinite(n) || v == null || v === '') return null;
+    return '\u20AC ' + n.toFixed(2).replace('.', ',');
+  }
+  function madStamp(iso){
+    if(!iso) return '';
+    var s = String(iso).replace(' ', 'T').replace(/([+-]\d{2})$/, '$1:00');
+    var d = new Date(s);
+    if(isNaN(d.getTime())) return String(iso).slice(0,16);
+    return new Intl.DateTimeFormat('nl-NL', { timeZone:'Europe/Madrid',
+      day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit', hour12:false })
+      .format(d) + ' (Madrid)';
+  }
+
+  if(!SB_KEY){ content.innerHTML = '<div class="msg err">dewi-config.js niet gevonden of anon key ontbreekt.</div>'; return; }
+  var id = qparam('id');
+  if(!id){ content.innerHTML = '<div class="msg err">Geen voorstel-id in de URL (?id=&hellip;).</div>'; return; }
+
+  var sb = supabase.createClient(SB_URL, SB_KEY);
+  var current = null;
+
+  function tagClass(kind){
+    return (kind === 'social' || kind === 'meta_ads' || kind === 'newsletter') ? kind : 'other';
+  }
+  function kindLabel(kind){
+    var M = { social:'SOCIAL', meta_ads:'META ADS', newsletter:'NIEUWSBRIEF' };
+    return M[kind] || String(kind || '').toUpperCase();
+  }
+
+  // hashtag-chips; markeer waarschijnlijke typo's licht (te kort / ontbrekend merk)
+  function renderTags(container, hashtags){
+    if(!hashtags) return;
+    var parts = String(hashtags).split(/\s+/).filter(function(t){ return t.indexOf('#') === 0; });
+    if(!parts.length) return;
+    var lbl = el('div', 'cap-lbl');
+    lbl.appendChild(el('span', null, 'Hashtags'));
+    container.appendChild(lbl);
+    var box = el('div', 'tags');
+    parts.forEach(function(t){ box.appendChild(el('span', 'chip', t)); });
+    container.appendChild(box);
+    container.appendChild(el('div', 'note', 'De hashtags staan ook al onderaan de caption.'));
+  }
+
+  function renderPost(post, i, total){
+    var card = el('div', 'post');
+
+    var badge = el('div', 'post-badge');
+    badge.appendChild(el('span', 'post-n', 'Post ' + (i+1) + ' / ' + total));
+    if(post.headline) badge.appendChild(el('span', 'post-headline', post.headline));
+    card.appendChild(badge);
+
+    if(post.image_url){
+      var img = el('img', 'post-img');
+      img.src = post.image_url; img.alt = post.title || ('Post ' + (i+1));
+      img.loading = 'lazy';
+      card.appendChild(img);
+    } else {
+      card.appendChild(el('div', 'post-noimg', 'Geen composietbeeld in dit voorstel.'));
+    }
+
+    var body = el('div', 'post-body');
+
+    var prod = el('div', 'prod');
+    if(post.title) prod.appendChild(el('span', 'p-name', post.title));
+    var price = eur(post.price);
+    if(price) prod.appendChild(el('span', 'p-price', price));
+    var metaBits = [];
+    if(post.product_cm) metaBits.push(post.product_cm + ' cm');
+    if(post.plate_name) metaBits.push(post.plate_name);
+    if(post.formula_name) metaBits.push('formule: ' + post.formula_name);
+    var meta = el('div', 'p-meta');
+    if(metaBits.length) meta.appendChild(document.createTextNode(metaBits.join(' \u00b7 ')));
+    if(post.product_url){
+      if(metaBits.length) meta.appendChild(document.createTextNode(' \u00b7 '));
+      var a = el('a', null, 'productpagina \u2197');
+      a.href = post.product_url; a.target = '_blank'; a.rel = 'noopener';
+      meta.appendChild(a);
+    }
+    if(meta.childNodes.length) prod.appendChild(meta);
+    body.appendChild(prod);
+
+    if(post.caption){
+      var lblEs = el('div', 'cap-lbl');
+      lblEs.appendChild(el('span', null, 'Caption'));
+      lblEs.appendChild(el('span', 'flag', '\uD83C\uDDEA\uD83C\uDDF8 ES'));
+      body.appendChild(lblEs);
+      body.appendChild(el('div', 'caption', post.caption));
+    }
+    if(post.caption_pt){
+      var lblPt = el('div', 'cap-lbl');
+      lblPt.appendChild(el('span', null, 'Caption'));
+      lblPt.appendChild(el('span', 'flag', '\uD83C\uDDF5\uD83C\uDDF9 PT'));
+      body.appendChild(lblPt);
+      body.appendChild(el('div', 'caption', post.caption_pt));
+    }
+
+    renderTags(body, post.hashtags);
+
+    card.appendChild(body);
+    return card;
+  }
+
+  function render(row){
+    current = row;
+    content.innerHTML = '';
+    var payload = row.payload || {};
+
+    // kop
+    var head = el('div', 'head');
+    var kindrow = el('div', 'kindrow');
+    kindrow.appendChild(el('span', 'tag ' + tagClass(row.kind), kindLabel(row.kind)));
+    var st = String(row.status || '').toLowerCase();
+    kindrow.appendChild(el('span', 'status ' + st, row.status || '\u2014'));
+    head.appendChild(kindrow);
+    if(row.title) head.appendChild(el('div', 'h-title', row.title));
+    if(row.subtitle) head.appendChild(el('div', 'h-sub', row.subtitle));
+    var metaParts = [];
+    if(payload.posts) metaParts.push(payload.posts.length + ' post(s)');
+    if(payload.apply_workflow) metaParts.push('apply: ' + payload.apply_workflow);
+    var hm = el('div', 'h-meta');
+    hm.appendChild(document.createTextNode('Aangemaakt ' + madStamp(row.created_at)));
+    if(metaParts.length){ hm.appendChild(document.createElement('br')); hm.appendChild(document.createTextNode(metaParts.join(' \u00b7 '))); }
+    head.appendChild(hm);
+    content.appendChild(head);
+
+    // posts of fallback
+    if(payload.posts && payload.posts.length){
+      payload.posts.forEach(function(p, i){ content.appendChild(renderPost(p, i, payload.posts.length)); });
+    } else {
+      var box = el('div', 'post');
+      var b2 = el('div', 'post-body');
+      if(row.image_url){ var im = el('img','post-img'); im.src = row.image_url; b2.appendChild(im); }
+      if(row.preview){ b2.appendChild(el('div','caption', row.preview)); }
+      b2.appendChild(el('div','cap-lbl',''));
+      b2.appendChild(el('pre','raw', JSON.stringify(payload, null, 2)));
+      box.appendChild(b2);
+      content.appendChild(box);
+    }
+
+    // actiebalk alleen bij openstaand voorstel
+    if(st === 'pending'){
+      bar.style.display = 'flex';
+      $('btnOk').textContent = (row.kind === 'meta_ads') ? '\u2713 ACTIVEER'
+        : (row.kind === 'newsletter') ? '\u2713 VERSTUUR' : '\u2713 PUBLICEER';
+    } else {
+      bar.style.display = 'none';
+    }
+  }
+
+  var CONFIRM = {
+    "newsletter:approve":"LET OP: dit verstuurt de nieuwsbrief DIRECT naar alle ontvangers. Doorgaan?",
+    "meta_ads:skip":"Advertentievoorstel afwijzen? De voorgestelde wijziging wordt niet doorgevoerd.",
+    "social:skip":"Social post afwijzen?",
+    "newsletter:skip":"Nieuwsbrief-voorstel afwijzen?"
+  };
+  function dispatch(action){
+    if(!current) return;
+    var kind = current.kind;
+    var msg = CONFIRM[kind + ":" + action];
+    if(msg && !window.confirm(msg)) return;
+    window.open(PROP_DISPATCH_URL + "?kind=" + encodeURIComponent(kind)
+      + "&id=" + encodeURIComponent(current.id) + "&action=" + encodeURIComponent(action), "_blank", "noopener");
+    bar.innerHTML = '<div class="inner"><div class="msg">Actie verstuurd \u2014 dit tabblad kan dicht. '
+      + '<a href="kpi.html">terug naar dashboard</a></div></div>';
+  }
+  $('btnOk').addEventListener('click', function(){ dispatch('approve'); });
+  $('btnNo').addEventListener('click', function(){ dispatch('skip'); });
+
+  async function load(){
+    var sess = await sb.auth.getSession();
+    if(!sess.data.session){
+      content.innerHTML = '<div class="msg">Geen actieve sessie. Log eerst in via het '
+        + '<a href="organisation.html">hoofdscherm</a>, en open dit voorbeeld daarna opnieuw.</div>';
+      return;
+    }
+    var r = await sb.from('dewi_proposals').select('*').eq('id', id).maybeSingle();
+    if(r.error){ content.innerHTML = '<div class="msg err">Kon voorstel niet laden: ' + (r.error.message || r.error) + '</div>'; return; }
+    if(!r.data){ content.innerHTML = '<div class="msg">Voorstel niet gevonden (mogelijk al verwerkt of verlopen).</div>'; return; }
+    render(r.data);
+  }
+  load();
+})();
+</script>
+</body>
+</html>
