@@ -2054,7 +2054,9 @@
                              : 'Winkel \u00B7 handmatig ingevoerde bon')
             + ' \u00B7 verzendkosten ' + eur2(o.shipping)
             + (o.korting > 0 ? ' \u00B7 korting ' + eur2(o.korting) : '') + '</td>'
-          + '<td></td><td></td><td>' + (o.btw > 0 ? '-' + eur2(o.btw) : '\u2014') + '</td>'
+          + '<td></td><td></td>'
+          + '<td>' + (o.korting > 0 ? '-' + eur2(o.korting) : '\u2014') + '</td>'
+          + '<td>' + (o.btw > 0 ? '-' + eur2(o.btw) : '\u2014') + '</td>'
           + '<td>' + eur2(o.omzet) + '</td><td>' + eur2(o.kost) + '</td>'
           + '<td><span class="' + wCls + '">' + eur2(o.winst) + '</span></td>'
           + '<td><span class="' + wCls + '">' + pct1(marge) + '</span></td></tr>';
