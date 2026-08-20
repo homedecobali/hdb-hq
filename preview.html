@@ -254,6 +254,16 @@
       if(h && h > 40){ ifr.style.height = (h + 28) + 'px'; }
     } catch(e){ /* laat de vaste hoogte (78vh) staan */ }
   }
+  // ALLEEN cosmetisch: vul de Brevo merge-tags in met voorbeeldwaarden zodat de
+  // goedkeurder ziet wat de klant krijgt. De opgeslagen HTML blijft ongewijzigd;
+  // Brevo personaliseert deze tags per ontvanger bij verzending.
+  var SAMPLE_GREET = { es:'Hola Mar\u00eda', pt:'Ol\u00e1 Jo\u00e3o', en:'Hey Sarah', nl:'Hoi Sanne' };
+  function previewFill(html, lang){
+    var g = SAMPLE_GREET[String(lang || '').toLowerCase()] || SAMPLE_GREET.es;
+    return String(html || '')
+      .split('{{ contact.GREETING }}').join(g)
+      .split('{{ unsubscribe }}').join('#voorbeeld-afmeldlink');
+  }
   function renderNewsletter(creatives){
     var card = el('div', 'post');
 
@@ -262,7 +272,8 @@
     var preEl = el('div', 'nl-pre');
     var frameWrap = el('div', 'nl-frame-wrap');
     var foot = el('div', 'nl-foot',
-      'Weergave in een ge\u00efsoleerd kader \u2014 losse mailclients kunnen licht afwijken.');
+      'Begroeting en afmeldlink zijn hier voorbeeldwaarden \u2014 Brevo personaliseert die per ontvanger. '
+      + 'Losse mailclients kunnen de opmaak licht anders tonen.');
 
     function show(idx){
       var c = creatives[idx] || {};
@@ -277,7 +288,7 @@
       ifr.className = 'nl-frame';
       ifr.setAttribute('sandbox', 'allow-same-origin');
       ifr.setAttribute('title', 'Nieuwsbrief ' + (c.lang || '').toUpperCase());
-      ifr.srcdoc = c.html || '<p style="font:14px system-ui;padding:16px">Geen HTML in dit voorstel.</p>';
+      ifr.srcdoc = c.html ? previewFill(c.html, c.lang) : '<p style="font:14px system-ui;padding:16px">Geen HTML in dit voorstel.</p>';
       ifr.addEventListener('load', function(){ fitFrame(ifr); });
       frameWrap.appendChild(ifr);
     }
