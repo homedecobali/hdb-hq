@@ -71,6 +71,21 @@
   .chip.warn{color:var(--orange);background:rgba(230,126,34,.10);border-color:rgba(230,126,34,.35)}
   .note{color:var(--muted);font-size:11px;margin-top:8px}
 
+  /* --- nieuwsbrief-voorbeeld (creative[]) --- */
+  .nl-tabs{display:flex;gap:6px;flex-wrap:wrap;padding:11px 14px;border-bottom:1px solid var(--line)}
+  .nl-tab{font:800 11px/1 system-ui;letter-spacing:.08em;padding:7px 12px;border-radius:8px;
+    border:1px solid var(--line);background:rgba(0,0,0,.25);color:var(--muted);cursor:pointer;
+    display:flex;align-items:center;gap:7px}
+  .nl-tab .flag{font-size:13px}
+  .nl-tab.active{color:#06121c;background:var(--green);border-color:var(--green)}
+  .nl-subject{padding:13px 16px 2px;font-weight:800;font-size:15px}
+  .nl-pre{padding:0 16px 12px;color:var(--muted);font-size:12.5px;font-style:italic;
+    border-bottom:1px solid var(--line)}
+  .nl-frame-wrap{padding:14px 14px 6px}
+  .nl-frame{width:100%;border:1px solid var(--line);border-radius:8px;background:#fff;
+    display:block;height:78vh}
+  .nl-foot{padding:2px 16px 14px;color:var(--muted);font-size:11px}
+
   pre.raw{white-space:pre-wrap;word-break:break-word;font-size:12px;line-height:1.5;
     background:rgba(255,255,255,.02);border:1px solid var(--line);border-radius:8px;padding:12px}
 
@@ -226,6 +241,65 @@
     return card;
   }
 
+  // --- nieuwsbrief-voorbeeld: creative[] met per taal subject/preheader/html ---
+  var LANG_FLAG = {
+    es:'\uD83C\uDDEA\uD83C\uDDF8', pt:'\uD83C\uDDF5\uD83C\uDDF9', en:'\uD83C\uDDEC\uD83C\uDDE7',
+    nl:'\uD83C\uDDF3\uD83C\uDDF1'
+  };
+  function fitFrame(ifr){
+    // parent mag de hoogte lezen dankzij sandbox="allow-same-origin" (scripts blijven geblokkeerd)
+    try {
+      var doc = ifr.contentWindow && ifr.contentWindow.document;
+      var h = doc && doc.body ? doc.body.scrollHeight : 0;
+      if(h && h > 40){ ifr.style.height = (h + 28) + 'px'; }
+    } catch(e){ /* laat de vaste hoogte (78vh) staan */ }
+  }
+  function renderNewsletter(creatives){
+    var card = el('div', 'post');
+
+    var tabs = el('div', 'nl-tabs');
+    var subjectEl = el('div', 'nl-subject');
+    var preEl = el('div', 'nl-pre');
+    var frameWrap = el('div', 'nl-frame-wrap');
+    var foot = el('div', 'nl-foot',
+      'Weergave in een ge\u00efsoleerd kader \u2014 losse mailclients kunnen licht afwijken.');
+
+    function show(idx){
+      var c = creatives[idx] || {};
+      Array.prototype.forEach.call(tabs.children, function(b, i){
+        b.classList.toggle('active', i === idx);
+      });
+      subjectEl.textContent = c.subject || '(geen onderwerp)';
+      if(c.preheader){ preEl.textContent = c.preheader; preEl.style.display = ''; }
+      else { preEl.textContent = ''; preEl.style.display = 'none'; }
+      frameWrap.innerHTML = '';
+      var ifr = document.createElement('iframe');
+      ifr.className = 'nl-frame';
+      ifr.setAttribute('sandbox', 'allow-same-origin');
+      ifr.setAttribute('title', 'Nieuwsbrief ' + (c.lang || '').toUpperCase());
+      ifr.srcdoc = c.html || '<p style="font:14px system-ui;padding:16px">Geen HTML in dit voorstel.</p>';
+      ifr.addEventListener('load', function(){ fitFrame(ifr); });
+      frameWrap.appendChild(ifr);
+    }
+
+    creatives.forEach(function(c, i){
+      var lang = String(c.lang || '').toLowerCase();
+      var b = el('div', 'nl-tab' + (i === 0 ? ' active' : ''));
+      if(LANG_FLAG[lang]) b.appendChild(el('span', 'flag', LANG_FLAG[lang]));
+      b.appendChild(el('span', null, (lang || ('#' + (i+1))).toUpperCase()));
+      b.addEventListener('click', function(){ show(i); });
+      tabs.appendChild(b);
+    });
+
+    card.appendChild(tabs);
+    card.appendChild(subjectEl);
+    card.appendChild(preEl);
+    card.appendChild(frameWrap);
+    card.appendChild(foot);
+    show(0);
+    return card;
+  }
+
   function render(row){
     current = row;
     content.innerHTML = '';
@@ -242,6 +316,7 @@
     if(row.subtitle) head.appendChild(el('div', 'h-sub', row.subtitle));
     var metaParts = [];
     if(payload.posts) metaParts.push(payload.posts.length + ' post(s)');
+    if(payload.creative) metaParts.push(payload.creative.length + ' taal/talen');
     if(payload.apply_workflow) metaParts.push('apply: ' + payload.apply_workflow);
     var hm = el('div', 'h-meta');
     hm.appendChild(document.createTextNode('Aangemaakt ' + madStamp(row.created_at)));
@@ -249,9 +324,11 @@
     head.appendChild(hm);
     content.appendChild(head);
 
-    // posts of fallback
+    // posts (social) -> nieuwsbrief (creative) -> ruwe fallback
     if(payload.posts && payload.posts.length){
       payload.posts.forEach(function(p, i){ content.appendChild(renderPost(p, i, payload.posts.length)); });
+    } else if(payload.creative && payload.creative.length){
+      content.appendChild(renderNewsletter(payload.creative));
     } else {
       var box = el('div', 'post');
       var b2 = el('div', 'post-body');
