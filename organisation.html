@@ -198,6 +198,10 @@
   .ac-paused{margin-left:6px;font:800 8px/1 system-ui;letter-spacing:.1em;color:#ffb547;
     border:1px solid rgba(255,181,71,.45);border-radius:5px;padding:2px 5px;vertical-align:middle}
 
+  .ac-nopb{margin-left:6px;font:800 8px/1 system-ui;letter-spacing:.06em;color:#8aa0b5;
+    border:1px solid rgba(138,160,181,.42);border-radius:5px;padding:2px 5px;vertical-align:middle;white-space:nowrap}
+  .agent-card.off-playbook{border-style:dashed}
+
   @media (max-width:760px){
     .org-board{flex-direction:column}
     .org-lane{flex-basis:auto;width:100%}
@@ -275,7 +279,7 @@
       <div class="org-connect"><span class="org-trunk"></span></div>
       <div class="org-board" id="orgBoard"></div>
     </div>
-    <div class="org-foot">Organigram · live · <b>homedecobali</b> · klik een agent voor de <b>laatste 10 executies</b> · agents gesorteerd op <b>runs/24u</b> (meeste eerst) · <b style="color:#ffd166">MANAGEMENT</b> overziet alle afdelingen</div>
+    <div class="org-foot">Organigram · live · <b>homedecobali</b> · klik een agent voor de <b>laatste 10 executies</b> · agents gesorteerd op <b>runs/24u</b> (meeste eerst) · <b style="color:#ffd166">MANAGEMENT</b> overziet alle afdelingen · <span class="ac-nopb" style="vertical-align:baseline">⊘ playbook</span> = buiten de playbook-pijplijn (eigen bron)</div>
   </div>
 </div>
 
@@ -482,10 +486,10 @@ function agentCardHTML(a){
   const nm = a.grp ? a.name.replace(/^MetaAds\s*/,"") : a.name;
   return `
     <div class="agent-unit${a.grp?' pl-unit':''}" data-unit="${a.id}">
-      <div class="agent-card${a.paused?' paused':''}" data-agent="${a.id}">
+      <div class="agent-card${a.paused?' paused':''}${a.offPlaybook?' off-playbook':''}" data-agent="${a.id}">
         <div class="mini-av${step?' pl-av':''}">${av}<span class="sd"></span></div>
         <div class="ac-meta">
-          <div class="ac-name">${nm}${a.paused?'<span class="ac-paused">PAUSED</span>':''}</div>
+          <div class="ac-name">${nm}${a.paused?'<span class="ac-paused">PAUSED</span>':''}${a.offPlaybook?'<span class="ac-nopb" title="Buiten de playbook-pijplijn — eigen bron; leest/voedt ad_research_playbook niet">⊘ playbook</span>':''}</div>
           <div class="ac-sched"><span class="schedtxt">${a.sched}</span><span class="ac24" data-24="${a.id}"></span></div>
           ${a.wf?`<span class="ac-wf" title="${escH(a.wf)}">${escH(shortWf(a.wf))||escH(a.wf)}</span>`:""}
         </div>
@@ -746,6 +750,7 @@ async function loadRegistryLayout(sb){
                wf:r.workflow_name||null,wfid:r.n8n_workflow_id||null};
       if(r.grp){ a.grp=r.grp; a.step=r.grp_step||0; }
       if(r.paused) a.paused=true;
+      if(r.playbook_pipeline===false) a.offPlaybook=true;
       d.agents.push(a);
     }
     DEPTS=Object.values(dm).sort((a,b)=>a._s-b._s).map(d=>({
