@@ -356,10 +356,10 @@ const GRP = {
   favorites:{label:"FAVORIETEN",    flow:"POPUP \u2192 HERINNERING"},
   interest: {label:"INTERESSE",     flow:"PROFIEL \u2192 VERVOLGMAIL"},
   intake:   {label:"PRODUKT OPNAME", flow:"VASTLEGGEN \u2192 FOTO RESTYLE"},
-  SCOUT:  {label:"SCOUT",   flow:"SERP \u2192 WEB \u2192 SOCIAL \u2192 REVIEWS \u2192 ADS"},
-  COMPILE:{label:"COMPILE", flow:"PLAYBOOK \u2192 SEO-IDEE\u00cbN"},
-  BUILD:  {label:"BUILD",   flow:"POSTS \u2192 ADS \u2192 STILLS"},
-  PUBLISH:{label:"PUBLISH", flow:"CAMPAGNES \u2192 META APPLY"}
+  SCOUT:  {label:"SCOUT",   order:1, flow:"SERP \u2192 WEB \u2192 SOCIAL \u2192 REVIEWS \u2192 ADS"},
+  COMPILE:{label:"COMPILE", order:2, flow:"PLAYBOOK \u2192 SEO-IDEE\u00cbN"},
+  BUILD:  {label:"BUILD",   order:3, flow:"POSTS \u2192 ADS \u2192 STILLS"},
+  PUBLISH:{label:"PUBLISH", order:4, flow:"CAMPAGNES \u2192 META APPLY"}
 };
 
 /* gedeelde state */
@@ -504,7 +504,7 @@ function agentCardsHTML(d){
       const g=a.grp, mem=[];
       while(i<ags.length && ags[i].grp===g){ mem.push(ags[i]); i++; }
       const meta=GRP[g]||{label:g,flow:""};
-      html+=`<div class="pipeline" data-pl="${g}"><div class="pl-head"><span class="pl-badge">${mem.length}-STAP</span><span class="pl-title">${meta.label}</span><span class="pl-flow">${meta.flow}</span></div><div class="pl-body">${mem.map(agentCardHTML).join("")}</div></div>`;
+      html+=`<div class="pipeline" data-pl="${g}"><div class="pl-head"><span class="pl-badge">${(meta.order||mem.length)}-STAP</span><span class="pl-title">${meta.label}</span><span class="pl-flow">${meta.flow}</span></div><div class="pl-body">${mem.map(agentCardHTML).join("")}</div></div>`;
     } else { html+=agentCardHTML(a); i++; }
   }
   return html;
