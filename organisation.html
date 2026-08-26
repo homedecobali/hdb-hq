@@ -355,7 +355,11 @@ const GRP = {
   postorder:{label:"NA BESTELLING", flow:"BEVESTIGING \u2192 VERZENDING \u2192 LOYALTY"},
   favorites:{label:"FAVORIETEN",    flow:"POPUP \u2192 HERINNERING"},
   interest: {label:"INTERESSE",     flow:"PROFIEL \u2192 VERVOLGMAIL"},
-  intake:   {label:"PRODUKT OPNAME", flow:"VASTLEGGEN \u2192 FOTO RESTYLE"}
+  intake:   {label:"PRODUKT OPNAME", flow:"VASTLEGGEN \u2192 FOTO RESTYLE"},
+  SCOUT:  {label:"SCOUT",   flow:"SERP \u2192 WEB \u2192 SOCIAL \u2192 REVIEWS \u2192 ADS"},
+  COMPILE:{label:"COMPILE", flow:"PLAYBOOK \u2192 SEO-IDEE\u00cbN"},
+  BUILD:  {label:"BUILD",   flow:"POSTS \u2192 ADS \u2192 STILLS"},
+  PUBLISH:{label:"PUBLISH", flow:"CAMPAGNES \u2192 META APPLY"}
 };
 
 /* gedeelde state */
@@ -577,7 +581,11 @@ function sortDepts(){
     const keyOf=e=>{ if(e.loose)return actKey(e.loose); let br=0,bc=0;
       e.members.forEach(m=>{ const k=actKey(m); if(k[0]>br)br=k[0]; if(k[1]>bc)bc=k[1]; }); return [br,bc]; };
     const pausedRank=e=> e.loose ? (e.loose.paused?1:0) : (e.members.every(m=>m.paused)?1:0);
-    order.sort((x,y)=>{ const px=pausedRank(x),py=pausedRank(y); if(px!==py)return px-py;
+    order.sort((x,y)=>{
+      const STAGE={SCOUT:1,COMPILE:2,BUILD:3,PUBLISH:4};
+      const sx=x.grp?STAGE[x.grp]:undefined, sy=y.grp?STAGE[y.grp]:undefined;
+      if(sx!==undefined&&sy!==undefined) return sx-sy;
+      const px=pausedRank(x),py=pausedRank(y); if(px!==py)return px-py;
       const kx=keyOf(x),ky=keyOf(y); if(ky[0]!==kx[0])return ky[0]-kx[0];
       if(ky[1]!==kx[1])return ky[1]-kx[1];
       const nx=x.loose?x.loose.name:x.grp, ny=y.loose?y.loose.name:y.grp; return nx.localeCompare(ny); });
