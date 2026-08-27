@@ -514,7 +514,7 @@ function agentCardsHTML(d){
   return html;
 }
 function managerVisualHTML(mgr,color,i){
-  return `<div class="stage3d">
+  return `<div class="3d">
       <div class="floor3d"></div>
       <div class="av3d">
         <div class="layer l-back">${backLayer(color,i)}</div>
@@ -539,11 +539,11 @@ function wireAgentCards(scope){
 }
 function wireManager(scope,d){
   const ref={ av:scope.querySelector(".av3d"), pupils:scope.querySelector(".pupils"),
-    gloss:scope.querySelector(".gloss"), stage:scope.querySelector(".stage3d"),
+    gloss:scope.querySelector(".gloss"), :scope.querySelector(".3d"),
     mgrDot:scope.querySelector(".mgr-name .sd"), deptId:d.id, hovered:false };
   orgRefs.push(ref);
   if(!reduced){
-    const st=ref.stage;
+    const st=ref.;
     st.addEventListener("pointermove",(e)=>{
       ref.hovered=true; const r=st.getBoundingClientRect();
       const px=(e.clientX-r.left)/r.width-0.5, py=(e.clientY-r.top)/r.height-0.5;
@@ -586,7 +586,7 @@ function sortDepts(){
       e.members.forEach(m=>{ const k=actKey(m); if(k[0]>br)br=k[0]; if(k[1]>bc)bc=k[1]; }); return [br,bc]; };
     const pausedRank=e=> e.loose ? (e.loose.paused?1:0) : (e.members.every(m=>m.paused)?1:0);
     order.sort((x,y)=>{
-      const STAGE={SCOUT:1,COMPILE:2,BUILD:3,PUBLISH:4};
+      const STAGE={SCOUT:1,COMPILE:2,BUILD:3,PUBLISH:4,REVIEW:5};
       const sx=x.grp?STAGE[x.grp]:undefined, sy=y.grp?STAGE[y.grp]:undefined;
       if(sx!==undefined&&sy!==undefined) return sx-sy;
       const px=pausedRank(x),py=pausedRank(y); if(px!==py)return px-py;
