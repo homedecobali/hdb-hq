@@ -595,7 +595,7 @@ function sortDepts(){
       const nx=x.loose?x.loose.name:x.grp, ny=y.loose?y.loose.name:y.grp; return nx.localeCompare(ny); });
     const out=[];
     order.forEach(e=>{ if(e.loose)out.push(e.loose);
-      else { e.members.sort((a,b)=>(a.step||0)-(b.step||0)); e.members.forEach(m=>out.push(m)); } });
+      else { e.members.sort((a,b)=>((a.paused?1:0)-(b.paused?1:0))||((a.step||0)-(b.step||0))); e.members.forEach(m=>out.push(m)); } });
     d.agents=out;
   });
 }
