@@ -515,7 +515,7 @@ function agentCardsHTML(d){
   return html;
 }
 function managerVisualHTML(mgr,color,i){
-  return `<div class="3d">
+  return `<div class="stage3d">
       <div class="floor3d"></div>
       <div class="av3d">
         <div class="layer l-back">${backLayer(color,i)}</div>
@@ -540,11 +540,11 @@ function wireAgentCards(scope){
 }
 function wireManager(scope,d){
   const ref={ av:scope.querySelector(".av3d"), pupils:scope.querySelector(".pupils"),
-    gloss:scope.querySelector(".gloss"), :scope.querySelector(".3d"),
+    gloss:scope.querySelector(".gloss"), stage:scope.querySelector(".stage3d"),
     mgrDot:scope.querySelector(".mgr-name .sd"), deptId:d.id, hovered:false };
   orgRefs.push(ref);
   if(!reduced){
-    const st=ref.;
+    const st=ref.stage;
     st.addEventListener("pointermove",(e)=>{
       ref.hovered=true; const r=st.getBoundingClientRect();
       const px=(e.clientX-r.left)/r.width-0.5, py=(e.clientY-r.top)/r.height-0.5;
