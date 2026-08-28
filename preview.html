@@ -33,6 +33,7 @@
   .tag.social{background:var(--social)}
   .tag.meta_ads{background:var(--cyan)}
   .tag.newsletter{background:var(--green)}
+  .tag.story_video{background:var(--orange)}
   .tag.other{background:var(--muted)}
   .status{font:700 10px/1 system-ui;letter-spacing:.08em;text-transform:uppercase;
     padding:4px 8px;border-radius:6px;border:1px solid var(--line);color:var(--muted)}
@@ -51,6 +52,7 @@
   .post-n{font:800 11px/1 system-ui;letter-spacing:.1em;text-transform:uppercase;color:var(--social)}
   .post-headline{font-weight:700;font-size:14px}
   .post-img{display:block;width:100%;height:auto;background:#060b13}
+  .post-video{display:block;width:100%;max-height:78vh;background:#000}
   .post-noimg{padding:40px 14px;text-align:center;color:var(--muted);font-size:13px;
     border-bottom:1px solid var(--line)}
   .post-body{padding:14px 16px}
@@ -161,10 +163,10 @@
   var current = null;
 
   function tagClass(kind){
-    return (kind === 'social' || kind === 'meta_ads' || kind === 'newsletter') ? kind : 'other';
+    return (kind === 'social' || kind === 'meta_ads' || kind === 'newsletter' || kind === 'story_video') ? kind : 'other';
   }
   function kindLabel(kind){
-    var M = { social:'SOCIAL', meta_ads:'META ADS', newsletter:'NIEUWSBRIEF' };
+    var M = { social:'SOCIAL', meta_ads:'META ADS', newsletter:'NIEUWSBRIEF', story_video:'STORY' };
     return M[kind] || String(kind || '').toUpperCase();
   }
 
@@ -237,6 +239,48 @@
 
     renderTags(body, post.hashtags);
 
+    card.appendChild(body);
+    return card;
+  }
+
+  // --- story-video voorbeeld: payload.video_url met afspeelbare speler ---
+  function renderVideo(row, payload){
+    var card = el('div', 'post');
+
+    var badge = el('div', 'post-badge');
+    badge.appendChild(el('span', 'post-n', 'Story-video'));
+    if(payload.product_title) badge.appendChild(el('span', 'post-headline', payload.product_title));
+    card.appendChild(badge);
+
+    var vid = document.createElement('video');
+    vid.className = 'post-video';
+    vid.src = payload.video_url;
+    vid.controls = true;
+    vid.autoplay = true;
+    vid.muted = true;
+    vid.loop = true;
+    vid.setAttribute('playsinline', '');
+    card.appendChild(vid);
+
+    var body = el('div', 'post-body');
+    var prod = el('div', 'prod');
+    if(payload.product_title) prod.appendChild(el('span', 'p-name', payload.product_title));
+    var meta = el('div', 'p-meta');
+    if(payload.product_url){
+      var a = el('a', null, 'productpagina \u2197');
+      a.href = payload.product_url; a.target = '_blank'; a.rel = 'noopener';
+      meta.appendChild(a);
+    }
+    if(meta.childNodes.length) prod.appendChild(meta);
+    body.appendChild(prod);
+
+    if(Array.isArray(payload.kernwoorden) && payload.kernwoorden.length){
+      var box = el('div', 'tags');
+      payload.kernwoorden.forEach(function(w){ box.appendChild(el('span', 'chip', w)); });
+      body.appendChild(box);
+    }
+    body.appendChild(el('div', 'note',
+      'Zo wordt de story op Instagram gepubliceerd. Het geluid staat hier gedempt \u2014 zet het aan via de speler.'));
     card.appendChild(body);
     return card;
   }
@@ -335,11 +379,13 @@
     head.appendChild(hm);
     content.appendChild(head);
 
-    // posts (social) -> nieuwsbrief (creative) -> ruwe fallback
+    // posts (social) -> nieuwsbrief (creative) -> story-video -> ruwe fallback
     if(payload.posts && payload.posts.length){
       payload.posts.forEach(function(p, i){ content.appendChild(renderPost(p, i, payload.posts.length)); });
     } else if(payload.creative && payload.creative.length){
       content.appendChild(renderNewsletter(payload.creative));
+    } else if(payload.video_url){
+      content.appendChild(renderVideo(row, payload));
     } else {
       var box = el('div', 'post');
       var b2 = el('div', 'post-body');
@@ -363,9 +409,11 @@
 
   var CONFIRM = {
     "newsletter:approve":"LET OP: dit verstuurt de nieuwsbrief DIRECT naar alle ontvangers. Doorgaan?",
+    "story_video:approve":"Dit publiceert de story DIRECT op Instagram (@homedecobali23). Doorgaan?",
     "meta_ads:skip":"Advertentievoorstel afwijzen? De voorgestelde wijziging wordt niet doorgevoerd.",
     "social:skip":"Social post afwijzen?",
-    "newsletter:skip":"Nieuwsbrief-voorstel afwijzen?"
+    "newsletter:skip":"Nieuwsbrief-voorstel afwijzen?",
+    "story_video:skip":"Story-voorstel afwijzen? Er wordt niets gepubliceerd."
   };
   function dispatch(action){
     if(!current) return;
