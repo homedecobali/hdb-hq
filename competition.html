@@ -123,6 +123,12 @@
     </div>
   </section>
 
+  <!-- 2b. Organische hashtag-pool per taal (eigen tabel hashtag_pool, wekelijks ververst door de Social Scout) -->
+  <section class="panel" id="hashtags">
+    <h2>Organische hashtag-pool &mdash; per taal, wekelijks ververst door de Social Scout (audience, producten, missie, niche ES/PT + hashtags van de grootste concurrenten)</h2>
+    <div class="pad"><div class="loading">Laden&hellip;</div></div>
+  </section>
+
   <!-- 3. Filter op taal x segment -->
   <section class="panel" id="filters">
     <h2>Playbook-combinaties &mdash; laatste snapshot per taal &times; segment</h2>
@@ -415,6 +421,40 @@
   } else {
     runsEl.textContent = "Nog geen runs gelogd voor de Competitor Intel & Ad Playbook-workflow.";
   }
+  // ---- 2b. organische hashtag-pool (eigen tabel hashtag_pool, gevoed door de Social Scout) ----
+  try {
+    const { data: htRows } = await sb.from("hashtag_pool").select("*");
+    const htWrap = document.querySelector("#hashtags .pad");
+    const chip = (t, isComp) => "<span class='mono' style=\"display:inline-block;border:1px solid " + (isComp ? "var(--pink)" : "var(--line)") + ";color:" + (isComp ? "var(--pink)" : "var(--cyan)") + ";border-radius:6px;padding:3px 9px;font-size:12px;text-transform:none\" title='" + (isComp ? "ook gebruikt door concurrentie in deze markt" : "eigen niche/merk") + "'>" + esc(t) + "</span>";
+    const byLang = {};
+    (htRows || []).forEach(r => { if (r && r.language) byLang[r.language] = r; });
+    const order = ["es", "pt"];
+    const present = order.filter(l => byLang[l]).concat(Object.keys(byLang).filter(l => order.indexOf(l) < 0));
+    if (!present.length) {
+      htWrap.innerHTML = "<div class='note'>Nog geen hashtag-pool opgeslagen. De Social Scout vult dit bij de eerstvolgende run (ma 05:00).</div>";
+    } else {
+      const legend = "<div class='crit-hint' style='margin-bottom:12px'>" + chip("#voorbeeld", false) + " eigen niche/merk &nbsp;&nbsp;" + chip("#voorbeeld", true) + " ook gebruikt door concurrentie in deze markt</div>";
+      htWrap.innerHTML = legend + present.map(l => {
+        const r = byLang[l];
+        const tags = Array.isArray(r.hashtags) ? r.hashtags : [];
+        const comp = Array.isArray(r.competitor_tags) ? r.competitor_tags : [];
+        const compSet = {};
+        comp.forEach(t => { compSet[String(t).toLowerCase()] = 1; });
+        const nComp = tags.filter(t => compSet[String(t).toLowerCase()]).length;
+        const chips = tags.map(t => chip(t, !!compSet[String(t).toLowerCase()])).join(" ");
+        return "<div style='margin-bottom:18px'>" +
+          "<div style='margin-bottom:8px'><span class='tag lang'>" + esc(l.toUpperCase()) + "</span> " +
+          "<span class='note'>" + tags.length + " hashtags" + (nComp ? " &middot; " + nComp + " ook bij concurrentie" : "") + " &middot; ververst " + fmtDT(r.updated_at) + "</span></div>" +
+          "<div style='display:flex;flex-wrap:wrap;gap:7px'>" + (chips || "<span class='note'>geen tags</span>") + "</div>" +
+          (r.source_notes ? "<div class='note' style='margin-top:8px'>" + esc(r.source_notes) + "</div>" : "") +
+        "</div>";
+      }).join("");
+    }
+  } catch (e) {
+    const htWrap = document.querySelector("#hashtags .pad");
+    if (htWrap) { htWrap.innerHTML = "<div class='note'>Hashtag-pool kon niet geladen worden.</div>"; }
+  }
+
 })();
 </script>
 </body>
