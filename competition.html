@@ -123,9 +123,9 @@
     </div>
   </section>
 
-  <!-- 2b. Organische hashtag-pool per taal (eigen tabel hashtag_pool, wekelijks ververst door de Social Scout) -->
+  <!-- 2b. Organische hashtag-pool: vaste basis (dewi_config) + researched (hashtag_pool, Social Scout) -->
   <section class="panel" id="hashtags">
-    <h2>Organische hashtag-pool &mdash; per taal, wekelijks ververst door de Social Scout (audience, producten, missie, niche ES/PT + hashtags van de grootste concurrenten)</h2>
+    <h2>Organische hashtag-pool &mdash; wat de builders samenvoegen: vaste basis (merk + evergreen + trending, uit dewi_config) + wekelijks researched door de Social Scout (audience, producten, missie, niche ES/PT + hashtags van de grootste concurrenten)</h2>
     <div class="pad"><div class="loading">Laden&hellip;</div></div>
   </section>
 
@@ -421,27 +421,64 @@
   } else {
     runsEl.textContent = "Nog geen runs gelogd voor de Competitor Intel & Ad Playbook-workflow.";
   }
-  // ---- 2b. organische hashtag-pool (eigen tabel hashtag_pool, gevoed door de Social Scout) ----
+  // ---- 2b. organische hashtag-pool: vaste basis (dewi_config) + researched (hashtag_pool, Social Scout) ----
   try {
-    const { data: htRows } = await sb.from("hashtag_pool").select("*");
+    const [{ data: htRows }, { data: cfgRows }] = await Promise.all([
+      sb.from("hashtag_pool").select("*"),
+      sb.from("dewi_config").select("*").eq("name","organic_hashtag_base").limit(1)
+    ]);
     const htWrap = document.querySelector("#hashtags .pad");
-    const chip = (t, isComp) => "<span class='mono' style=\"display:inline-block;border:1px solid " + (isComp ? "var(--pink)" : "var(--line)") + ";color:" + (isComp ? "var(--pink)" : "var(--cyan)") + ";border-radius:6px;padding:3px 9px;font-size:12px;text-transform:none\" title='" + (isComp ? "ook gebruikt door concurrentie in deze markt" : "eigen niche/merk") + "'>" + esc(t) + "</span>";
+    const chip = (t, kind) => {
+      const col = kind==="comp" ? "var(--pink)" : kind==="brand" ? "var(--green)" : kind==="ever" ? "var(--amber)" : kind==="trend" ? "var(--cyan)" : "var(--line)";
+      const txt = kind==="comp" ? "var(--pink)" : kind==="brand" ? "var(--green)" : kind==="ever" ? "var(--amber)" : "var(--cyan)";
+      const tip = kind==="comp" ? "ook gebruikt door concurrentie in deze markt" : kind==="brand" ? "vast merk (altijd vooraan)" : kind==="ever" ? "vaste evergreen-tag" : kind==="trend" ? "trending (handmatig / eigen cadans)" : "eigen niche/merk";
+      return "<span class='mono' style=\"display:inline-block;border:1px solid " + col + ";color:" + txt + ";border-radius:6px;padding:3px 9px;font-size:12px;text-transform:none\" title='" + tip + "'>" + esc(t) + "</span>";
+    };
+
+    // -- vaste basis uit dewi_config.organic_hashtag_base (eigen bron & cadans) --
+    const base = (cfgRows && cfgRows[0] && cfgRows[0].payload) ? cfgRows[0].payload : null;
+    let baseHtml = "";
+    if (base) {
+      const brand = Array.isArray(base.brand) ? base.brand : [];
+      const ev = base.evergreen || {};
+      const tr = base.trending || {};
+      const bLangs = Array.from(new Set([].concat(Object.keys(ev || {}), Object.keys(tr || {})))).filter(Boolean).sort();
+      const bBlocks = bLangs.map(l => {
+        const evArr = Array.isArray(ev[l]) ? ev[l] : [];
+        const trArr = Array.isArray(tr[l]) ? tr[l] : [];
+        if (!evArr.length && !trArr.length) return "";
+        return "<div style='margin-top:8px'><span class='tag lang'>" + esc(l.toUpperCase()) + "</span> " +
+          evArr.map(t => chip(t, "ever")).join(" ") + (trArr.length ? " " + trArr.map(t => chip(t, "trend")).join(" ") : " <span class='note'>(nog geen trending)</span>") +
+          "</div>";
+      }).join("");
+      baseHtml = "<div style='margin-bottom:20px;border:1px solid var(--line);border-radius:8px;padding:12px 14px;background:var(--panel2)'>" +
+        "<div style='font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:8px'>Vaste basis &middot; eigen bron &amp; cadans <span class='mono' style='text-transform:none'>(dewi_config.organic_hashtag_base)</span></div>" +
+        "<div><span class='note'>Merk (altijd vooraan): </span>" + (brand.length ? brand.map(t => chip(t, "brand")).join(" ") : "<span class='note'>geen</span>") + "</div>" +
+        bBlocks +
+        "<div class='note' style='margin-top:10px'>De builders zetten per post: merk + evergreen + trending + een selectie uit de researched pool hieronder. Story Builder gebruikt geen hashtags.</div>" +
+      "</div>";
+    } else {
+      baseHtml = "<div class='note' style='margin-bottom:16px'>Vaste basis (dewi_config.organic_hashtag_base) nog niet gevuld of niet leesbaar.</div>";
+    }
+
+    // -- researched pool per taal uit hashtag_pool (Social Scout) --
     const byLang = {};
     (htRows || []).forEach(r => { if (r && r.language) byLang[r.language] = r; });
     const order = ["es", "pt"];
     const present = order.filter(l => byLang[l]).concat(Object.keys(byLang).filter(l => order.indexOf(l) < 0));
+    let poolHtml = "";
     if (!present.length) {
-      htWrap.innerHTML = "<div class='note'>Nog geen hashtag-pool opgeslagen. De Social Scout vult dit bij de eerstvolgende run (ma 05:00).</div>";
+      poolHtml = "<div class='note'>Nog geen researched hashtag-pool opgeslagen. De Social Scout vult dit bij de eerstvolgende run (ma 05:00).</div>";
     } else {
-      const legend = "<div class='crit-hint' style='margin-bottom:12px'>" + chip("#voorbeeld", false) + " eigen niche/merk &nbsp;&nbsp;" + chip("#voorbeeld", true) + " ook gebruikt door concurrentie in deze markt</div>";
-      htWrap.innerHTML = legend + present.map(l => {
+      const legend = "<div class='crit-hint' style='margin-bottom:12px'>Researched pool per taal: " + chip("#voorbeeld", "own") + " eigen niche/merk &nbsp;&nbsp;" + chip("#voorbeeld", "comp") + " ook gebruikt door concurrentie in deze markt</div>";
+      poolHtml = legend + present.map(l => {
         const r = byLang[l];
         const tags = Array.isArray(r.hashtags) ? r.hashtags : [];
         const comp = Array.isArray(r.competitor_tags) ? r.competitor_tags : [];
         const compSet = {};
         comp.forEach(t => { compSet[String(t).toLowerCase()] = 1; });
         const nComp = tags.filter(t => compSet[String(t).toLowerCase()]).length;
-        const chips = tags.map(t => chip(t, !!compSet[String(t).toLowerCase()])).join(" ");
+        const chips = tags.map(t => chip(t, compSet[String(t).toLowerCase()] ? "comp" : "own")).join(" ");
         return "<div style='margin-bottom:18px'>" +
           "<div style='margin-bottom:8px'><span class='tag lang'>" + esc(l.toUpperCase()) + "</span> " +
           "<span class='note'>" + tags.length + " hashtags" + (nComp ? " &middot; " + nComp + " ook bij concurrentie" : "") + " &middot; ververst " + fmtDT(r.updated_at) + "</span></div>" +
@@ -450,6 +487,7 @@
         "</div>";
       }).join("");
     }
+    htWrap.innerHTML = baseHtml + poolHtml;
   } catch (e) {
     const htWrap = document.querySelector("#hashtags .pad");
     if (htWrap) { htWrap.innerHTML = "<div class='note'>Hashtag-pool kon niet geladen worden.</div>"; }
