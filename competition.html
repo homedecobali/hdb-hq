@@ -187,6 +187,17 @@
   if(!session){ location.href = "organisation.html"; return; }
 
   const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+  // Playbook-items komen soms als platte string, soms als object {name?, skeleton} uit de distiller.
+  // Render beide vormen zodat een object nooit als [object Object] verschijnt.
+  const itemHtml = it => {
+    if (it && typeof it === "object" && !Array.isArray(it)) {
+      const name = it.name || it.title || "";
+      const body = it.skeleton || it.structure || it.copy || it.text || it.value || "";
+      if (name || body) return (name ? "<b>"+esc(name)+"</b><br>" : "") + esc(body);
+      return esc(JSON.stringify(it));
+    }
+    return esc(it);
+  };
   const fmtD = t => t ? new Date(t).toLocaleDateString("nl-NL",{day:"2-digit",month:"2-digit",year:"2-digit"}) : "-";
   const fmtDT = t => t ? new Date(t).toLocaleString("nl-NL",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"}) : "-";
 
@@ -290,7 +301,7 @@
       const cards = [];
       rows.forEach(r=>{
         (pick(r.payload||{})||[]).forEach(item=>{
-          cards.push("<div class='icard'>"+tagrow(r)+esc(item)+(extra?extra(r):"")+"</div>");
+          cards.push("<div class='icard'>"+tagrow(r)+itemHtml(item)+(extra?extra(r):"")+"</div>");
         });
       });
       el.innerHTML = cards.length ? cards.join("") : "<div class='loading'>Geen data in deze snapshot.</div>";
@@ -305,7 +316,7 @@
       const items = [];
       rows.forEach(r=>{
         (pick(r.payload||{})||[]).forEach(item=>{
-          items.push("<li>"+tagrow(r)+esc(item)+"</li>");
+          items.push("<li>"+tagrow(r)+itemHtml(item)+"</li>");
         });
       });
       el.innerHTML = items.length ? items.join("") : "<li class='loading'>Geen data in deze snapshot.</li>";
