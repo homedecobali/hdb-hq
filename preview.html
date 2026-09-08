@@ -32,6 +32,7 @@
   .tag{font:800 10px/1 system-ui;letter-spacing:.09em;padding:4px 8px;border-radius:6px;color:#0a1018}
   .tag.social{background:var(--social)}
   .tag.meta_ads{background:var(--cyan)}
+  .tag.ads_build{background:var(--cyan)}
   .tag.newsletter{background:var(--green)}
   .tag.story_video{background:var(--orange)}
   .tag.other{background:var(--muted)}
@@ -71,7 +72,20 @@
   .chip{font-size:12px;color:var(--cyan);background:rgba(0,212,255,.08);
     border:1px solid rgba(0,212,255,.25);border-radius:99px;padding:3px 9px}
   .chip.warn{color:var(--orange);background:rgba(230,126,34,.10);border-color:rgba(230,126,34,.35)}
+  .chip.cta{color:var(--green);background:rgba(79,209,161,.10);border-color:rgba(79,209,161,.35)}
   .note{color:var(--muted);font-size:11px;margin-top:8px}
+
+  /* --- ads_build carousel-voorbeeld --- */
+  .ad-status{font-size:12px;color:var(--muted);background:rgba(0,212,255,.06);
+    border:1px solid var(--line);border-radius:8px;padding:8px 11px;margin-bottom:6px}
+  .ad-status b{color:var(--yellow);font-weight:700}
+  .cards{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:6px}
+  .card{display:block;background:rgba(255,255,255,.02);border:1px solid var(--line);
+    border-radius:10px;overflow:hidden;color:var(--text)}
+  .card:hover{border-color:var(--cyan);text-decoration:none}
+  .card img{display:block;width:100%;height:auto;background:#060b13}
+  .card .c-name{font-size:12.5px;font-weight:600;padding:8px 10px 0}
+  .card .c-price{color:var(--green);font-weight:800;font-size:13px;padding:2px 10px 10px}
 
   /* --- nieuwsbrief-voorbeeld (creative[]) --- */
   .nl-tabs{display:flex;gap:6px;flex-wrap:wrap;padding:11px 14px;border-bottom:1px solid var(--line)}
@@ -163,10 +177,10 @@
   var current = null;
 
   function tagClass(kind){
-    return (kind === 'social' || kind === 'meta_ads' || kind === 'newsletter' || kind === 'story_video') ? kind : 'other';
+    return (kind === 'social' || kind === 'meta_ads' || kind === 'ads_build' || kind === 'newsletter' || kind === 'story_video') ? kind : 'other';
   }
   function kindLabel(kind){
-    var M = { social:'SOCIAL', meta_ads:'META ADS', newsletter:'NIEUWSBRIEF', story_video:'STORY' };
+    var M = { social:'SOCIAL', meta_ads:'META ADS', ads_build:'META ADS \u00b7 CAROUSEL', newsletter:'NIEUWSBRIEF', story_video:'STORY' };
     return M[kind] || String(kind || '').toUpperCase();
   }
 
@@ -239,6 +253,81 @@
 
     renderTags(body, post.hashtags);
 
+    card.appendChild(body);
+    return card;
+  }
+
+  // --- meta ads carousel (ads_build) voorbeeld ---
+  // payload heeft adPtBase (JSON-string met object_story_spec) en/of carousel_json (JSON-string met kaarten)
+  function renderAdsBuild(row, payload){
+    var card = el('div', 'post');
+
+    var cards = [], message = '', headline = '', cta = '', status = '';
+    try {
+      var ad = JSON.parse(payload.adPtBase || '{}');
+      status = ad.status || '';
+      var ld = ad.creative && ad.creative.object_story_spec && ad.creative.object_story_spec.link_data;
+      if(ld){
+        message = ld.message || '';
+        headline = ld.name || '';
+        cta = (ld.call_to_action && ld.call_to_action.type) ? ld.call_to_action.type : '';
+        if(Array.isArray(ld.child_attachments)) cards = ld.child_attachments;
+      }
+    } catch(e){ /* val terug op carousel_json hieronder */ }
+    if(!cards.length && payload.carousel_json){
+      try { cards = JSON.parse(payload.carousel_json) || []; } catch(e){ cards = []; }
+    }
+
+    var badge = el('div', 'post-badge');
+    badge.appendChild(el('span', 'post-n', 'Carousel \u00b7 PT'));
+    if(headline) badge.appendChild(el('span', 'post-headline', headline));
+    card.appendChild(badge);
+
+    var body = el('div', 'post-body');
+
+    // doel + status
+    var st = el('div', 'ad-status');
+    if(status){ st.appendChild(document.createTextNode('Wordt aangemaakt als ')); st.appendChild(el('b', null, status)); st.appendChild(document.createTextNode(' \u00b7 ')); }
+    if(payload.campaignName) st.appendChild(document.createTextNode(payload.campaignName + ' '));
+    if(payload.adsetPtId) st.appendChild(document.createTextNode('\u00b7 adset ' + payload.adsetPtId));
+    if(st.childNodes.length) body.appendChild(st);
+
+    // primaire tekst
+    if(message){
+      var lblM = el('div', 'cap-lbl');
+      lblM.appendChild(el('span', null, 'Primaire tekst'));
+      lblM.appendChild(el('span', 'flag', '\uD83C\uDDF5\uD83C\uDDF9 PT'));
+      body.appendChild(lblM);
+      body.appendChild(el('div', 'caption', message));
+    }
+    // titel
+    if(headline){
+      body.appendChild(el('div', 'cap-lbl', 'Titel'));
+      body.appendChild(el('div', 'caption', headline));
+    }
+    // knop / CTA
+    if(cta){
+      var lblC = el('div', 'cap-lbl'); lblC.appendChild(el('span', null, 'Knop')); body.appendChild(lblC);
+      var ctaBox = el('div', 'tags'); ctaBox.appendChild(el('span', 'chip cta', cta.replace(/_/g, ' '))); body.appendChild(ctaBox);
+    }
+
+    // kaarten
+    if(cards.length){
+      body.appendChild(el('div', 'cap-lbl', 'Kaarten (' + cards.length + ')'));
+      var grid = el('div', 'cards');
+      cards.forEach(function(c){
+        var a = el('a', 'card');
+        if(c.link){ a.href = c.link; a.target = '_blank'; a.rel = 'noopener'; }
+        if(c.picture){ var im = el('img'); im.src = c.picture; im.loading = 'lazy'; im.alt = c.name || ''; a.appendChild(im); }
+        if(c.name) a.appendChild(el('div', 'c-name', c.name));
+        if(c.description) a.appendChild(el('div', 'c-price', c.description));
+        grid.appendChild(a);
+      });
+      body.appendChild(grid);
+    }
+
+    body.appendChild(el('div', 'note',
+      'Zo wordt de carousel aangemaakt (prijzen/links komen live uit Shopify, /pt/). De ad start op PAUSED \u2014 activeren doe je zelf in Ads Manager.'));
     card.appendChild(body);
     return card;
   }
@@ -372,6 +461,7 @@
     var metaParts = [];
     if(payload.posts) metaParts.push(payload.posts.length + ' post(s)');
     if(payload.creative) metaParts.push(payload.creative.length + ' taal/talen');
+    if(row.kind === 'ads_build' && payload.count) metaParts.push(payload.count + ' producten');
     if(payload.apply_workflow) metaParts.push('apply: ' + payload.apply_workflow);
     var hm = el('div', 'h-meta');
     hm.appendChild(document.createTextNode('Aangemaakt ' + madStamp(row.created_at)));
@@ -379,9 +469,11 @@
     head.appendChild(hm);
     content.appendChild(head);
 
-    // posts (social) -> nieuwsbrief (creative) -> story-video -> ruwe fallback
+    // posts (social) -> meta ads carousel -> nieuwsbrief (creative) -> story-video -> ruwe fallback
     if(payload.posts && payload.posts.length){
       payload.posts.forEach(function(p, i){ content.appendChild(renderPost(p, i, payload.posts.length)); });
+    } else if(row.kind === 'ads_build' || payload.carousel_json || payload.adPtBase){
+      content.appendChild(renderAdsBuild(row, payload));
     } else if(payload.creative && payload.creative.length){
       content.appendChild(renderNewsletter(payload.creative));
     } else if(payload.video_url){
@@ -401,6 +493,7 @@
     if(st === 'pending'){
       bar.style.display = 'flex';
       $('btnOk').textContent = (row.kind === 'meta_ads') ? '\u2713 ACTIVEER'
+        : (row.kind === 'ads_build') ? '\u2713 GOEDKEUREN'
         : (row.kind === 'newsletter') ? '\u2713 VERSTUUR' : '\u2713 PUBLICEER';
     } else {
       bar.style.display = 'none';
@@ -410,7 +503,9 @@
   var CONFIRM = {
     "newsletter:approve":"LET OP: dit verstuurt de nieuwsbrief DIRECT naar alle ontvangers. Doorgaan?",
     "story_video:approve":"Dit publiceert de story DIRECT op Instagram (@homedecobali23). Doorgaan?",
+    "ads_build:approve":"Dit maakt de carousel-advertentie aan als PAUSED in de PT-adset. Activeren doe je daarna zelf. Doorgaan?",
     "meta_ads:skip":"Advertentievoorstel afwijzen? De voorgestelde wijziging wordt niet doorgevoerd.",
+    "ads_build:skip":"Advertentievoorstel afwijzen? Er wordt niets aangemaakt.",
     "social:skip":"Social post afwijzen?",
     "newsletter:skip":"Nieuwsbrief-voorstel afwijzen?",
     "story_video:skip":"Story-voorstel afwijzen? Er wordt niets gepubliceerd."
