@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Studio · Creative Review · DEWI</title>
+<style>
+:root{
+  --bg:#0e1116; --panel:#161b22; --panel-2:#1c232d; --line:#2a323d;
+  --txt:#e6edf3; --muted:#9aa7b4; --dim:#6b7684;
+  --ok:#2ea043; --ok-bg:#12261a; --no:#e5484d; --no-bg:#2a1416;
+  --accent:#4c8dff; --radius:14px;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--txt);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+a{color:inherit}
+.wrap{max-width:1080px;margin:0 auto;padding:22px 18px 60px}
+.top{display:flex;justify-content:space-between;align-items:center;margin-bottom:26px;gap:12px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:10px;font-size:15px;font-weight:600;letter-spacing:.2px}
+.brand .dot{width:9px;height:9px;border-radius:50%;background:var(--accent)}
+.count{font-size:13px;color:var(--muted);background:var(--panel);border:1px solid var(--line);
+  padding:6px 12px;border-radius:999px;white-space:nowrap}
+.nav{font-size:13px;color:var(--dim);text-decoration:none}
+.nav:hover{color:var(--muted)}
+
+/* flow row */
+.flow{display:flex;align-items:stretch;justify-content:center;gap:10px}
+.node{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+  padding:14px;width:170px;display:flex;flex-direction:column;gap:6px;min-height:150px}
+.node.dim{opacity:.62}
+.node .role{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--dim)}
+.chip{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:600;
+  padding:3px 9px;border-radius:999px;width:fit-content;border:1px solid transparent}
+.chip .cd{width:7px;height:7px;border-radius:50%}
+.node .an{font-size:13px;font-weight:600;line-height:1.3}
+.node .sub{font-size:12px;color:var(--muted);line-height:1.35}
+.node .pausemark{font-size:10.5px;color:#d9a441;display:flex;align-items:center;gap:5px;margin-top:auto}
+
+.arrow{display:flex;align-items:center;color:var(--dim);flex:0 0 auto;font-size:20px}
+
+/* creative */
+.creative{width:220px;display:flex;flex-direction:column;gap:10px}
+.frame{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;
+  cursor:zoom-in;position:relative}
+.frame .media{width:100%;display:block;background:#000;aspect-ratio:9/16;object-fit:cover}
+.frame .media.wide{aspect-ratio:1/1}
+.frame .noimg{aspect-ratio:9/16;display:flex;align-items:center;justify-content:center;color:var(--dim);font-size:34px}
+.frame .tags{position:absolute;top:9px;left:9px;right:9px;display:flex;justify-content:space-between;pointer-events:none}
+.tag{font-size:10.5px;font-weight:600;padding:3px 8px;border-radius:999px;background:rgba(0,0,0,.6);
+  backdrop-filter:blur(4px);color:#fff}
+.tag.lang{background:rgba(255,255,255,.14)}
+.play{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none}
+.play span{width:52px;height:52px;border-radius:50%;background:rgba(0,0,0,.55);display:flex;
+  align-items:center;justify-content:center;font-size:22px;color:#fff}
+.cbody{padding:2px 2px 0}
+.ctitle{font-size:13.5px;font-weight:600;line-height:1.3}
+.cmeta{font-size:11.5px;color:var(--dim);margin-top:3px}
+.dots{display:flex;gap:5px;justify-content:center;margin-top:8px}
+.dots i{width:6px;height:6px;border-radius:50%;background:var(--line)}
+.dots i.on{background:var(--muted)}
+
+.thumbs{display:flex;gap:14px;justify-content:center;margin-top:2px}
+.tbtn{width:58px;height:50px;border:1px solid var(--line);border-radius:12px;background:var(--panel-2);
+  display:flex;align-items:center;justify-content:center;font-size:22px;cursor:pointer;transition:.12s}
+.tbtn:hover{transform:translateY(-1px)}
+.tbtn:active{transform:scale(.95)}
+.tbtn.up{color:var(--ok)} .tbtn.up:hover{background:var(--ok-bg);border-color:var(--ok)}
+.tbtn.down{color:var(--no)} .tbtn.down:hover{background:var(--no-bg);border-color:var(--no)}
+.tbtn:disabled{opacity:.4;cursor:default;transform:none}
+
+.hint{text-align:center;font-size:11.5px;color:var(--dim);margin-top:22px}
+
+/* feedback loop caption */
+.loop{max-width:840px;margin:14px auto 0}
+.loop svg{width:100%;height:30px;display:block}
+.loop text{fill:var(--dim)}
+
+/* empty / loading / error */
+.state{text-align:center;padding:80px 20px;color:var(--muted)}
+.state .ico{font-size:46px;color:var(--dim);margin-bottom:14px}
+.state h2{font-size:18px;font-weight:600;color:var(--txt);margin:0 0 6px}
+.state p{font-size:13.5px;margin:0}
+.spinner{width:30px;height:30px;border:3px solid var(--line);border-top-color:var(--accent);
+  border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 16px}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* toast */
+.toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(20px);
+  background:var(--panel-2);border:1px solid var(--line);color:var(--txt);padding:11px 18px;
+  border-radius:12px;font-size:13px;opacity:0;transition:.25s;pointer-events:none;z-index:60}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.toast.err{border-color:var(--no);color:#ffb4b7}
+
+/* lightbox */
+.lb{position:fixed;inset:0;background:rgba(0,0,0,.9);display:none;align-items:center;justify-content:center;
+  z-index:80;cursor:zoom-out;padding:24px}
+.lb.open{display:flex}
+.lb-inner{max-width:min(92vw,560px);max-height:92vh;display:flex;flex-direction:column;gap:12px;cursor:default}
+.lb img,.lb video{max-width:100%;max-height:80vh;border-radius:12px;display:block;margin:0 auto;background:#000}
+.lb-cap{color:#cfd8e3;font-size:13px;text-align:center}
+.lb-close{position:absolute;top:18px;right:22px;color:#fff;font-size:26px;cursor:pointer;
+  width:40px;height:40px;display:flex;align-items:center;justify-content:center;border-radius:50%;
+  background:rgba(255,255,255,.1)}
+.lb-nav{display:flex;gap:8px;justify-content:center}
+.lb-nav button{background:rgba(255,255,255,.1);border:none;color:#fff;border-radius:8px;
+  padding:6px 12px;font-size:13px;cursor:pointer}
+
+@media(max-width:760px){
+  .flow{flex-direction:column;align-items:center;gap:8px}
+  .node,.creative{width:min(320px,100%)}
+  .arrow{transform:rotate(90deg)}
+  .loop{display:none}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <div class="brand"><span class="dot"></span> Studio · creative review</div>
+    <div style="display:flex;align-items:center;gap:14px">
+      <span class="count" id="count">—</span>
+      <a class="nav" href="kpi.html">← dashboard</a>
+    </div>
+  </div>
+  <div id="stage">
+    <div class="state"><div class="spinner"></div><p>Voorstellen laden…</p></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<div class="lb" id="lb">
+  <div class="lb-close" id="lbClose">✕</div>
+  <div class="lb-inner" id="lbInner"></div>
+</div>
+
+<script>
+const SUPA = "https://jucubuoftjehwancegma.supabase.co";
+const ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp1Y3VidW9mdGplaHdhbmNlZ21hIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI2OTYwMDIsImV4cCI6MjA5ODI3MjAwMn0.gKYBE76kVv5XdMb-GuFAELdSp5R7OjCIiUzw7hW2Jus";
+const DISPATCH = "https://homedecobali.app.n8n.cloud/webhook/proposal-dispatch";
+
+const stage = document.getElementById('stage');
+const countEl = document.getElementById('count');
+const toastEl = document.getElementById('toast');
+let queue = [], idx = 0, busy = false;
+
+const esc = s => (s==null?'':String(s)).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function toast(msg,err){toastEl.textContent=msg;toastEl.className='toast show'+(err?' err':'');
+  clearTimeout(toast._t);toast._t=setTimeout(()=>toastEl.className='toast',2600);}
+
+function langOf(p){
+  const v=(p.variant||'')+' '+(p.kind||'');
+  if(/\bpt\b|ads-pt|pt-/i.test(v)) return 'PT';
+  if(/\bes\b|ads-es|es-/i.test(v)) return 'ES';
+  return null;
+}
+function expiryTxt(iso){
+  if(!iso) return '';
+  const d=new Date(iso), now=new Date();
+  const days=Math.round((d-now)/86400000);
+  const dd=d.toLocaleDateString('nl-NL',{day:'numeric',month:'short'});
+  return days<=0?'verloopt vandaag':'verloopt '+dd;
+}
+function slides(p){
+  const cj=p.carousel_json;
+  if(Array.isArray(cj)&&cj.length){
+    return cj.map(s=>({
+      img:s.image_url||s.imageUrl||s.url||s.media_url||null,
+      cap:s.headline||s.title||s.text||s.primary_text||''
+    })).filter(s=>s.img);
+  }
+  return [];
+}
+
+async function load(){
+  try{
+    const r=await fetch(`${SUPA}/rest/v1/v_dewi_studio?select=*`,{
+      headers:{apikey:ANON,Authorization:`Bearer ${ANON}`}});
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    queue=await r.json();
+    const want=new URLSearchParams(location.search).get('id');
+    if(want){const i=queue.findIndex(x=>x.id===want); if(i>=0) idx=i;}
+    render();
+  }catch(e){
+    stage.innerHTML=`<div class="state"><div class="ico">⚠</div><h2>Kon voorstellen niet laden</h2>
+      <p>${esc(e.message)} — probeer te verversen.</p></div>`;
+  }
+}
+
+function render(){
+  if(idx>=queue.length){
+    countEl.textContent='0';
+    stage.innerHTML=`<div class="state"><div class="ico">✓</div><h2>Niets wacht op je</h2>
+      <p>Zodra een agent een nieuwe creative klaarzet, verschijnt die hier.</p></div>`;
+    return;
+  }
+  const p=queue[idx];
+  countEl.textContent=`${idx+1} van ${queue.length}`;
+  const lang=langOf(p);
+  const cds=p.carousel_json?slides(p):[];
+  const isCarousel=cds.length>0;
+  const isVideo=p.media_type==='video'&&p.video_url;
+  const cover=isVideo?null:(isCarousel?cds[0].img:p.image_url);
+
+  const originChip=chip(p.origin_name||'Playbook',p.origin_color);
+  const builderChip=chip(p.builder_name||'—',p.builder_color);
+  const pubChip=chip(p.publisher_name||'—',p.publisher_color);
+  const revChip=chip(p.reviewer_name||'—',p.reviewer_color);
+
+  let mediaHtml;
+  if(isVideo){
+    mediaHtml=`<div class="noimg">▶</div><div class="play"><span>▶</span></div>`;
+  }else if(cover){
+    mediaHtml=`<img class="media${(p.kind==='social'||isCarousel)?' wide':''}" src="${esc(cover)}" alt="" onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'noimg',textContent:'🖼'}))">`;
+  }else{
+    mediaHtml=`<div class="noimg">🖼</div>`;
+  }
+
+  stage.innerHTML=`
+  <div class="flow">
+    <div class="node">
+      <span class="role">Herkomst</span>
+      ${originChip}
+      <div class="an">${esc(p.origin_label||p.title||'')}</div>
+      <div class="sub">${esc(p.kind==='blog'||p.kind==='newsletter'?'blog-topic':'playbook-rotatie')}</div>
+    </div>
+
+    <div class="arrow">→</div>
+
+    <div class="creative">
+      <div class="frame" id="frame">
+        ${mediaHtml}
+        <div class="tags">
+          ${builderChip}
+          ${lang?`<span class="tag lang">${lang}</span>`:'<span></span>'}
+        </div>
+      </div>
+      <div class="cbody">
+        <div class="ctitle">${esc(p.title||'')}</div>
+        <div class="cmeta">${esc(p.kind||'')}${isVideo?' · 9:16':''} · ${esc(expiryTxt(p.expires_at))}</div>
+      </div>
+      ${isCarousel?`<div class="dots">${cds.map((_,i)=>`<i class="${i===0?'on':''}"></i>`).join('')}</div>`:''}
+      <div class="thumbs">
+        <button class="tbtn up" id="btnUp" title="Goedkeuren" aria-label="Goedkeuren">👍</button>
+        <button class="tbtn down" id="btnDown" title="Afkeuren" aria-label="Afkeuren">👎</button>
+      </div>
+    </div>
+
+    <div class="arrow">→</div>
+
+    <div class="node">
+      <span class="role">Publisher</span>
+      ${pubChip}
+      <div class="sub" style="margin-top:2px">zet live${p.product_url?' · '+publishTarget(p):''}</div>
+    </div>
+
+    <div class="arrow">→</div>
+
+    <div class="node ${p.reviewer_paused?'dim':''}">
+      <span class="role">Reviewer-agent</span>
+      ${revChip}
+      <div class="sub">meet resultaat per creative</div>
+      ${p.reviewer_paused?`<div class="pausemark">⏸ gepauzeerd — geen terugkoppeling</div>`:''}
+    </div>
+  </div>
+
+  <div class="loop">
+    <svg viewBox="0 0 840 30" preserveAspectRatio="none">
+      <defs><marker id="ah" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+        <path d="M0,0 L6,3 L0,6 Z" fill="#6b7684"/></marker></defs>
+      <path d="M770,2 L770,18 L86,18 L86,4" fill="none" stroke="#6b7684" stroke-width="1.1"
+        stroke-dasharray="4 3" marker-end="url(#ah)"/>
+      <text x="428" y="30" text-anchor="middle" font-size="11">voedt de playbook terug · review-steer</text>
+    </svg>
+  </div>
+
+  <div class="hint">na je duim schuift de keten weg en verschijnt automatisch het volgende voorstel${p.product_url?` · <a class="nav" href="${esc(p.product_url)}" target="_blank" rel="noopener">bekijk product ↗</a>`:''}</div>
+  `;
+
+  document.getElementById('frame').onclick=()=>openLightbox(p,cds,isVideo);
+  document.getElementById('btnUp').onclick=()=>decide('approve');
+  document.getElementById('btnDown').onclick=()=>decide('skip');
+}
+
+function chip(name,color){
+  const c=color||'#8a94a2';
+  return `<span class="chip" style="background:${c}1f;border-color:${c}55;color:${c}">
+    <span class="cd" style="background:${c}"></span>${esc(name)}</span>`;
+}
+function publishTarget(p){
+  const k=p.kind;
+  if(k==='story_video') return 'IG story';
+  if(k==='social') return 'FB / IG';
+  if(k==='blog') return 'blog';
+  if(k==='newsletter') return 'mailing';
+  if(k&&k.startsWith('ads')) return 'Meta adset';
+  return '';
+}
+
+function openLightbox(p,cds,isVideo){
+  const inner=document.getElementById('lbInner');
+  let body='';
+  if(isVideo){
+    body=`<video src="${esc(p.video_url)}" controls autoplay playsinline></video>`;
+  }else if(cds.length){
+    body=`<img id="lbImg" src="${esc(cds[0].img)}" alt="">
+      <div class="lb-cap" id="lbCap">${esc(cds[0].cap||'')}</div>
+      ${cds.length>1?`<div class="lb-nav"><button id="lbPrev">‹ vorige</button>
+        <span class="lb-cap" id="lbIdx" style="align-self:center">1 / ${cds.length}</span>
+        <button id="lbNext">volgende ›</button></div>`:''}`;
+  }else if(p.image_url){
+    body=`<img src="${esc(p.image_url)}" alt=""><div class="lb-cap">${esc(p.title||'')}</div>`;
+  }else{
+    body=`<div class="lb-cap">Geen media beschikbaar voor dit voorstel.</div>`;
+  }
+  inner.innerHTML=body;
+  document.getElementById('lb').classList.add('open');
+  if(cds.length>1){
+    let ci=0;
+    const img=document.getElementById('lbImg'),cap=document.getElementById('lbCap'),
+      ix=document.getElementById('lbIdx');
+    const upd=()=>{img.src=cds[ci].img;cap.textContent=cds[ci].cap||'';ix.textContent=`${ci+1} / ${cds.length}`;};
+    document.getElementById('lbPrev').onclick=e=>{e.stopPropagation();ci=(ci-1+cds.length)%cds.length;upd();};
+    document.getElementById('lbNext').onclick=e=>{e.stopPropagation();ci=(ci+1)%cds.length;upd();};
+  }
+}
+function closeLightbox(){
+  document.getElementById('lb').classList.remove('open');
+  document.getElementById('lbInner').innerHTML='';
+}
+document.getElementById('lb').onclick=closeLightbox;
+document.getElementById('lbClose').onclick=e=>{e.stopPropagation();closeLightbox();};
+document.getElementById('lbInner').onclick=e=>e.stopPropagation();
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeLightbox();});
+
+async function decide(action){
+  if(busy) return;
+  const p=queue[idx];
+  busy=true;
+  const up=document.getElementById('btnUp'),down=document.getElementById('btnDown');
+  if(up)up.disabled=true; if(down)down.disabled=true;
+  try{
+    const url=`${DISPATCH}?id=${encodeURIComponent(p.id)}&kind=${encodeURIComponent(p.kind)}&action=${action}`;
+    const r=await fetch(url,{method:'GET'});
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    toast(action==='approve'?'👍 Goedgekeurd — naar publisher':'👎 Afgekeurd');
+    idx++;
+    busy=false;
+    render();
+  }catch(e){
+    busy=false;
+    if(up)up.disabled=false; if(down)down.disabled=false;
+    toast('Actie mislukt: '+e.message+' — probeer opnieuw',true);
+  }
+}
+
+load();
+</script>
+</body>
+</html>
