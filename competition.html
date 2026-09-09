@@ -117,8 +117,8 @@
     <div class="pipe">
       <div class="step"><b>1 &middot; Google SERP</b><span>12 roterende zoekopdrachten (uit 50, ES+PT) per week; nieuwe shops komen automatisch in de concurrentenlijst.</span></div>
       <div class="step"><b>2 &middot; Meta Ad Library</b><span>Actieve ads van alle gevolgde concurrenten met page-ID, gerangschikt op looptijd: langer actief = bewezen renderend.</span></div>
-      <div class="step"><b>3 &middot; Claude distilleert</b><span>Hooks, CTA's, structuren, do's &amp; don'ts per taal &times; segment + gescoorde best practices.</span></div>
-      <div class="step"><b>4 &middot; Supabase</b><span>ad_research_playbook (4 combinaties, 14 dagen geldig) + competitor_best_practices + competitor_ads.</span></div>
+      <div class="step"><b>3 &middot; Claude distilleert</b><span>Hooks, CTA's, structuren, do's &amp; don'ts per taal &times; segment.</span></div>
+      <div class="step"><b>4 &middot; Supabase</b><span>ad_research_playbook (4 combinaties, 14 dagen geldig) + competitor_intel + research_signals + competitor_ads.</span></div>
       <div class="step"><b>5 &middot; Build Factory &amp; Social</b><span>Stills, Carousel en Unboxing-video's schrijven hun copy op deze versie.</span></div>
     </div>
   </section>
@@ -152,12 +152,6 @@
   <section class="panel" id="source">
     <h2>Bron &amp; betrouwbaarheid van de laatste snapshot</h2>
     <div class="pad"><div id="source-notes" class="loading">Laden&hellip;</div></div>
-  </section>
-
-  <!-- 5b. Best practices uit het onderzoek -->
-  <section class="panel" id="practices">
-    <h2>Best practices uit concurrentie-onderzoek &mdash; hoogst gescoord eerst</h2>
-    <div class="card-list"><div class="loading">Laden&hellip;</div></div>
   </section>
 
   <!-- 6. Wie we volgen + run-historie -->
@@ -203,13 +197,11 @@
 
   const LANG_LABEL = { es:"Spaans (ES)", pt:"Portugees (PT)" };
   const SEG_LABEL = { product:"Product", lifestyle:"Lifestyle" };
-  const AREA_LABEL = { hook:"Hook", cta:"CTA", adcopy:"Ad copy", creative:"Creative", offer:"Aanbod", social_organic:"Organisch social", seo:"SEO" };
 
-  const [{data: pbRows, error: pbErr},{data: runRows},{data: compRows},{data: bpRows}] = await Promise.all([
+  const [{data: pbRows, error: pbErr},{data: runRows},{data: compRows}] = await Promise.all([
     sb.from("ad_research_playbook").select("*").order("created_at",{ascending:false}).limit(60),
     sb.from("runs").select("*").ilike("workflow_name","%Ad%Playbook%").order("created_at",{ascending:false}).limit(14),
-    sb.from("competitors").select("*").order("fit_score",{ascending:false,nullsFirst:false}).order("serp_hits",{ascending:false}).limit(200),
-    sb.from("competitor_best_practices").select("*").order("score",{ascending:false}).order("created_at",{ascending:false}).limit(12)
+    sb.from("competitors").select("*").order("fit_score",{ascending:false,nullsFirst:false}).order("serp_hits",{ascending:false}).limit(200)
   ]);
 
   // ---- laatste snapshot: per taal x segment de nieuwste rij ----
@@ -342,25 +334,6 @@
     });
     document.getElementById("source-notes").textContent = "Nog geen snapshot.";
     document.getElementById("source-notes").classList.remove("loading");
-  }
-
-  // ---- 5b. best practices uit competitor_best_practices ----
-  const bpEl = document.querySelector("#practices .card-list");
-  const bps = bpRows || [];
-  if(bps.length){
-    bpEl.innerHTML = bps.map(p=>{
-      const score = Math.max(0, Math.min(10, Number(p.score)||0));
-      return "<div class='icard'>"+
-        "<div class='tagrow'><span class='tag seg'>"+esc(AREA_LABEL[p.area]||p.area||"")+"</span>"+
-        "<span class='tag lang'>"+esc(p.use_in==="social_posts"?"Social":(p.use_in==="paid_ads"?"Ads":"Social + Ads"))+"</span>"+
-        "<span class='bar-wrap' title='Score "+score+"/10'><span class='bar' style='width:"+(score*10)+"%'></span></span><span class='mono'>"+score+"</span></div>"+
-        esc(p.insight||"")+
-        (p.example ? "<div class='ex'>"+esc(p.example)+"</div>" : "")+
-        (p.source ? "<div class='note' style='margin-top:6px'>Bron: "+esc(p.source)+"</div>" : "")+
-      "</div>";
-    }).join("");
-  } else {
-    bpEl.innerHTML = "<div class='loading'>Nog geen best practices opgeslagen. De eerstvolgende research-run (ma 06:00) vult dit paneel.</div>";
   }
 
   // ---- 6a. concurrenten live uit competitors, gesplitst op rol ----
