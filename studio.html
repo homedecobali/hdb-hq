@@ -9,7 +9,7 @@
   --bg:#0e1116; --panel:#161b22; --panel-2:#1c232d; --line:#2a323d;
   --txt:#e6edf3; --muted:#9aa7b4; --dim:#6b7684;
   --ok:#2ea043; --ok-bg:#12261a; --no:#e5484d; --no-bg:#2a1416;
-  --accent:#4c8dff; --radius:14px;
+  --accent:#4c8dff; --amber:#e0a13a; --radius:14px;
   --social:#4c8dff; --reels:#c96dd8; --stories:#e0a13a; --stills:#3fb6a8;
 }
 *{box-sizing:border-box}
@@ -25,7 +25,7 @@ a{color:inherit}
 .nav{font-size:13px;color:var(--dim);text-decoration:none}
 .nav:hover{color:var(--muted)}
 
-/* ---- feed grid ---- */
+/* ---- section header ---- */
 .row{margin-bottom:26px}
 .rowhead{display:flex;align-items:center;gap:9px;margin:0 2px 10px}
 .rowhead .cd{width:9px;height:9px;border-radius:50%}
@@ -36,13 +36,14 @@ a{color:inherit}
 .strip::-webkit-scrollbar{height:8px}
 .strip::-webkit-scrollbar-thumb{background:var(--line);border-radius:8px}
 .strip::-webkit-scrollbar-track{background:transparent}
+.strip .empty{color:var(--dim);font-size:12.5px;padding:22px 6px}
+
+/* ---- feed card ---- */
 .card{flex:0 0 auto;width:158px;scroll-snap-align:start;cursor:zoom-in}
 .card .frame{position:relative;background:#000;border:1px solid var(--line);border-radius:12px;overflow:hidden}
 .card .frame img,.card .frame video{width:100%;display:block;object-fit:cover;background:#000}
-.card.r-social .frame img,.card.r-social .frame video{aspect-ratio:1/1}
-.card.r-reels .frame img,.card.r-reels .frame video,
-.card.r-stories .frame img,.card.r-stories .frame video,
-.card.r-stills .frame img,.card.r-stills .frame video{aspect-ratio:9/16}
+.card.r-social .frame img{aspect-ratio:1/1}
+.card.r-reels .frame img,.card.r-stories .frame img,.card.r-stills .frame img{aspect-ratio:9/16}
 .card .noimg{display:flex;align-items:center;justify-content:center;color:var(--dim);font-size:28px;aspect-ratio:9/16}
 .card.r-social .noimg{aspect-ratio:1/1}
 .card .play{position:absolute;left:8px;bottom:8px;width:26px;height:26px;border-radius:50%;
@@ -53,7 +54,29 @@ a{color:inherit}
 .card .t{font-size:12px;line-height:1.28;color:var(--txt);
   display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .card .d{font-size:11px;color:var(--dim);margin-top:3px}
-.strip .empty{color:var(--dim);font-size:12.5px;padding:22px 6px}
+
+/* ---- pending (goedkeuring) section ---- */
+.pending{border:1px solid #3a3320;background:linear-gradient(180deg,#191509 0%,#14161d 100%);
+  border-radius:var(--radius);padding:14px 14px 6px;margin-bottom:28px}
+.pending .rowhead{margin-bottom:12px}
+.pcard{flex:0 0 auto;width:172px;scroll-snap-align:start;
+  background:var(--panel);border:1px solid var(--line);border-radius:12px;overflow:hidden;display:flex;flex-direction:column}
+.pcard .frame{position:relative;background:#000;cursor:zoom-in}
+.pcard .frame img,.pcard .frame video{width:100%;display:block;object-fit:cover;background:#000;aspect-ratio:4/5}
+.pcard .noimg{aspect-ratio:4/5;display:flex;align-items:center;justify-content:center;color:var(--dim);font-size:26px}
+.pcard .play{position:absolute;left:8px;bottom:8px;width:24px;height:24px;border-radius:50%;
+  background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;font-size:11px;color:#fff}
+.pcard .kchip{position:absolute;top:7px;left:7px;font-size:9.5px;font-weight:700;padding:2px 8px;border-radius:999px;
+  background:rgba(224,161,58,.9);color:#1a1204;letter-spacing:.03em}
+.pcard .pcap{padding:8px 9px 4px}
+.pcard .pt{font-size:12px;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.pcard .psub{font-size:11px;color:var(--dim);margin-top:3px}
+.pacts{display:flex;gap:7px;padding:6px 9px 10px;margin-top:auto}
+.mini{flex:1;border:1px solid var(--line);border-radius:9px;background:var(--panel-2);color:var(--muted);
+  padding:7px 0;font-size:15px;cursor:pointer;transition:.12s}
+.mini.up:hover{background:var(--ok-bg);border-color:var(--ok);color:var(--ok)}
+.mini.down:hover{background:var(--no-bg);border-color:var(--no);color:var(--no)}
+.mini:disabled{opacity:.4;cursor:default}
 
 /* ---- states ---- */
 .state{text-align:center;padding:80px 20px;color:var(--muted)}
@@ -74,10 +97,9 @@ a{color:inherit}
 .thumbs{display:flex;gap:14px;justify-content:center;margin-top:16px}
 .tbtn{width:64px;height:52px;border:1px solid var(--line);border-radius:12px;background:var(--panel-2);
   display:flex;align-items:center;justify-content:center;font-size:22px;cursor:pointer;transition:.12s}
-.tbtn:hover{transform:translateY(-1px)}
 .tbtn.up{color:var(--ok)} .tbtn.up:hover{background:var(--ok-bg);border-color:var(--ok)}
 .tbtn.down{color:var(--no)} .tbtn.down:hover{background:var(--no-bg);border-color:var(--no)}
-.tbtn:disabled{opacity:.4;cursor:default;transform:none}
+.tbtn:disabled{opacity:.4;cursor:default}
 
 /* ---- toast ---- */
 .toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(20px);
@@ -102,7 +124,7 @@ a{color:inherit}
   width:40px;height:40px;display:flex;align-items:center;justify-content:center;border-radius:50%;
   background:rgba(255,255,255,.1)}
 
-@media(max-width:620px){ .card{width:132px} }
+@media(max-width:620px){ .card{width:132px} .pcard{width:150px} }
 </style>
 </head>
 <body>
@@ -141,45 +163,63 @@ function toast(msg,err){toastEl.textContent=msg;toastEl.className='toast show'+(
   clearTimeout(toast._t);toast._t=setTimeout(()=>toastEl.className='toast',2600);}
 function dateTxt(iso){ if(!iso) return ''; const d=new Date(iso);
   return d.toLocaleDateString('nl-NL',{day:'numeric',month:'short'}); }
-// Cloudinary video -> jpg poster frame
-function poster(url){
-  if(!url) return null;
-  if(url.indexOf('/video/upload/')>=0)
-    return url.replace('/video/upload/','/video/upload/so_0,f_jpg,w_420/');
-  return url;
+function poster(url){ if(!url) return null;
+  if(url.indexOf('/video/upload/')>=0) return url.replace('/video/upload/','/video/upload/so_0,f_jpg,w_420/');
+  return url; }
+function carouselCover(cj){
+  if(Array.isArray(cj)&&cj.length){ const s=cj[0]||{}; return s.image_url||s.imageUrl||s.url||s.media_url||null; }
+  return null;
 }
 
-/* ============ FEED (default) ============ */
+/* ============ STUDIO default: goedkeuring-view (v_dewi_studio) + naslagwerk (v_dewi_feed) ============ */
 const SLOTS = [
   ['social','Social posts','feed · 1:1','var(--social)'],
   ['reels','Reels','video · 9:16','var(--reels)'],
   ['stories','Stories','video · 9:16','var(--stories)'],
   ['stills','Stills','story · 9:16','var(--stills)']
 ];
+let _feed = {}, _pending = [];
 
-async function loadFeed(){
+async function loadStudio(){
   try{
-    const r=await fetch(`${SUPA}/rest/v1/v_dewi_feed?select=*`,{headers:HDR});
-    if(!r.ok) throw new Error('HTTP '+r.status);
-    const rows=await r.json();
-    renderFeed(rows);
+    const [rp,rf] = await Promise.all([
+      fetch(`${SUPA}/rest/v1/v_dewi_studio?select=*`,{headers:HDR}),
+      fetch(`${SUPA}/rest/v1/v_dewi_feed?select=*`,{headers:HDR})
+    ]);
+    if(!rf.ok) throw new Error('feed HTTP '+rf.status);
+    _pending = rp.ok ? await rp.json() : [];
+    const rows = await rf.json();
+    renderStudio(_pending, rows);
   }catch(e){
-    stage.innerHTML=`<div class="state"><div class="ico">⚠</div><h2>Kon het naslagwerk niet laden</h2>
+    stage.innerHTML=`<div class="state"><div class="ico">⚠</div><h2>Kon Studio niet laden</h2>
       <p>${esc(e.message)} — probeer te verversen.</p></div>`;
   }
 }
 
-function renderFeed(rows){
+function renderStudio(pending, rows){
   const by={social:[],reels:[],stories:[],stills:[]};
   for(const x of rows){ if(by[x.slot]) by[x.slot].push(x); }
-  countEl.textContent = rows.length + ' posts · laatste 120 dagen';
-  window._feed = {};
+  _feed=by;
+  countEl.textContent = (pending.length? pending.length+' wacht · ' : '') + rows.length + ' posts · 120 dagen';
+
   let html='';
+  // --- pending / goedkeuring-view met creative (op moment van opvraging) ---
+  if(pending.length){
+    const pcards = pending.map((p,i)=>pendingCard(p,i)).join('');
+    html+=`<div class="pending">
+      <div class="rowhead">
+        <span class="cd" style="background:var(--amber)"></span>
+        <span class="lbl">Wacht op goedkeuring</span>
+        <span class="n">${pending.length}</span>
+        <span class="fmt">Meta / Merchant</span>
+      </div>
+      <div class="strip">${pcards}</div>
+    </div>`;
+  }
+  // --- naslagwerk ---
   for(const [slot,label,fmt,color] of SLOTS){
     const items=by[slot]||[];
-    window._feed[slot]=items;
-    const cards = items.length
-      ? items.map((p,i)=>cardHtml(slot,p,i)).join('')
+    const cards = items.length ? items.map((p,i)=>feedCard(slot,p,i)).join('')
       : `<div class="empty">Nog niets gepost in deze categorie.</div>`;
     html+=`<div class="row">
       <div class="rowhead">
@@ -192,12 +232,36 @@ function renderFeed(rows){
     </div>`;
   }
   stage.innerHTML=html;
-  stage.querySelectorAll('.card').forEach(el=>{
-    el.onclick=()=>openMedia(el.dataset.slot, +el.dataset.i);
-  });
+
+  stage.querySelectorAll('.card').forEach(el=>{ el.onclick=()=>openFeedMedia(el.dataset.slot, +el.dataset.i); });
+  stage.querySelectorAll('.pcard .frame').forEach(el=>{ el.onclick=()=>openPendingMedia(+el.dataset.i); });
+  stage.querySelectorAll('.mini').forEach(b=>{ b.onclick=()=>decideCard(b.dataset.id, b.dataset.kind, b); });
 }
 
-function cardHtml(slot,p,i){
+function pendingCard(p,i){
+  const isVid = p.media_type==='video' && p.video_url;
+  const cov = isVid ? poster(p.video_url) : (carouselCover(p.carousel_json) || p.image_url);
+  const media = cov
+    ? `<img loading="lazy" src="${esc(cov)}" alt="" onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'noimg',textContent:'🖼'}))">`
+    : `<div class="noimg">🖼</div>`;
+  return `<div class="pcard">
+    <div class="frame" data-i="${i}">
+      ${media}
+      <span class="kchip">${esc(p.kind||'')}</span>
+      ${isVid?'<div class="play">▶</div>':''}
+    </div>
+    <div class="pcap">
+      <div class="pt">${esc(p.title||'')}</div>
+      <div class="psub">${esc(p.origin_label||p.subtitle||'')}</div>
+    </div>
+    <div class="pacts">
+      <button class="mini up" data-id="${esc(p.id)}" data-kind="${esc(p.kind||'')}" title="Goedkeuren">👍</button>
+      <button class="mini down" data-id="${esc(p.id)}" data-kind="${esc(p.kind||'')}" title="Afkeuren">👎</button>
+    </div>
+  </div>`;
+}
+
+function feedCard(slot,p,i){
   const isVid = p.media_type==='video';
   const src = isVid ? poster(p.media_url) : p.media_url;
   const media = src
@@ -219,32 +283,68 @@ function cardHtml(slot,p,i){
   </div>`;
 }
 
-function openMedia(slot,i){
-  const p=(window._feed[slot]||[])[i]; if(!p) return;
-  const inner=document.getElementById('lbInner');
+function openFeedMedia(slot,i){
+  const p=(_feed[slot]||[])[i]; if(!p) return;
   const isVid=p.media_type==='video';
-  const body = isVid
-    ? `<video src="${esc(p.media_url)}" controls autoplay playsinline></video>`
+  const body = isVid ? `<video src="${esc(p.media_url)}" controls autoplay playsinline></video>`
     : (p.media_url?`<img src="${esc(p.media_url)}" alt="">`:`<div class="lb-cap">Geen media.</div>`);
   const links=[];
   if(p.fb_url) links.push(`<a href="${esc(p.fb_url)}" target="_blank" rel="noopener">Bekijk op Facebook ↗</a>`);
   if(p.product_url) links.push(`<a href="${esc(p.product_url)}" target="_blank" rel="noopener">Product ↗</a>`);
-  inner.innerHTML=`${body}
+  showLb(`${body}
     <div class="lb-meta">${esc(slot)} · ${esc(dateTxt(p.posted_at))}${p.external_post_id?' · IG '+esc(p.external_post_id):''}</div>
     ${p.title?`<div class="lb-cap" style="font-weight:600">${esc(p.title)}</div>`:''}
     ${p.caption?`<div class="lb-cap">${esc(p.caption)}</div>`:''}
-    ${links.length?`<div class="lb-links">${links.join('')}</div>`:''}`;
-  document.getElementById('lb').classList.add('open');
+    ${links.length?`<div class="lb-links">${links.join('')}</div>`:''}`);
 }
 
-/* ============ APPROVAL (?id=) — blijft voor META / Merchant ============ */
-let apQueue=[], apItem=null, apBusy=false;
+function openPendingMedia(i){
+  const p=_pending[i]; if(!p) return;
+  const isVid=p.media_type==='video'&&p.video_url;
+  let body;
+  if(isVid) body=`<video src="${esc(p.video_url)}" controls autoplay playsinline></video>`;
+  else{
+    const cov=carouselCover(p.carousel_json)||p.image_url;
+    body=cov?`<img src="${esc(cov)}" alt="">`:`<div class="lb-cap">Geen media.</div>`;
+  }
+  const links=[];
+  if(p.product_url) links.push(`<a href="${esc(p.product_url)}" target="_blank" rel="noopener">Product ↗</a>`);
+  showLb(`${body}
+    <div class="lb-meta">${esc(p.kind||'')} · wacht op goedkeuring</div>
+    ${p.title?`<div class="lb-cap" style="font-weight:600">${esc(p.title)}</div>`:''}
+    ${p.subtitle?`<div class="lb-cap">${esc(p.subtitle)}</div>`:''}
+    ${links.length?`<div class="lb-links">${links.join('')}</div>`:''}`);
+}
+
+async function decideCard(id,kind,btn){
+  if(btn.disabled) return;
+  const card=btn.closest('.pcard');
+  card.querySelectorAll('.mini').forEach(b=>b.disabled=true);
+  const action = btn.classList.contains('up') ? 'approve' : 'skip';
+  try{
+    const url=`${DISPATCH}?id=${encodeURIComponent(id)}&kind=${encodeURIComponent(kind)}&action=${action}`;
+    const r=await fetch(url,{method:'GET'});
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    toast(action==='approve'?'👍 Goedgekeurd — naar publisher':'👎 Afgekeurd');
+    card.style.transition='.25s'; card.style.opacity='0'; card.style.width='0';
+    setTimeout(()=>{ card.remove();
+      const left=stage.querySelectorAll('.pcard').length;
+      if(!left){ const pw=stage.querySelector('.pending'); if(pw) pw.remove(); }
+    },260);
+  }catch(e){
+    card.querySelectorAll('.mini').forEach(b=>b.disabled=false);
+    toast('Actie mislukt: '+e.message,true);
+  }
+}
+
+/* ============ single approval (?id=) ============ */
+let apItem=null, apBusy=false;
 async function loadApproval(id){
   try{
     const r=await fetch(`${SUPA}/rest/v1/v_dewi_studio?select=*`,{headers:HDR});
     if(!r.ok) throw new Error('HTTP '+r.status);
-    apQueue=await r.json();
-    apItem=apQueue.find(x=>x.id===id)||null;
+    const q=await r.json();
+    apItem=q.find(x=>x.id===id)||null;
     renderApproval();
   }catch(e){
     stage.innerHTML=`<div class="state"><div class="ico">⚠</div><h2>Kon voorstel niet laden</h2>
@@ -253,17 +353,14 @@ async function loadApproval(id){
 }
 function renderApproval(){
   const p=apItem;
-  if(!p){
-    countEl.textContent='—';
+  if(!p){ countEl.textContent='—';
     stage.innerHTML=`<div class="state"><div class="ico">✓</div><h2>Voorstel niet meer open</h2>
-      <p>Dit voorstel is al afgehandeld of verlopen. <a class="nav" href="studio.html">→ naar het naslagwerk</a></p></div>`;
-    return;
-  }
+      <p>Al afgehandeld of verlopen. <a class="nav" href="studio.html">→ naar het naslagwerk</a></p></div>`; return; }
   countEl.textContent='1 goedkeuring';
   const isVid=p.media_type==='video'&&p.video_url;
-  const cover=isVid?null:p.image_url;
+  const cov=isVid?null:(carouselCover(p.carousel_json)||p.image_url);
   const media=isVid?`<video src="${esc(p.video_url)}" controls playsinline></video>`
-    :(cover?`<img src="${esc(cover)}" alt="" onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'noimg',textContent:'🖼'}))">`
+    :(cov?`<img src="${esc(cov)}" alt="" onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'noimg',textContent:'🖼'}))">`
     :`<div class="noimg">🖼</div>`);
   stage.innerHTML=`<div class="review">
     <div class="frame">${media}</div>
@@ -275,10 +372,10 @@ function renderApproval(){
     </div>
     <div class="state" style="padding:22px 0 0"><p style="font-size:12px">Goedkeuring geldt voor Meta / Merchant. Organic social loopt automatisch — zie het <a class="nav" href="studio.html">naslagwerk</a>.</p></div>
   </div>`;
-  document.getElementById('btnUp').onclick=()=>decide('approve');
-  document.getElementById('btnDown').onclick=()=>decide('skip');
+  document.getElementById('btnUp').onclick=()=>decideSingle('approve');
+  document.getElementById('btnDown').onclick=()=>decideSingle('skip');
 }
-async function decide(action){
+async function decideSingle(action){
   if(apBusy||!apItem) return; apBusy=true;
   const up=document.getElementById('btnUp'),down=document.getElementById('btnDown');
   if(up)up.disabled=true; if(down)down.disabled=true;
@@ -294,8 +391,9 @@ async function decide(action){
   }
 }
 
-/* ============ lightbox wiring ============ */
-function closeLightbox(){document.getElementById('lb').classList.remove('open');document.getElementById('lbInner').innerHTML='';}
+/* ============ lightbox ============ */
+function showLb(inner){ document.getElementById('lbInner').innerHTML=inner; document.getElementById('lb').classList.add('open'); }
+function closeLightbox(){ document.getElementById('lb').classList.remove('open'); document.getElementById('lbInner').innerHTML=''; }
 document.getElementById('lb').onclick=closeLightbox;
 document.getElementById('lbClose').onclick=e=>{e.stopPropagation();closeLightbox();};
 document.getElementById('lbInner').onclick=e=>e.stopPropagation();
@@ -303,7 +401,7 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape')closeLightbox();});
 
 /* ============ boot ============ */
 const wantId=new URLSearchParams(location.search).get('id');
-if(wantId) loadApproval(wantId); else loadFeed();
+if(wantId) loadApproval(wantId); else loadStudio();
 </script>
 </body>
 </html>
