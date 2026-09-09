@@ -81,6 +81,25 @@ a{color:inherit}
 .mini.down:hover{background:var(--no-bg);border-color:var(--no);color:var(--no)}
 .mini:disabled{opacity:.4;cursor:default}
 
+/* ---- output panels (mailings / blog / lifecycle) ---- */
+.outs{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:6px}
+@media(max-width:720px){.outs{grid-template-columns:1fr}}
+.opanel{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:14px 16px}
+.opanel h3{margin:0 0 8px;font-size:13px;font-weight:600;display:flex;align-items:center;gap:8px}
+.opanel h3 .cd{width:9px;height:9px;border-radius:50%}
+.orow{display:flex;align-items:center;gap:11px;padding:11px 0;border-bottom:1px solid var(--line)}
+.orow:last-child{border-bottom:none}
+.orow .oic{width:32px;height:32px;flex:none;border-radius:9px;background:var(--panel-2);border:1px solid var(--line);
+  display:flex;align-items:center;justify-content:center;font-size:15px}
+.orow .om{min-width:0;flex:1}
+.orow .oname{font-size:13px;font-weight:600}
+.orow .odet{font-size:11px;color:var(--dim);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.orow .oright{text-align:right;flex:none;display:flex;flex-direction:column;align-items:flex-end;gap:2px}
+.orow .owhen{font-size:12.5px;font-weight:600;color:var(--txt)}
+.orow .odate{font-size:10.5px;color:var(--dim)}
+.orow .oamt{margin-top:2px;font-size:10.5px;font-weight:700;padding:2px 9px;border-radius:999px;
+  background:var(--panel-2);border:1px solid var(--line);color:var(--muted)}
+
 /* ---- states ---- */
 .state{text-align:center;padding:80px 20px;color:var(--muted)}
 .state .ico{font-size:46px;color:var(--dim);margin-bottom:14px}
@@ -167,6 +186,12 @@ function toast(msg,err){toastEl.textContent=msg;toastEl.className='toast show'+(
 function dateTxt(iso){ if(!iso) return ''; const d=new Date(iso);
   return d.toLocaleDateString('nl-NL',{day:'numeric',month:'short'}); }
 function fmtViews(n){ n=Number(n)||0; if(n>=1000) return (n/1000).toFixed(n>=10000?0:1).replace('.',',')+'k'; return String(n); }
+function fmtN(n){ return Number(n||0).toLocaleString('nl-NL'); }
+function relTxt(iso){ if(!iso) return 'nog niet'; const d=new Date(iso), now=new Date();
+  const days=Math.floor((now-d)/86400000);
+  if(days<=0) return 'vandaag'; if(days===1) return 'gisteren';
+  if(days<7) return days+' dgn geleden';
+  return d.toLocaleDateString('nl-NL',{day:'numeric',month:'short'}); }
 function poster(url){ if(!url) return null;
   if(url.indexOf('/video/upload/')>=0) return url.replace('/video/upload/','/video/upload/so_0,f_jpg,w_420/');
   return url; }
@@ -186,21 +211,23 @@ let _feed = {}, _pending = [];
 
 async function loadStudio(){
   try{
-    const [rp,rf] = await Promise.all([
+    const [rp,rf,ro] = await Promise.all([
       fetch(`${SUPA}/rest/v1/v_dewi_studio?select=*`,{headers:HDR}),
-      fetch(`${SUPA}/rest/v1/v_dewi_feed?select=*`,{headers:HDR})
+      fetch(`${SUPA}/rest/v1/v_dewi_feed?select=*`,{headers:HDR}),
+      fetch(`${SUPA}/rest/v1/v_dewi_outputs?select=*&order=panel,sort`,{headers:HDR})
     ]);
     if(!rf.ok) throw new Error('feed HTTP '+rf.status);
     _pending = rp.ok ? await rp.json() : [];
     const rows = await rf.json();
-    renderStudio(_pending, rows);
+    const outs = ro.ok ? await ro.json() : [];
+    renderStudio(_pending, rows, outs);
   }catch(e){
     stage.innerHTML=`<div class="state"><div class="ico">⚠</div><h2>Kon Studio niet laden</h2>
       <p>${esc(e.message)} — probeer te verversen.</p></div>`;
   }
 }
 
-function renderStudio(pending, rows){
+function renderStudio(pending, rows, outs){
   const by={social:[],reels:[],stories:[],stills:[]};
   for(const x of rows){ if(by[x.slot]) by[x.slot].push(x); }
   _feed=by;
@@ -235,6 +262,7 @@ function renderStudio(pending, rows){
       <div class="strip">${cards}</div>
     </div>`;
   }
+  html += renderOutputs(outs||[]);
   stage.innerHTML=html;
 
   stage.querySelectorAll('.card').forEach(el=>{ el.onclick=()=>openFeedMedia(el.dataset.slot, +el.dataset.i); });
@@ -341,6 +369,32 @@ async function decideCard(id,kind,btn){
     card.querySelectorAll('.mini').forEach(b=>b.disabled=false);
     toast('Actie mislukt: '+e.message,true);
   }
+}
+
+function renderOutputs(outs){
+  if(!outs || !outs.length) return '';
+  const ICON={story_news:'✉️',product_news:'🛍️',blog:'📝',preorder:'📦',welcome:'👋',favorites:'❤️'};
+  const PANELS=[['broadcast','Nieuwsbrieven & blog','var(--stories)'],['lifecycle','Lifecycle-mails','var(--stills)']];
+  const block=PANELS.map(([pk,ptitle,color])=>{
+    const items=outs.filter(o=>o.panel===pk);
+    const orows=items.map(o=>{
+      const amt=(o.amount!=null)?`<span class="oamt">${fmtN(o.amount)} ${esc(o.unit||'')}</span>`:'';
+      return `<div class="orow">
+        <div class="oic">${ICON[o.key]||'•'}</div>
+        <div class="om">
+          <div class="oname">${esc(o.label)}</div>
+          ${o.detail?`<div class="odet">${esc(o.detail)}</div>`:''}
+        </div>
+        <div class="oright">
+          <div class="owhen">${esc(relTxt(o.last_sent))}</div>
+          <div class="odate">${o.last_sent?'laatst '+esc(dateTxt(o.last_sent)):'nog niet verzonden'}</div>
+          ${amt}
+        </div>
+      </div>`;
+    }).join('') || `<div class="orow"><div class="odet">Geen data.</div></div>`;
+    return `<div class="opanel"><h3><span class="cd" style="background:${color}"></span>${ptitle}</h3>${orows}</div>`;
+  }).join('');
+  return `<div class="outs">${block}</div>`;
 }
 
 /* ============ single approval (?id=) ============ */
