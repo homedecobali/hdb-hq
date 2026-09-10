@@ -311,16 +311,6 @@
   #top .zgrp a.zmeta{border-color:var(--z-meta);color:var(--z-meta);background:rgba(255,63,154,.10)}
   #top .zgrp a.zstats{border-color:var(--z-stats);color:var(--z-stats);background:rgba(0,200,255,.10)}
   #top .zgrp a.zdewi{border-color:var(--z-dewi);color:var(--z-dewi);background:rgba(163,123,255,.10)}
-  /* losse cross-page link in de cockpit-balk (onderscheiden van de #-jumplinks) */
-  #top .zgrp a.zpage{border-style:dashed}
-
-  /* ---- pagina-navigatie: altijd zichtbare knop bovenaan de content ---- */
-  #kpiScroll > .pagenav{display:flex;justify-content:flex-end;gap:8px;margin:0 0 12px}
-  #kpiScroll > .pagenav a{display:inline-flex;align-items:center;gap:7px;text-decoration:none;
-    border:1px solid var(--z-meta);color:var(--z-meta);background:rgba(255,63,154,.10);
-    border-radius:8px;padding:7px 13px;font-size:13px;font-weight:700;letter-spacing:.03em}
-  #kpiScroll > .pagenav a:hover{background:rgba(255,63,154,.18)}
-  @media (max-width:820px){ #kpiScroll > .pagenav{justify-content:stretch} #kpiScroll > .pagenav a{flex:1;justify-content:center} }
 
   /* mobiel: alleen KPI, paneelknoppen verbergen (naast elkaar is zinloos op telefoon) */
   @media (max-width:820px){
@@ -350,18 +340,15 @@
     <a class="zshop"  href="#z-shop">SHOPIFY</a>
     <a class="zmeta"  href="#z-meta">META</a>
     <a class="zstats" href="#z-stats">STATS</a>
-    <a class="zdewi"  href="#z-dewi">DEWI</a>
-    <a class="zmeta zpage" href="meta-studio.html" title="Open de losse Meta Studio-pagina">Meta Studio &#8599;</a></span>
+    <a class="zdewi"  href="#z-dewi">DEWI</a></span>
+   <span class="zgrp"><span class="lbl">Pagina</span>
+    <a class="zmeta" href="studio.html">Studio ↗</a>
+    <a class="zmeta" href="meta-studio.html">Meta Studio ↗</a></span>
   <span id="stamp"></span>
 </div>
 
 <div id="work" class="hidden">
   <div id="kpiScroll">
-
-    <!-- ==================== PAGINA-NAV: losse Meta Studio-pagina ==================== -->
-    <div class="pagenav">
-      <a href="meta-studio.html" title="Open de losse Meta Studio-pagina">Meta Studio &#8599;</a>
-    </div>
 
     <!-- ==================== VOORSTELLEN (verschijnt alleen als er openstaande voorstellen zijn) ==================== -->
     <section class="zone hidden" id="z-prop" style="--acc:var(--yellow)">
@@ -622,8 +609,7 @@
     { id:'agents',        label:'AGENTS',        url:'agents.html',      title:'AGENTS' },
     { id:'creds',         label:'CREDENTIALS',   url:'credentials.html', title:'CREDENTIALS' },
     { id:'constellation', label:'CONSTELLATION', url:'constellation.html', title:'CONSTELLATION', clickView:'constellation' },
-    { id:'comp',          label:'COMPETITION',   url:'competition.html',  title:'COMPETITION' },
-    { id:'studio',        label:'STUDIO',        url:'studio.html',       title:'STUDIO' }
+    { id:'comp',          label:'COMPETITION',   url:'competition.html',  title:'COMPETITION' }
   ];
   var state = { open:{}, widths:{} };   // widths in % van het werkvlak
   try{
