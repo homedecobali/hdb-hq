@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Meta Studio · Ads naslagwerk · DEWI</title>
+<script src="dewi-frame.js"></script><!-- uniforme volledig-scherm / cockpit-toggle -->
+<style>
+:root{
+  --bg:#0e1116; --panel:#161b22; --panel-2:#1c232d; --line:#2a323d;
+  --txt:#e6edf3; --muted:#9aa7b4; --dim:#6b7684;
+  --ok:#2ea043; --ok-bg:#12261a; --no:#e5484d; --no-bg:#2a1416;
+  --accent:#4c8dff; --amber:#e0a13a; --radius:14px;
+  --meta:#ff3f9a;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--txt);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+a{color:inherit}
+.wrap{max-width:1280px;margin:0 auto;padding:22px 18px 60px}
+.top{display:flex;align-items:center;margin-bottom:18px;gap:12px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:10px;font-size:15px;font-weight:600;letter-spacing:.2px;margin-right:auto}
+.brand .dot{width:9px;height:9px;border-radius:50%;background:var(--meta)}
+.count{font-size:13px;color:var(--muted);background:var(--panel);border:1px solid var(--line);
+  padding:6px 12px;border-radius:999px;white-space:nowrap}
+.nav{font-size:13px;color:var(--dim);text-decoration:none}
+.nav:hover{color:var(--muted)}
+
+/* ---- controls ---- */
+.controls{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:14px}
+.seg{display:inline-flex;background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:3px}
+.seg button{border:none;background:transparent;color:var(--muted);font-size:12.5px;font-weight:600;
+  padding:6px 15px;border-radius:999px;cursor:pointer;transition:.12s}
+.seg button.on{background:var(--panel-2);color:var(--txt);box-shadow:inset 0 0 0 1px var(--line)}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:11.5px;color:var(--dim);margin-left:auto}
+.legend .lg{display:inline-flex;align-items:center;gap:5px}
+.legend .sw{width:9px;height:9px;border-radius:50%}
+.freshness{font-size:11.5px;color:var(--dim)}
+
+/* ---- campaign / adset groups ---- */
+.camp{margin-bottom:24px;border:1px solid var(--line);border-radius:var(--radius);
+  background:linear-gradient(180deg,#141922 0%,#12151c 100%);overflow:hidden}
+.camphead{display:flex;align-items:center;gap:10px;padding:13px 16px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.camphead .cd{width:9px;height:9px;border-radius:50%;background:var(--meta);flex:none}
+.camphead .cname{font-size:14px;font-weight:600;letter-spacing:.2px}
+.camphead .ctot{margin-left:auto;display:flex;gap:16px;align-items:baseline;flex-wrap:wrap}
+.camphead .kv{font-size:11.5px;color:var(--dim);white-space:nowrap}
+.camphead .kv b{color:var(--txt);font-size:13px;font-weight:700;margin-left:4px}
+
+.adset{padding:6px 14px 4px}
+.adsethead{display:flex;align-items:center;gap:8px;padding:9px 4px 8px;flex-wrap:wrap}
+.adsethead .asn{font-size:12.5px;font-weight:600;color:var(--muted)}
+.adsethead .astot{margin-left:auto;display:flex;gap:13px;flex-wrap:wrap}
+.adsethead .astot .kv{font-size:11px;color:var(--dim);white-space:nowrap}
+.adsethead .astot .kv b{color:var(--muted);font-weight:700;margin-left:3px}
+
+/* ---- ad card ---- */
+.ads{display:flex;flex-wrap:wrap;gap:12px;padding:2px 4px 14px}
+.adcard{width:206px;background:var(--panel);border:1px solid var(--line);border-radius:12px;overflow:hidden;
+  display:flex;flex-direction:column}
+.adcard .frame{position:relative;background:#000;cursor:zoom-in;aspect-ratio:4/5}
+.adcard .frame img{width:100%;height:100%;display:block;object-fit:cover;background:#000}
+.adcard .noimg{width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:var(--dim);font-size:28px}
+.adcard .status{position:absolute;top:7px;left:7px;font-size:9.5px;font-weight:700;padding:2px 8px;border-radius:999px;
+  letter-spacing:.03em;background:rgba(0,0,0,.66);color:#fff;display:inline-flex;align-items:center;gap:4px}
+.adcard .status .sd{width:6px;height:6px;border-radius:50%}
+.adcard .stale{position:absolute;top:7px;right:7px;font-size:9px;font-weight:700;padding:2px 7px;border-radius:999px;
+  background:rgba(224,161,58,.9);color:#1a1204}
+.adcard .body{padding:9px 10px 11px;display:flex;flex-direction:column;gap:8px;flex:1}
+.adcard .adname{font-size:12px;line-height:1.3;color:var(--txt);
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:31px}
+.adcard .metrics{display:grid;grid-template-columns:1fr 1fr;gap:7px 10px;margin-top:auto}
+.adcard .m{display:flex;flex-direction:column;gap:1px}
+.adcard .m .k{font-size:9.5px;color:var(--dim);text-transform:uppercase;letter-spacing:.04em}
+.adcard .m .v{font-size:13px;font-weight:700;color:var(--txt)}
+.adcard .m .v.above{color:var(--ok)} .adcard .m .v.below{color:var(--no)} .adcard .m .v.idle{color:var(--dim)}
+.adcard .sub{font-size:10px;color:var(--dim);display:flex;gap:8px;flex-wrap:wrap;border-top:1px solid var(--line);padding-top:7px}
+
+/* ---- gaps ---- */
+.gaps{margin-top:10px;border:1px dashed var(--line);border-radius:12px;padding:13px 16px;
+  background:var(--panel);color:var(--muted);font-size:12px;line-height:1.55}
+.gaps h4{margin:0 0 6px;font-size:12px;font-weight:600;color:var(--txt);display:flex;align-items:center;gap:7px}
+.gaps h4 .cd{width:8px;height:8px;border-radius:50%;background:var(--amber)}
+.gaps ul{margin:0;padding-left:18px} .gaps li{margin:2px 0}
+
+/* ---- states ---- */
+.state{text-align:center;padding:80px 20px;color:var(--muted)}
+.state .ico{font-size:46px;color:var(--dim);margin-bottom:14px}
+.state h2{font-size:18px;font-weight:600;color:var(--txt);margin:0 0 6px}
+.state p{font-size:13.5px;margin:0}
+.spinner{width:30px;height:30px;border:3px solid var(--line);border-top-color:var(--meta);
+  border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 16px}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ---- lightbox ---- */
+.lb{position:fixed;inset:0;background:rgba(0,0,0,.92);display:none;align-items:center;justify-content:center;
+  z-index:80;cursor:zoom-out;padding:24px}
+.lb.open{display:flex}
+.lb-inner{max-width:min(92vw,460px);max-height:92vh;display:flex;flex-direction:column;gap:12px;cursor:default}
+.lb img{max-width:100%;max-height:74vh;border-radius:12px;display:block;margin:0 auto;background:#000}
+.lb-cap{color:#cfd8e3;font-size:13px;line-height:1.5;white-space:pre-wrap}
+.lb-meta{color:var(--dim);font-size:12px}
+.lb-close{position:absolute;top:18px;right:22px;color:#fff;font-size:26px;cursor:pointer;
+  width:40px;height:40px;display:flex;align-items:center;justify-content:center;border-radius:50%;
+  background:rgba(255,255,255,.1)}
+
+@media(max-width:620px){ .adcard{width:100%} .legend{width:100%;margin-left:0} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="brand"><span class="dot"></span> Meta Studio · ads naslagwerk</div>
+    <div style="display:flex;align-items:center;gap:14px">
+      <span class="count" id="count">—</span>
+      <a class="nav" href="studio.html">social ↗</a>
+      <a class="nav" href="kpi.html">← dashboard</a>
+    </div>
+  </header>
+
+  <div class="controls">
+    <div class="seg" id="seg">
+      <button data-p="7d" class="on">7 dagen</button>
+      <button data-p="28d">28 dagen</button>
+    </div>
+    <div class="legend">
+      <span class="lg"><span class="sw" style="background:var(--ok)"></span>ROAS ≥ 1,58</span>
+      <span class="lg"><span class="sw" style="background:var(--no)"></span>onder break-even</span>
+      <span class="lg"><span class="sw" style="background:var(--dim)"></span>geen levering</span>
+      <span class="lg freshness" id="fresh"></span>
+    </div>
+  </div>
+
+  <div id="stage">
+    <div class="state"><div class="spinner"></div><p>Laden…</p></div>
+  </div>
+</div>
+
+<div class="lb" id="lb">
+  <div class="lb-close" id="lbClose">✕</div>
+  <div class="lb-inner" id="lbInner"></div>
+</div>
+
+<script>
+const SUPA = "https://jucubuoftjehwancegma.supabase.co";
+const ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp1Y3VidW9mdGplaHdhbmNlZ21hIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI2OTYwMDIsImV4cCI6MjA5ODI3MjAwMn0.gKYBE76kVv5XdMb-GuFAELdSp5R7OjCIiUzw7hW2Jus";
+const HDR = {apikey:ANON, Authorization:`Bearer ${ANON}`};
+
+const stage=document.getElementById('stage');
+const countEl=document.getElementById('count');
+const freshEl=document.getElementById('fresh');
+let PERIOD='7d';
+let ROWS=[];
+
+const esc=s=>(s==null?'':String(s)).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const eur0=n=>'€'+Math.round(Number(n)||0).toLocaleString('nl-NL');
+const roasTxt=n=>(Number(n)||0).toLocaleString('nl-NL',{minimumFractionDigits:2,maximumFractionDigits:2});
+const cpaTxt=n=>(n==null||n==='')?'—':'€'+Math.round(Number(n)).toLocaleString('nl-NL');
+const num=n=>(Number(n)||0).toLocaleString('nl-NL');
+function fmtK(n){n=Number(n)||0; if(n>=1000) return (n/1000).toFixed(n>=10000?0:1).replace('.',',')+'k'; return String(n);}
+function relTxt(iso){ if(!iso) return '—'; const d=new Date(iso), now=new Date();
+  const h=Math.floor((now-d)/3600000);
+  if(h<1) return 'zojuist'; if(h<24) return h+' u geleden';
+  const days=Math.floor(h/24); if(days===1) return 'gisteren'; if(days<7) return days+' dgn geleden';
+  return d.toLocaleDateString('nl-NL',{day:'numeric',month:'short'}); }
+
+const STATUS={
+  ACTIVE:['Actief','var(--ok)'], PAUSED:['Gepauzeerd','var(--dim)'],
+  ADSET_PAUSED:['Adset uit','var(--dim)'], CAMPAIGN_PAUSED:['Campagne uit','var(--dim)'],
+  PENDING_REVIEW:['In review','var(--amber)'], IN_PROCESS:['In proces','var(--amber)'],
+  WITH_ISSUES:['Probleem','var(--no)'], DISAPPROVED:['Afgekeurd','var(--no)']
+};
+function statusChip(s){ const m=STATUS[s]||[(s||'—'),'var(--dim)'];
+  return `<span class="status"><span class="sd" style="background:${m[1]}"></span>${esc(m[0])}</span>`; }
+
+async function load(){
+  try{
+    const r=await fetch(`${SUPA}/rest/v1/v_meta_studio?select=*`,{headers:HDR});
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    ROWS=await r.json();
+    render();
+  }catch(e){
+    stage.innerHTML=`<div class="state"><div class="ico">⚠</div><h2>Kon Meta Studio niet laden</h2>
+      <p>${esc(e.message)} — probeer te verversen.</p></div>`;
+  }
+}
+
+function render(){
+  const rows=ROWS.filter(r=>r.period===PERIOD);
+  // freshness = laatste pull in de dataset
+  let maxPull=null;
+  for(const r of ROWS){ if(r.pulled_at && (!maxPull || r.pulled_at>maxPull)) maxPull=r.pulled_at; }
+  freshEl.textContent = maxPull ? 'data van '+relTxt(maxPull) : '';
+
+  if(!rows.length){
+    countEl.textContent='0 ads · '+PERIOD;
+    stage.innerHTML=`<div class="state"><div class="ico">📭</div><h2>Nog geen Meta-data</h2>
+      <p>De spine-pull heeft nog niet gedraaid voor deze periode. Draai <b>Meta Studio Pull</b> in n8n of wacht op 08:15.</p></div>`;
+    return;
+  }
+
+  // groepeer campagne -> adset
+  const camps={};
+  for(const r of rows){
+    const cid=r.campaign_id||('name:'+r.campaign_name);
+    if(!camps[cid]) camps[cid]={id:cid,name:r.campaign_name,spend:0,rev:0,pur:0,adsets:{}};
+    const c=camps[cid];
+    c.spend+=Number(r.spend)||0; c.rev+=Number(r.revenue)||0; c.pur+=Number(r.purchases)||0;
+    const aid=r.adset_id||('name:'+r.adset_name);
+    if(!c.adsets[aid]) c.adsets[aid]={id:aid,name:r.adset_name,spend:0,rev:0,pur:0,ads:[]};
+    const a=c.adsets[aid];
+    a.spend+=Number(r.spend)||0; a.rev+=Number(r.revenue)||0; a.pur+=Number(r.purchases)||0;
+    a.ads.push(r);
+  }
+  const campList=Object.values(camps).sort((x,y)=>y.spend-x.spend);
+
+  let adCount=0, staleCount=0, noThumb=0;
+  let html='';
+  for(const c of campList){
+    const cRoas=c.spend>0?c.rev/c.spend:0;
+    const adsetList=Object.values(c.adsets).sort((x,y)=>y.spend-x.spend);
+    let inner='';
+    for(const a of adsetList){
+      const aRoas=a.spend>0?a.rev/a.spend:0;
+      const cards=a.ads.sort((x,y)=>(Number(y.spend)||0)-(Number(x.spend)||0)).map(r=>{
+        adCount++; if(r.stale) staleCount++; if(!r.thumb_url) noThumb++;
+        const be=r.be_status; // above | below | idle
+        const media=r.thumb_url
+          ? `<img loading="lazy" src="${esc(r.thumb_url)}" alt="" onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'noimg',textContent:'🖼'}))">`
+          : `<div class="noimg">🖼</div>`;
+        return `<div class="adcard" data-ad="${esc(r.ad_id)}">
+          <div class="frame" data-thumb="${esc(r.thumb_url||'')}" data-name="${esc(r.ad_name||'')}"
+               data-meta="${esc((r.effective_status||'')+' · '+PERIOD)}">
+            ${media}
+            ${statusChip(r.effective_status)}
+            ${r.stale?'<span class="stale">oud</span>':''}
+          </div>
+          <div class="body">
+            <div class="adname">${esc(r.ad_name||r.ad_id)}</div>
+            <div class="metrics">
+              <div class="m"><span class="k">Spend</span><span class="v">${eur0(r.spend)}</span></div>
+              <div class="m"><span class="k">ROAS</span><span class="v ${be}">${roasTxt(r.roas)}</span></div>
+              <div class="m"><span class="k">Aankopen</span><span class="v">${num(r.purchases)}</span></div>
+              <div class="m"><span class="k">CPA</span><span class="v ${r.cpa_ok?'above':(r.purchases>0?'below':'idle')}">${cpaTxt(r.cpa)}</span></div>
+            </div>
+            <div class="sub"><span>👁 ${fmtK(r.impressions)} impr</span><span>${fmtK(r.reach)} bereik</span><span>CTR ${roasTxt(r.ctr)}%</span></div>
+          </div>
+        </div>`;
+      }).join('');
+      inner+=`<div class="adset">
+        <div class="adsethead">
+          <span class="asn">${esc(a.name)}</span>
+          <span class="astot">
+            <span class="kv">spend<b>${eur0(a.spend)}</b></span>
+            <span class="kv">ROAS<b>${roasTxt(aRoas)}</b></span>
+            <span class="kv">aankopen<b>${num(a.pur)}</b></span>
+          </span>
+        </div>
+        <div class="ads">${cards}</div>
+      </div>`;
+    }
+    html+=`<div class="camp">
+      <div class="camphead">
+        <span class="cd"></span>
+        <span class="cname">${esc(c.name)}</span>
+        <span class="ctot">
+          <span class="kv">spend<b>${eur0(c.spend)}</b></span>
+          <span class="kv">ROAS<b>${roasTxt(cRoas)}</b></span>
+          <span class="kv">omzet<b>${eur0(c.rev)}</b></span>
+          <span class="kv">aankopen<b>${num(c.pur)}</b></span>
+        </span>
+      </div>
+      ${inner}
+    </div>`;
+  }
+
+  // expliciete gaten-regel
+  const gaps=[];
+  gaps.push('Alleen advertenties met <b>levering in de gekozen periode</b> verschijnen hier; gepauzeerde/gearchiveerde ads zonder levering vallen buiten beeld.');
+  gaps.push('ROAS/CPA zijn <b>Meta-native</b> (pixel-attributie) en break-even is ROAS&nbsp;1,58 / CPA&nbsp;€82 — dit staat los van de GA4-last-click cijfers in de KPI-kanalen.');
+  if(staleCount) gaps.push(`<b>${staleCount}</b> advertentie(s) niet ververst in de laatste run (levering mogelijk gestopt) — waarden zijn laatst bekend, gemarkeerd met <b>oud</b>.`);
+  if(noThumb) gaps.push(`<b>${noThumb}</b> advertentie(s) zonder thumbnail (Meta-CDN-link ontbreekt of verlopen).`);
+  html+=`<div class="gaps"><h4><span class="cd"></span>Gaten &amp; kanttekeningen</h4><ul>${gaps.map(g=>'<li>'+g+'</li>').join('')}</ul></div>`;
+
+  countEl.textContent=`${adCount} ads · ${campList.length} campagne(s) · ${PERIOD}`;
+  stage.innerHTML=html;
+  stage.querySelectorAll('.adcard .frame').forEach(el=>{ el.onclick=()=>openThumb(el); });
+}
+
+function openThumb(el){
+  const t=el.dataset.thumb, name=el.dataset.name, meta=el.dataset.meta;
+  const body=t?`<img src="${esc(t)}" alt="">`:`<div class="lb-cap">Geen thumbnail beschikbaar.</div>`;
+  showLb(`${body}
+    <div class="lb-cap" style="font-weight:600">${esc(name||'')}</div>
+    <div class="lb-meta">${esc(meta||'')}</div>`);
+}
+function showLb(inner){ document.getElementById('lbInner').innerHTML=inner; document.getElementById('lb').classList.add('open'); }
+function closeLightbox(){ document.getElementById('lb').classList.remove('open'); document.getElementById('lbInner').innerHTML=''; }
+document.getElementById('lb').onclick=closeLightbox;
+document.getElementById('lbClose').onclick=e=>{e.stopPropagation();closeLightbox();};
+document.getElementById('lbInner').onclick=e=>e.stopPropagation();
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeLightbox();});
+
+document.getElementById('seg').addEventListener('click',e=>{
+  const b=e.target.closest('button'); if(!b) return;
+  PERIOD=b.dataset.p;
+  document.querySelectorAll('#seg button').forEach(x=>x.classList.toggle('on',x===b));
+  render();
+});
+
+load();
+</script>
+</body>
+</html>
