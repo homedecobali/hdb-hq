@@ -18,7 +18,7 @@ html,body{margin:0;background:var(--bg);color:var(--txt);
   font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
 a{color:inherit}
 .wrap{max-width:1280px;margin:0 auto;padding:22px 18px 60px}
-.top{display:flex;align-items:center;margin-bottom:18px;gap:12px;flex-wrap:wrap}
+.top{display:flex;align-items:center;margin-bottom:16px;gap:12px;flex-wrap:wrap}
 .brand{display:flex;align-items:center;gap:10px;font-size:15px;font-weight:600;letter-spacing:.2px;margin-right:auto}
 .brand .dot{width:9px;height:9px;border-radius:50%;background:var(--meta)}
 .count{font-size:13px;color:var(--muted);background:var(--panel);border:1px solid var(--line);
@@ -27,57 +27,100 @@ a{color:inherit}
 .nav:hover{color:var(--muted)}
 
 /* ---- controls ---- */
-.controls{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:14px}
+.controls{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:16px}
 .seg{display:inline-flex;background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:3px}
 .seg button{border:none;background:transparent;color:var(--muted);font-size:12.5px;font-weight:600;
   padding:6px 15px;border-radius:999px;cursor:pointer;transition:.12s}
 .seg button.on{background:var(--panel-2);color:var(--txt);box-shadow:inset 0 0 0 1px var(--line)}
-.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:11.5px;color:var(--dim);margin-left:auto}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:11.5px;color:var(--dim);margin-left:auto;align-items:center}
 .legend .lg{display:inline-flex;align-items:center;gap:5px}
 .legend .sw{width:9px;height:9px;border-radius:50%}
 .freshness{font-size:11.5px;color:var(--dim)}
 
-/* ---- campaign / adset groups ---- */
-.camp{margin-bottom:24px;border:1px solid var(--line);border-radius:var(--radius);
-  background:linear-gradient(180deg,#141922 0%,#12151c 100%);overflow:hidden}
-.camphead{display:flex;align-items:center;gap:10px;padding:13px 16px;border-bottom:1px solid var(--line);flex-wrap:wrap}
-.camphead .cd{width:9px;height:9px;border-radius:50%;background:var(--meta);flex:none}
-.camphead .cname{font-size:14px;font-weight:600;letter-spacing:.2px}
-.camphead .ctot{margin-left:auto;display:flex;gap:16px;align-items:baseline;flex-wrap:wrap}
-.camphead .kv{font-size:11.5px;color:var(--dim);white-space:nowrap}
-.camphead .kv b{color:var(--txt);font-size:13px;font-weight:700;margin-left:4px}
+/* ---- account KPI strip ---- */
+.kpibar{display:grid;grid-template-columns:repeat(6,1fr);gap:1px;background:var(--line);
+  border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;margin-bottom:8px}
+.kpibar .st{background:linear-gradient(180deg,#141922 0%,#12151c 100%);padding:13px 15px;display:flex;flex-direction:column;gap:3px}
+.kpibar .st .k{font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.05em}
+.kpibar .st .v{font-size:20px;font-weight:700;color:var(--txt);line-height:1.05;display:flex;align-items:baseline;gap:7px}
+.kpibar .st .v small{font-size:11px;font-weight:600;color:var(--dim)}
+.kpibar .st .v.above{color:var(--ok)} .kpibar .st .v.below{color:var(--no)}
+.pill{font-size:10px;font-weight:700;padding:2px 8px;border-radius:999px;letter-spacing:.02em}
+.pill.above{background:var(--ok-bg);color:var(--ok)} .pill.below{background:var(--no-bg);color:var(--no)}
+.pill.idle{background:var(--panel-2);color:var(--dim)}
+.caphint{font-size:11px;color:var(--dim);margin:0 2px 18px;display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.caphint b{color:var(--muted);font-weight:600}
 
-.adset{padding:6px 14px 4px}
-.adsethead{display:flex;align-items:center;gap:8px;padding:9px 4px 8px;flex-wrap:wrap}
-.adsethead .asn{font-size:12.5px;font-weight:600;color:var(--muted)}
+/* ---- campaign group ---- */
+.camp{margin-bottom:20px;border:1px solid var(--line);border-radius:var(--radius);
+  background:linear-gradient(180deg,#141922 0%,#12151c 100%);overflow:hidden;border-left:3px solid var(--dim)}
+.camp.above{border-left-color:var(--ok)} .camp.below{border-left-color:var(--no)} .camp.idle{border-left-color:var(--dim)}
+.camphead{display:flex;align-items:center;gap:12px;padding:13px 16px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.camphead .cname{font-size:14px;font-weight:600;letter-spacing:.2px;display:flex;align-items:center;gap:9px}
+.camphead .cname .cd{width:8px;height:8px;border-radius:50%;background:var(--meta);flex:none}
+.camphead .ctot{margin-left:auto;display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+.camphead .kv{font-size:11px;color:var(--dim);white-space:nowrap}
+.camphead .kv b{color:var(--txt);font-size:13px;font-weight:700;margin-left:4px}
+.share{display:flex;align-items:center;gap:8px;min-width:130px}
+.share .track{flex:1;height:6px;border-radius:999px;background:var(--panel-2);overflow:hidden}
+.share .fill{height:100%;border-radius:999px;background:var(--meta)}
+.share .lbl{font-size:10px;color:var(--dim);white-space:nowrap}
+
+.adset{padding:4px 14px 6px}
+.adsethead{display:flex;align-items:center;gap:8px;padding:10px 4px 8px;flex-wrap:wrap;border-top:1px solid var(--line)}
+.adset:first-of-type .adsethead{border-top:none}
+.adsethead .asn{font-size:12px;font-weight:600;color:var(--muted);display:flex;align-items:center;gap:7px}
+.adsethead .asn .adot{width:6px;height:6px;border-radius:50%;background:var(--dim)}
 .adsethead .astot{margin-left:auto;display:flex;gap:13px;flex-wrap:wrap}
 .adsethead .astot .kv{font-size:11px;color:var(--dim);white-space:nowrap}
 .adsethead .astot .kv b{color:var(--muted);font-weight:700;margin-left:3px}
 
-/* ---- ad card ---- */
-.ads{display:flex;flex-wrap:wrap;gap:12px;padding:2px 4px 14px}
-.adcard{width:206px;background:var(--panel);border:1px solid var(--line);border-radius:12px;overflow:hidden;
-  display:flex;flex-direction:column}
-.adcard .frame{position:relative;background:#000;cursor:zoom-in;aspect-ratio:4/5}
-.adcard .frame img{width:100%;height:100%;display:block;object-fit:cover;background:#000}
-.adcard .noimg{width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:var(--dim);font-size:28px}
-.adcard .status{position:absolute;top:7px;left:7px;font-size:9.5px;font-weight:700;padding:2px 8px;border-radius:999px;
-  letter-spacing:.03em;background:rgba(0,0,0,.66);color:#fff;display:inline-flex;align-items:center;gap:4px}
-.adcard .status .sd{width:6px;height:6px;border-radius:50%}
-.adcard .stale{position:absolute;top:7px;right:7px;font-size:9px;font-weight:700;padding:2px 7px;border-radius:999px;
-  background:rgba(224,161,58,.9);color:#1a1204}
-.adcard .body{padding:9px 10px 11px;display:flex;flex-direction:column;gap:8px;flex:1}
-.adcard .adname{font-size:12px;line-height:1.3;color:var(--txt);
-  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:31px}
-.adcard .metrics{display:grid;grid-template-columns:1fr 1fr;gap:7px 10px;margin-top:auto}
-.adcard .m{display:flex;flex-direction:column;gap:1px}
-.adcard .m .k{font-size:9.5px;color:var(--dim);text-transform:uppercase;letter-spacing:.04em}
-.adcard .m .v{font-size:13px;font-weight:700;color:var(--txt)}
-.adcard .m .v.above{color:var(--ok)} .adcard .m .v.below{color:var(--no)} .adcard .m .v.idle{color:var(--dim)}
-.adcard .sub{font-size:10px;color:var(--dim);display:flex;gap:8px;flex-wrap:wrap;border-top:1px solid var(--line);padding-top:7px}
+/* ---- ad cards: data-first, horizontal ---- */
+.ads{display:grid;grid-template-columns:repeat(auto-fill,minmax(310px,1fr));gap:11px;padding:4px 4px 14px}
+.adcard{display:flex;gap:11px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:11px;position:relative}
+.adcard::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;border-radius:12px 0 0 12px;background:var(--dim)}
+.adcard.above::before{background:var(--ok)} .adcard.below::before{background:var(--no)} .adcard.idle::before{background:var(--dim)}
+
+.thumb{position:relative;width:78px;height:78px;flex:none;border-radius:9px;overflow:hidden;background:var(--panel-2);
+  border:1px solid var(--line);cursor:zoom-in;display:flex;align-items:center;justify-content:center}
+.thumb img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;background:#000;z-index:1}
+.thumb .fmt{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;color:var(--dim);
+  text-align:center;padding:4px;line-height:1}
+.thumb .fmt svg{width:24px;height:24px;opacity:.85}
+.thumb .fmt .fl{font-size:8.5px;font-weight:700;text-transform:uppercase;letter-spacing:.03em;color:var(--muted)}
+.thumb.has-img .fmt{display:none}
+.thumb .statusdot{position:absolute;left:6px;top:6px;width:9px;height:9px;border-radius:50%;z-index:2;
+  box-shadow:0 0 0 2px rgba(0,0,0,.55)}
+.thumb .stale{position:absolute;right:5px;top:5px;z-index:2;font-size:8px;font-weight:700;padding:1px 5px;border-radius:999px;
+  background:rgba(224,161,58,.92);color:#1a1204}
+
+.info{flex:1;min-width:0;display:flex;flex-direction:column;gap:7px}
+.info .row1{display:flex;align-items:flex-start;gap:8px}
+.info .adname{font-size:12px;line-height:1.3;color:var(--txt);font-weight:600;flex:1;min-width:0;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.chip{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.03em;color:var(--muted);
+  background:var(--panel-2);border:1px solid var(--line);border-radius:999px;padding:2px 7px;white-space:nowrap;
+  display:inline-flex;align-items:center;gap:4px;flex:none}
+.chip svg{width:11px;height:11px}
+
+.mrow{display:flex;gap:14px;flex-wrap:wrap}
+.mrow .m{display:flex;flex-direction:column;gap:0}
+.mrow .m .k{font-size:9px;color:var(--dim);text-transform:uppercase;letter-spacing:.04em}
+.mrow .m .v{font-size:13px;font-weight:700;color:var(--txt)}
+.mrow .m .v.above{color:var(--ok)} .mrow .m .v.below{color:var(--no)} .mrow .m .v.idle{color:var(--dim)}
+
+/* break-even bar */
+.bev{display:flex;align-items:center;gap:8px}
+.bev .track{flex:1;position:relative;height:7px;border-radius:999px;background:var(--panel-2);overflow:hidden}
+.bev .fill{position:absolute;left:0;top:0;bottom:0;border-radius:999px}
+.bev .fill.above{background:var(--ok)} .bev .fill.below{background:var(--no)}
+.bev .tick{position:absolute;top:-2px;bottom:-2px;width:2px;background:var(--muted);opacity:.7}
+.bev .bl{font-size:9.5px;color:var(--dim);white-space:nowrap;min-width:52px;text-align:right}
+
+.subline{font-size:10px;color:var(--dim);display:flex;gap:10px;flex-wrap:wrap}
 
 /* ---- gaps ---- */
-.gaps{margin-top:10px;border:1px dashed var(--line);border-radius:12px;padding:13px 16px;
+.gaps{margin-top:12px;border:1px dashed var(--line);border-radius:12px;padding:13px 16px;
   background:var(--panel);color:var(--muted);font-size:12px;line-height:1.55}
 .gaps h4{margin:0 0 6px;font-size:12px;font-weight:600;color:var(--txt);display:flex;align-items:center;gap:7px}
 .gaps h4 .cd{width:8px;height:8px;border-radius:50%;background:var(--amber)}
@@ -97,14 +140,20 @@ a{color:inherit}
   z-index:80;cursor:zoom-out;padding:24px}
 .lb.open{display:flex}
 .lb-inner{max-width:min(92vw,460px);max-height:92vh;display:flex;flex-direction:column;gap:12px;cursor:default}
-.lb img{max-width:100%;max-height:74vh;border-radius:12px;display:block;margin:0 auto;background:#000}
+.lb img{max-width:100%;max-height:70vh;border-radius:12px;display:block;margin:0 auto;background:#000}
+.lb-fmt{margin:0 auto;width:180px;height:180px;border-radius:14px;border:1px solid var(--line);background:var(--panel-2);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;color:var(--dim)}
+.lb-fmt svg{width:56px;height:56px;opacity:.85}
+.lb-fmt .fl{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}
 .lb-cap{color:#cfd8e3;font-size:13px;line-height:1.5;white-space:pre-wrap}
 .lb-meta{color:var(--dim);font-size:12px}
+.lb-note{color:var(--amber);font-size:11.5px}
 .lb-close{position:absolute;top:18px;right:22px;color:#fff;font-size:26px;cursor:pointer;
   width:40px;height:40px;display:flex;align-items:center;justify-content:center;border-radius:50%;
   background:rgba(255,255,255,.1)}
 
-@media(max-width:620px){ .adcard{width:100%} .legend{width:100%;margin-left:0} }
+@media(max-width:820px){ .kpibar{grid-template-columns:repeat(3,1fr)} }
+@media(max-width:560px){ .kpibar{grid-template-columns:repeat(2,1fr)} .ads{grid-template-columns:1fr} .legend{width:100%;margin-left:0} }
 </style>
 </head>
 <body>
@@ -145,6 +194,8 @@ a{color:inherit}
 const SUPA = "https://jucubuoftjehwancegma.supabase.co";
 const ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp1Y3VidW9mdGplaHdhbmNlZ21hIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI2OTYwMDIsImV4cCI6MjA5ODI3MjAwMn0.gKYBE76kVv5XdMb-GuFAELdSp5R7OjCIiUzw7hW2Jus";
 const HDR = {apikey:ANON, Authorization:`Bearer ${ANON}`};
+const BE_ROAS = 1.58;               // break-even ROAS
+const BEV_SCALE = 4;                // schaal-max van de break-even-balk (ROAS 4 = vol)
 
 const stage=document.getElementById('stage');
 const countEl=document.getElementById('count');
@@ -164,14 +215,32 @@ function relTxt(iso){ if(!iso) return '—'; const d=new Date(iso), now=new Date
   const days=Math.floor(h/24); if(days===1) return 'gisteren'; if(days<7) return days+' dgn geleden';
   return d.toLocaleDateString('nl-NL',{day:'numeric',month:'short'}); }
 
+/* ---- advertentie-status ---- */
 const STATUS={
   ACTIVE:['Actief','var(--ok)'], PAUSED:['Gepauzeerd','var(--dim)'],
   ADSET_PAUSED:['Adset uit','var(--dim)'], CAMPAIGN_PAUSED:['Campagne uit','var(--dim)'],
   PENDING_REVIEW:['In review','var(--amber)'], IN_PROCESS:['In proces','var(--amber)'],
   WITH_ISSUES:['Probleem','var(--no)'], DISAPPROVED:['Afgekeurd','var(--no)']
 };
-function statusChip(s){ const m=STATUS[s]||[(s||'—'),'var(--dim)'];
-  return `<span class="status"><span class="sd" style="background:${m[1]}"></span>${esc(m[0])}</span>`; }
+function statusMeta(s){ return STATUS[s]||[(s||'—'),'var(--dim)']; }
+
+/* ---- creatief-formaat afgeleid uit de advertentienaam (voor het fallback-tegeltje) ---- */
+const ICONS={
+  image:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8.5" cy="9.5" r="1.6"/><path d="M4 17l4.5-4.5a2 2 0 0 1 2.8 0L20 20"/></svg>',
+  carousel:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="7" y="5" width="10" height="14" rx="2"/><path d="M4 8v8" stroke-linecap="round"/><path d="M20 8v8" stroke-linecap="round"/></svg>',
+  catalog:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3.5" y="3.5" width="7" height="7" rx="1.4"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.4"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.4"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.4"/></svg>',
+  video:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M10 9l5 3-5 3z" fill="currentColor" stroke="none"/></svg>',
+  creative:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 3l1.9 4.9L19 9.8l-4.1 2.4L14 17l-2-3.4L8 17l1-4.8L5 9.8l5.1-1.9z" stroke-linejoin="round"/></svg>'
+};
+const FMT_LABEL={image:'Afbeelding',carousel:'Carousel',catalog:'Catalogus',video:'Video',creative:'Creatief'};
+function adFormat(name){
+  const n=(name||'').toLowerCase();
+  if(/reel|video|clip/.test(n)) return 'video';
+  if(/carousel|carrossel|carrusel/.test(n)) return 'carousel';
+  if(/dynamic|catalog|cat[aá]logo|product set|best sellers|lighting|vases|baskets|low ticket|decoration ·|decoration\b/.test(n)) return 'catalog';
+  if(/image ad|imagem|imagen|single|foto|photo/.test(n)) return 'image';
+  return 'creative';
+}
 
 async function load(){
   try{
@@ -185,9 +254,10 @@ async function load(){
   }
 }
 
+function beClass(rev,spend){ if(!(Number(spend)>0)) return 'idle'; return (Number(rev)/Number(spend))>=BE_ROAS?'above':'below'; }
+
 function render(){
   const rows=ROWS.filter(r=>r.period===PERIOD);
-  // freshness = laatste pull in de dataset
   let maxPull=null;
   for(const r of ROWS){ if(r.pulled_at && (!maxPull || r.pulled_at>maxPull)) maxPull=r.pulled_at; }
   freshEl.textContent = maxPull ? 'data van '+relTxt(maxPull) : '';
@@ -199,57 +269,91 @@ function render(){
     return;
   }
 
-  // groepeer campagne -> adset
+  // account-totaal + groepeer campagne -> adset
+  let totSpend=0,totRev=0,totPur=0;
   const camps={};
   for(const r of rows){
+    const sp=Number(r.spend)||0, rv=Number(r.revenue)||0, pu=Number(r.purchases)||0;
+    totSpend+=sp; totRev+=rv; totPur+=pu;
     const cid=r.campaign_id||('name:'+r.campaign_name);
     if(!camps[cid]) camps[cid]={id:cid,name:r.campaign_name,spend:0,rev:0,pur:0,adsets:{}};
-    const c=camps[cid];
-    c.spend+=Number(r.spend)||0; c.rev+=Number(r.revenue)||0; c.pur+=Number(r.purchases)||0;
+    const c=camps[cid]; c.spend+=sp; c.rev+=rv; c.pur+=pu;
     const aid=r.adset_id||('name:'+r.adset_name);
     if(!c.adsets[aid]) c.adsets[aid]={id:aid,name:r.adset_name,spend:0,rev:0,pur:0,ads:[]};
-    const a=c.adsets[aid];
-    a.spend+=Number(r.spend)||0; a.rev+=Number(r.revenue)||0; a.pur+=Number(r.purchases)||0;
-    a.ads.push(r);
+    const a=c.adsets[aid]; a.spend+=sp; a.rev+=rv; a.pur+=pu; a.ads.push(r);
   }
   const campList=Object.values(camps).sort((x,y)=>y.spend-x.spend);
+  const accRoas=totSpend>0?totRev/totSpend:0;
+  const accCpa=totPur>0?totSpend/totPur:null;
+  const accCls=beClass(totRev,totSpend);
 
+  // ---- account KPI-strip ----
+  let head=`<div class="kpibar">
+    <div class="st"><span class="k">Spend</span><span class="v">${eur0(totSpend)}</span></div>
+    <div class="st"><span class="k">ROAS</span><span class="v ${accCls}">${roasTxt(accRoas)} <span class="pill ${accCls}">be 1,58</span></span></div>
+    <div class="st"><span class="k">Omzet</span><span class="v">${eur0(totRev)}</span></div>
+    <div class="st"><span class="k">Aankopen</span><span class="v">${num(totPur)}</span></div>
+    <div class="st"><span class="k">CPA</span><span class="v ${accCpa!=null&&accCpa<=82?'above':(totPur>0?'below':'idle')}">${cpaTxt(accCpa)}</span></div>
+    <div class="st"><span class="k">Campagnes · ads</span><span class="v">${campList.length} <small>· ${rows.length} ads</small></span></div>
+  </div>
+  <div class="caphint"><span>Budget-cap over de hele account: <b>≤ €110/dag · €900/week</b></span><span>·</span><span>break-even <b>ROAS 1,58 / CPA €82</b> (Meta-native pixel-attributie)</span></div>`;
+
+  // ---- campagnes ----
   let adCount=0, staleCount=0, noThumb=0;
-  let html='';
+  let body='';
   for(const c of campList){
+    const cCls=beClass(c.rev,c.spend);
     const cRoas=c.spend>0?c.rev/c.spend:0;
+    const share=totSpend>0?Math.round(c.spend/totSpend*100):0;
     const adsetList=Object.values(c.adsets).sort((x,y)=>y.spend-x.spend);
     let inner='';
     for(const a of adsetList){
       const aRoas=a.spend>0?a.rev/a.spend:0;
       const cards=a.ads.sort((x,y)=>(Number(y.spend)||0)-(Number(x.spend)||0)).map(r=>{
         adCount++; if(r.stale) staleCount++; if(!r.thumb_url) noThumb++;
-        const be=r.be_status; // above | below | idle
-        const media=r.thumb_url
-          ? `<img loading="lazy" src="${esc(r.thumb_url)}" alt="" onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'noimg',textContent:'🖼'}))">`
-          : `<div class="noimg">🖼</div>`;
-        return `<div class="adcard" data-ad="${esc(r.ad_id)}">
-          <div class="frame" data-thumb="${esc(r.thumb_url||'')}" data-name="${esc(r.ad_name||'')}"
-               data-meta="${esc((r.effective_status||'')+' · '+PERIOD)}">
-            ${media}
-            ${statusChip(r.effective_status)}
-            ${r.stale?'<span class="stale">oud</span>':''}
-          </div>
-          <div class="body">
-            <div class="adname">${esc(r.ad_name||r.ad_id)}</div>
-            <div class="metrics">
+        const be=r.be_status||beClass(r.revenue,r.spend);   // above | below | idle
+        const fmt=adFormat(r.ad_name);
+        const [slabel,scol]=statusMeta(r.effective_status);
+        const roas=Number(r.roas)||0;
+        // break-even balk
+        const tickPos=Math.min(BE_ROAS/BEV_SCALE,1)*100;
+        const fillW=be==='idle'?0:Math.min(roas/BEV_SCALE,1)*100;
+        const media=`<div class="thumb be-${be}" data-thumb="${esc(r.thumb_url||'')}" data-name="${esc(r.ad_name||'')}"
+             data-fmt="${fmt}" data-meta="${esc((slabel||'')+' · '+PERIOD)}">
+          <span class="fmt"><span class="ic">${ICONS[fmt]}</span><span class="fl">${esc(FMT_LABEL[fmt])}</span></span>
+          ${r.thumb_url?`<img referrerpolicy="no-referrer" loading="lazy" src="${esc(r.thumb_url)}" alt=""
+             onload="this.parentNode.classList.add('has-img')"
+             onerror="this.remove()">`:''}
+          <span class="statusdot" style="background:${scol}" title="${esc(slabel)}"></span>
+          ${r.stale?'<span class="stale">oud</span>':''}
+        </div>`;
+        return `<div class="adcard ${be}">
+          ${media}
+          <div class="info">
+            <div class="row1">
+              <div class="adname">${esc(r.ad_name||r.ad_id)}</div>
+              <span class="chip">${ICONS[fmt]}${esc(FMT_LABEL[fmt])}</span>
+            </div>
+            <div class="mrow">
               <div class="m"><span class="k">Spend</span><span class="v">${eur0(r.spend)}</span></div>
               <div class="m"><span class="k">ROAS</span><span class="v ${be}">${roasTxt(r.roas)}</span></div>
               <div class="m"><span class="k">Aankopen</span><span class="v">${num(r.purchases)}</span></div>
-              <div class="m"><span class="k">CPA</span><span class="v ${r.cpa_ok?'above':(r.purchases>0?'below':'idle')}">${cpaTxt(r.cpa)}</span></div>
+              <div class="m"><span class="k">CPA</span><span class="v ${r.cpa_ok?'above':(Number(r.purchases)>0?'below':'idle')}">${cpaTxt(r.cpa)}</span></div>
             </div>
-            <div class="sub"><span>👁 ${fmtK(r.impressions)} impr</span><span>${fmtK(r.reach)} bereik</span><span>CTR ${roasTxt(r.ctr)}%</span></div>
+            <div class="bev">
+              <div class="track">
+                ${be!=='idle'?`<div class="fill ${be}" style="width:${fillW.toFixed(1)}%"></div>`:''}
+                <div class="tick" style="left:${tickPos.toFixed(1)}%"></div>
+              </div>
+              <span class="bl">${be==='idle'?'geen levering':(be==='above'?'boven be':'onder be')}</span>
+            </div>
+            <div class="subline"><span>👁 ${fmtK(r.impressions)} impr</span><span>${fmtK(r.reach)} bereik</span><span>CTR ${roasTxt(r.ctr)}%</span></div>
           </div>
         </div>`;
       }).join('');
       inner+=`<div class="adset">
         <div class="adsethead">
-          <span class="asn">${esc(a.name)}</span>
+          <span class="asn"><span class="adot"></span>${esc(a.name)}</span>
           <span class="astot">
             <span class="kv">spend<b>${eur0(a.spend)}</b></span>
             <span class="kv">ROAS<b>${roasTxt(aRoas)}</b></span>
@@ -259,11 +363,11 @@ function render(){
         <div class="ads">${cards}</div>
       </div>`;
     }
-    html+=`<div class="camp">
+    body+=`<div class="camp ${cCls}">
       <div class="camphead">
-        <span class="cd"></span>
-        <span class="cname">${esc(c.name)}</span>
+        <span class="cname"><span class="cd"></span>${esc(c.name)}</span>
         <span class="ctot">
+          <span class="share"><span class="lbl">${share}%</span><span class="track"><span class="fill" style="width:${share}%"></span></span></span>
           <span class="kv">spend<b>${eur0(c.spend)}</b></span>
           <span class="kv">ROAS<b>${roasTxt(cRoas)}</b></span>
           <span class="kv">omzet<b>${eur0(c.rev)}</b></span>
@@ -274,23 +378,28 @@ function render(){
     </div>`;
   }
 
-  // expliciete gaten-regel
+  // ---- gaten & kanttekeningen ----
   const gaps=[];
   gaps.push('Alleen advertenties met <b>levering in de gekozen periode</b> verschijnen hier; gepauzeerde/gearchiveerde ads zonder levering vallen buiten beeld.');
+  gaps.push('Creatives komen van de <b>Meta-CDN</b> (scontent / external) met kortlevende, hotlink-beveiligde links — sommige laden niet betrouwbaar in de browser. Laadt een creatief niet, dan toont het tegeltje het <b>advertentietype</b> (carousel · catalogus · afbeelding). Klik voor een grotere weergave.');
   gaps.push('ROAS/CPA zijn <b>Meta-native</b> (pixel-attributie) en break-even is ROAS&nbsp;1,58 / CPA&nbsp;€82 — dit staat los van de GA4-last-click cijfers in de KPI-kanalen.');
   if(staleCount) gaps.push(`<b>${staleCount}</b> advertentie(s) niet ververst in de laatste run (levering mogelijk gestopt) — waarden zijn laatst bekend, gemarkeerd met <b>oud</b>.`);
-  if(noThumb) gaps.push(`<b>${noThumb}</b> advertentie(s) zonder thumbnail (Meta-CDN-link ontbreekt of verlopen).`);
-  html+=`<div class="gaps"><h4><span class="cd"></span>Gaten &amp; kanttekeningen</h4><ul>${gaps.map(g=>'<li>'+g+'</li>').join('')}</ul></div>`;
+  if(noThumb) gaps.push(`<b>${noThumb}</b> advertentie(s) zonder thumbnail-link in de bron.`);
+  body+=`<div class="gaps"><h4><span class="cd"></span>Gaten &amp; kanttekeningen</h4><ul>${gaps.map(g=>'<li>'+g+'</li>').join('')}</ul></div>`;
 
   countEl.textContent=`${adCount} ads · ${campList.length} campagne(s) · ${PERIOD}`;
-  stage.innerHTML=html;
-  stage.querySelectorAll('.adcard .frame').forEach(el=>{ el.onclick=()=>openThumb(el); });
+  stage.innerHTML=head+body;
+  stage.querySelectorAll('.thumb').forEach(el=>{ el.onclick=()=>openThumb(el); });
 }
 
 function openThumb(el){
-  const t=el.dataset.thumb, name=el.dataset.name, meta=el.dataset.meta;
-  const body=t?`<img src="${esc(t)}" alt="">`:`<div class="lb-cap">Geen thumbnail beschikbaar.</div>`;
-  showLb(`${body}
+  const t=el.dataset.thumb, name=el.dataset.name, meta=el.dataset.meta, fmt=el.dataset.fmt||'creative';
+  const fallback=`<div class="lb-fmt">${ICONS[fmt]}<span class="fl">${esc(FMT_LABEL[fmt]||'Creatief')}</span></div>
+    <div class="lb-note">Creatief laadt niet vanaf de Meta-CDN — hierboven het advertentietype.</div>`;
+  const body=t
+    ? `<img src="${esc(t)}" referrerpolicy="no-referrer" alt="" onerror="this.replaceWith(document.getElementById('lbFb').content.cloneNode(true))">`
+    : fallback;
+  showLb(`<template id="lbFb">${fallback}</template>${body}
     <div class="lb-cap" style="font-weight:600">${esc(name||'')}</div>
     <div class="lb-meta">${esc(meta||'')}</div>`);
 }
