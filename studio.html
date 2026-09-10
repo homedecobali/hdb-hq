@@ -149,6 +149,7 @@ a{color:inherit}
 .mailframe{width:100%;height:72vh;max-height:78vh;border:1px solid var(--line);border-radius:12px;background:#fff}
 .lb-links a.on{border-color:var(--accent);color:#fff}
 .orow.clk{cursor:zoom-in} .orow.clk:hover{background:var(--panel-2)}
+.orow.smclk{cursor:zoom-in} .orow.smclk:hover{background:var(--panel-2)}
 .orow .ochev{color:var(--dim);font-size:13px;flex:none;margin-left:2px}
 @media(max-width:620px){ .card{width:132px} .pcard{width:150px} }
 </style>
@@ -211,27 +212,29 @@ const SLOTS = [
   ['stories','Stories','video · 9:16','var(--stories)'],
   ['stills','Stills','story · 9:16','var(--stills)']
 ];
-let _feed = {}, _pending = [], _outs = [];
+let _feed = {}, _pending = [], _outs = [], _sent = [];
 
 async function loadStudio(){
   try{
-    const [rp,rf,ro] = await Promise.all([
+    const [rp,rf,ro,rm] = await Promise.all([
       fetch(`${SUPA}/rest/v1/v_dewi_studio?select=*`,{headers:HDR}),
       fetch(`${SUPA}/rest/v1/v_dewi_feed?select=*`,{headers:HDR}),
-      fetch(`${SUPA}/rest/v1/v_dewi_outputs?select=*&order=panel,sort`,{headers:HDR})
+      fetch(`${SUPA}/rest/v1/v_dewi_outputs?select=*&order=panel,sort`,{headers:HDR}),
+      fetch(`${SUPA}/rest/v1/v_dewi_sent_mailings?select=*&order=sent_at.desc`,{headers:HDR})
     ]);
     if(!rf.ok) throw new Error('feed HTTP '+rf.status);
     _pending = rp.ok ? await rp.json() : [];
     const rows = await rf.json();
     const outs = ro.ok ? await ro.json() : [];
-    renderStudio(_pending, rows, outs);
+    const sent = rm.ok ? await rm.json() : [];
+    renderStudio(_pending, rows, outs, sent);
   }catch(e){
     stage.innerHTML=`<div class="state"><div class="ico">⚠</div><h2>Kon Studio niet laden</h2>
       <p>${esc(e.message)} — probeer te verversen.</p></div>`;
   }
 }
 
-function renderStudio(pending, rows, outs){
+function renderStudio(pending, rows, outs, sent){
   const by={social:[],reels:[],stories:[],stills:[]};
   for(const x of rows){ if(by[x.slot]) by[x.slot].push(x); }
   _feed=by;
@@ -268,12 +271,15 @@ function renderStudio(pending, rows, outs){
   }
   _outs = outs||[];
   html += renderOutputs(outs||[]);
+  _sent = sent||[];
+  html += renderSentMailings(_sent);
   stage.innerHTML=html;
 
   stage.querySelectorAll('.card').forEach(el=>{ el.onclick=()=>openFeedMedia(el.dataset.slot, +el.dataset.i); });
   stage.querySelectorAll('.pcard .frame').forEach(el=>{ el.onclick=()=>openPendingMedia(+el.dataset.i); });
   stage.querySelectorAll('.mini').forEach(b=>{ b.onclick=()=>decideCard(b.dataset.id, b.dataset.kind, b); });
   stage.querySelectorAll('.orow.clk').forEach(el=>{ el.onclick=()=>{ const o=_outs.find(x=>x.key===el.dataset.okey); if(o) openMail({preview:o.ref_preview,label:o.label,mail_creative:o.ref_creative}); }; });
+  stage.querySelectorAll('.orow.smclk[data-smi]').forEach(el=>{ el.onclick=()=>{ const m=_sent[+el.dataset.smi]; if(m) openMail({preview:m.preview,label:mailSubject(m),mail_creative:m.mail_creative}); }; });
 }
 
 function pendingCard(p,i){
@@ -404,6 +410,46 @@ function renderOutputs(outs){
     return `<div class="opanel"><h3><span class="cd" style="background:${color}"></span>${ptitle}</h3>${orows}</div>`;
   }).join('');
   return `<div class="outs">${block}</div>`;
+}
+
+/* ============ verzonden nieuwsbrieven (klikbaar terug te lezen) ============ */
+function mailSubject(m){
+  const cre=Array.isArray(m.mail_creative)?m.mail_creative:[];
+  const es=cre.find(c=>c&&/^es/i.test(c.lang||''))||cre.find(c=>c&&c.subject);
+  if(es&&es.subject) return es.subject;
+  const first=(m.preview||'').split('\n')[0]||'';
+  return first.replace(/^\[[A-Z]{2}\]\s*/,'')||'Nieuwsbrief';
+}
+function renderSentMailings(sent){
+  if(!sent || !sent.length) return '';
+  const TYPE={product_news:['🛍️','Product'],story_news:['✉️','Verhaal'],overig:['📩','Overig']};
+  const rows=sent.map((m,i)=>{
+    const t=TYPE[m.mtype]||['📩','Nieuwsbrief'];
+    const subj=mailSubject(m);
+    const det=[t[1],m.variant].filter(Boolean).join(' · ');
+    const clk=Array.isArray(m.mail_creative)&&m.mail_creative.some(c=>c&&c.html);
+    return `<div class="orow${clk?' smclk':''}"${clk?` data-smi="${i}"`:''}>
+      <div class="oic">${t[0]}</div>
+      <div class="om">
+        <div class="oname">${esc(subj)}</div>
+        <div class="odet">${esc(det)}</div>
+      </div>
+      <div class="oright">
+        <div class="owhen">${esc(relTxt(m.sent_at))}</div>
+        <div class="odate">${esc(dateTxt(m.sent_at))}</div>
+      </div>
+      ${clk?'<div class="ochev">🔍</div>':'<div class="ochev">·</div>'}
+    </div>`;
+  }).join('');
+  return `<div class="row" style="margin-top:26px">
+    <div class="rowhead">
+      <span class="cd" style="background:var(--stories)"></span>
+      <span class="lbl">Verzonden nieuwsbrieven</span>
+      <span class="n">${sent.length}</span>
+      <span class="fmt">klik om terug te lezen · 180 dagen</span>
+    </div>
+    <div class="opanel">${rows}</div>
+  </div>`;
 }
 
 /* ============ single approval (?id=) ============ */
