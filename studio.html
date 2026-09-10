@@ -146,6 +146,10 @@ a{color:inherit}
   width:40px;height:40px;display:flex;align-items:center;justify-content:center;border-radius:50%;
   background:rgba(255,255,255,.1)}
 
+.mailframe{width:100%;height:72vh;max-height:78vh;border:1px solid var(--line);border-radius:12px;background:#fff}
+.lb-links a.on{border-color:var(--accent);color:#fff}
+.orow.clk{cursor:zoom-in} .orow.clk:hover{background:var(--panel-2)}
+.orow .ochev{color:var(--dim);font-size:13px;flex:none;margin-left:2px}
 @media(max-width:620px){ .card{width:132px} .pcard{width:150px} }
 </style>
 </head>
@@ -207,7 +211,7 @@ const SLOTS = [
   ['stories','Stories','video · 9:16','var(--stories)'],
   ['stills','Stills','story · 9:16','var(--stills)']
 ];
-let _feed = {}, _pending = [];
+let _feed = {}, _pending = [], _outs = [];
 
 async function loadStudio(){
   try{
@@ -262,12 +266,14 @@ function renderStudio(pending, rows, outs){
       <div class="strip">${cards}</div>
     </div>`;
   }
+  _outs = outs||[];
   html += renderOutputs(outs||[]);
   stage.innerHTML=html;
 
   stage.querySelectorAll('.card').forEach(el=>{ el.onclick=()=>openFeedMedia(el.dataset.slot, +el.dataset.i); });
   stage.querySelectorAll('.pcard .frame').forEach(el=>{ el.onclick=()=>openPendingMedia(+el.dataset.i); });
   stage.querySelectorAll('.mini').forEach(b=>{ b.onclick=()=>decideCard(b.dataset.id, b.dataset.kind, b); });
+  stage.querySelectorAll('.orow.clk').forEach(el=>{ el.onclick=()=>{ const o=_outs.find(x=>x.key===el.dataset.okey); if(o) openMail({preview:o.ref_preview,label:o.label,mail_creative:o.ref_creative}); }; });
 }
 
 function pendingCard(p,i){
@@ -334,6 +340,7 @@ function openFeedMedia(slot,i){
 
 function openPendingMedia(i){
   const p=_pending[i]; if(!p) return;
+  if(isMail(p)){ return openMail({preview:p.preview,label:(p.origin_label||p.title||'mailing'),kind:p.kind,mail_creative:p.mail_creative}); }
   const isVid=p.media_type==='video'&&p.video_url;
   let body;
   if(isVid) body=`<video src="${esc(p.video_url)}" controls autoplay playsinline></video>`;
@@ -379,7 +386,8 @@ function renderOutputs(outs){
     const items=outs.filter(o=>o.panel===pk);
     const orows=items.map(o=>{
       const amt=(o.amount!=null)?`<span class="oamt">${fmtN(o.amount)} ${esc(o.unit||'')}</span>`:'';
-      return `<div class="orow">
+      const clk=Array.isArray(o.ref_creative)&&o.ref_creative.length;
+      return `<div class="orow${clk?' clk':''}"${clk?` data-okey="${esc(o.key)}"`:''}>
         <div class="oic">${ICON[o.key]||'•'}</div>
         <div class="om">
           <div class="oname">${esc(o.label)}</div>
@@ -390,6 +398,7 @@ function renderOutputs(outs){
           <div class="odate">${o.last_sent?'laatst '+esc(dateTxt(o.last_sent)):'nog niet verzonden'}</div>
           ${amt}
         </div>
+        ${clk?'<div class="ochev">🔍</div>':''}
       </div>`;
     }).join('') || `<div class="orow"><div class="odet">Geen data.</div></div>`;
     return `<div class="opanel"><h3><span class="cd" style="background:${color}"></span>${ptitle}</h3>${orows}</div>`;
@@ -449,6 +458,26 @@ async function decideSingle(action){
     apBusy=false; if(up)up.disabled=false; if(down)down.disabled=false;
     toast('Actie mislukt: '+e.message,true);
   }
+}
+
+/* ============ mail preview ============ */
+function langOf(html){ const m=(html||'').match(/<html[^>]*lang="?([a-z]{2})/i); return m?m[1].toUpperCase():''; }
+function isMail(p){ return (Array.isArray(p.mail_creative)&&p.mail_creative.length)||p.kind==='newsletter'; }
+function openMail(o){
+  const cre=Array.isArray(o.mail_creative)?o.mail_creative.filter(c=>c&&c.html):[];
+  const inner=document.getElementById('lbInner'); inner.innerHTML='';
+  if(o.preview){ const s=document.createElement('div'); s.className='lb-cap'; s.style.whiteSpace='pre-wrap'; s.style.fontWeight='600'; s.textContent=o.preview; inner.appendChild(s); }
+  const meta=document.createElement('div'); meta.className='lb-meta'; meta.textContent=(o.label||o.kind||'mailing'); inner.appendChild(meta);
+  if(cre.length){
+    const tabs=document.createElement('div'); tabs.className='lb-links';
+    const frame=document.createElement('iframe'); frame.className='mailframe'; frame.setAttribute('sandbox','allow-same-origin'); frame.setAttribute('title','mail-preview');
+    const show=k=>{ frame.srcdoc=cre[k].html||''; [...tabs.children].forEach((a,j)=>a.classList.toggle('on',j===k)); };
+    cre.forEach((c,k)=>{ const a=document.createElement('a'); a.href='#'; a.textContent=langOf(c.html)||('Variant '+(k+1)); a.onclick=e=>{e.preventDefault();show(k);}; tabs.appendChild(a); });
+    if(cre.length>1) inner.appendChild(tabs);
+    inner.appendChild(frame);
+    show(0);
+  } else { const d=document.createElement('div'); d.className='lb-cap'; d.textContent='Geen mail-preview beschikbaar.'; inner.appendChild(d); }
+  document.getElementById('lb').classList.add('open');
 }
 
 /* ============ lightbox ============ */
