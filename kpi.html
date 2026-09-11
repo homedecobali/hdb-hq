@@ -15,6 +15,7 @@
     --red:#ff5d5d; --yellow:#ffd400; --muted:#7d8ca3; --text:#dfe8f5;
     /* zonekleuren: ver uit elkaar op de kleurcirkel, zodat elke groep direct herkenbaar is */
     --z-shop:#2fd47e; --z-meta:#ff3f9a; --z-stats:#00c8ff; --z-dewi:#a37bff;
+    --z-social:#ff9f40;
     --z-google:#4285f4;
   }
   *{box-sizing:border-box}
@@ -311,6 +312,10 @@
   #top .zgrp a.zshop{border-color:var(--z-shop);color:var(--z-shop);background:rgba(47,212,126,.10)}
   #top .zgrp a.zmeta{border-color:var(--z-meta);color:var(--z-meta);background:rgba(255,63,154,.10)}
   #top .zgrp a.zgoogle{border-color:var(--z-google);color:var(--z-google);background:rgba(66,133,244,.12)}
+  #top .zgrp a.zsocial{border-color:var(--z-social);color:var(--z-social);background:rgba(255,159,64,.12)}
+  /* Pagina-knoppen togglen een rechterpaneel i.p.v. extern te openen */
+  #top .zgrp a.pagebtn{cursor:pointer}
+  #top .zgrp a.pagebtn.on{box-shadow:inset 0 0 0 1px currentColor}
   #top .zgrp a.zstats{border-color:var(--z-stats);color:var(--z-stats);background:rgba(0,200,255,.10)}
   #top .zgrp a.zdewi{border-color:var(--z-dewi);color:var(--z-dewi);background:rgba(163,123,255,.10)}
 
@@ -345,9 +350,9 @@
     <a class="zstats" href="#z-stats">STATS</a>
     <a class="zdewi"  href="#z-dewi">DEWI</a></span>
    <span class="zgrp"><span class="lbl">Pagina</span>
-    <a class="zmeta" href="studio.html">Studio ↗</a>
-    <a class="zmeta" href="meta-studio.html">Meta Studio ↗</a>
-    <a class="zgoogle" href="google-studio.html">Google Studio ↗</a></span>
+    <a class="zsocial pagebtn" data-page="social">Social-studio</a>
+    <a class="zmeta pagebtn" data-page="meta">Meta-studio</a>
+    <a class="zgoogle pagebtn" data-page="google">Google-studio</a></span>
   <span id="stamp"></span>
 </div>
 
@@ -672,11 +677,27 @@
     btns[p.id] = b;
   });
 
+  // ---- Pagina-studio's: openen in het rechterpaneel i.p.v. extern ----
+  // Zelfde sidepane/divider/drag-machinerie als PANELS, maar ZONDER dressPanel
+  // (studio's zijn schone standalone pagina's; hun eigen nav mag blijven staan).
+  var PAGES = [
+    { id:'social', url:'studio.html',        title:'SOCIAL-STUDIO',  page:true },
+    { id:'meta',   url:'meta-studio.html',   title:'META-STUDIO',    page:true },
+    { id:'google', url:'google-studio.html', title:'GOOGLE-STUDIO',  page:true }
+  ];
+  var pageById = {};
+  PAGES.forEach(function(p){ pageById[p.id] = p; });
+  Array.prototype.forEach.call(document.querySelectorAll('#top .zgrp a.pagebtn'), function(a){
+    var id = a.dataset.page;
+    btns[id] = a;                       // hergebruik de bestaande 'on'-toggle in buildPanes
+    a.addEventListener('click', function(e){ e.preventDefault(); togglePanel(id); });
+  });
+
   function buildPanes(){
     // verwijder bestaande sidepanes + dividers
     [].slice.call(work.querySelectorAll('.sidepane,.divider')).forEach(function(el){ el.remove(); });
-    PANELS.forEach(function(p){
-      btns[p.id].classList.toggle('on', !!state.open[p.id]);
+    PANELS.concat(typeof PAGES !== 'undefined' ? PAGES : []).forEach(function(p){
+      if(btns[p.id]) btns[p.id].classList.toggle('on', !!state.open[p.id]);
       if(!state.open[p.id]) return;
       var div = document.createElement('div');
       div.className = 'divider';
@@ -685,8 +706,9 @@
       pane.dataset.pid = p.id;
       pane.style.flex = '0 0 ' + (state.widths[p.id] || 30) + '%';
       var f = document.createElement('iframe');
-      f.src = p.url; f.title = p.label;
-      f.addEventListener('load', function(){ dressPanel(f, p); });
+      f.src = p.url; f.title = p.title || p.label || p.id;
+      // studio-pagina's (page:true) NIET aankleden: eigen nav mag blijven
+      if(!p.page) f.addEventListener('load', function(){ dressPanel(f, p); });
       pane.appendChild(f);
       work.appendChild(div);
       work.appendChild(pane);
