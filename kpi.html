@@ -451,6 +451,16 @@
         </div>
 
         <div class="card">
+          <h2><span class="dot" style="background:#ffd400"></span>Google Ads &mdash; omzet
+            <span class="when" id="gads-when"></span></h2>
+          <div class="nums" id="gads-nums"></div>
+          <div class="chart" id="gads-chart"></div>
+          <div class="legend"><span><i style="background:#ffd400"></i>Google omzet per dag (&euro;)</span>
+            <span><i style="background:var(--muted)"></i>Spend per dag (&euro;)</span></div>
+          <p id="gads-foot" style="color:var(--muted);font-size:11px;margin:10px 0 0"></p>
+        </div>
+
+        <div class="card">
           <h2><span class="dot" style="background:var(--cyan)"></span>Actieve advertenties
             <span class="when" id="live-when"></span></h2>
           <div class="nums" id="live-nums"></div>
@@ -1554,6 +1564,49 @@
           + ' \u00B7 per-campagne resultaten via ads_weekly_metrics')
         : '';
 
+      // ---- GOOGLE ADS (bron: bridge_kpi_daily source=google; Google Ads-attributie, niet GA4) ----
+      var GBRK = 1.58; // break-even ROAS (AOV ~130, marge 70%) — zelfde lijn als de Google Review
+      var gpv = pivot(kpi, 'google'); var g28 = lastDates(gpv, 28); var gl = lastTwo(gpv);
+      var gRev30 = 0, gSpend30 = 0, gConv30 = 0;
+      Object.keys(gpv).forEach(function(d){
+        gRev30 += (gpv[d].revenue || 0); gSpend30 += (gpv[d].spend || 0); gConv30 += (gpv[d].purchases || 0);
+      });
+      var gRoas30 = gSpend30 > 0 ? (gRev30 / gSpend30) : 0;
+      var gHasData = Object.keys(gpv).length > 0 && (gRev30 > 0 || gSpend30 > 0);
+      $('gads-when').textContent = gl.lastDate ? '\u2014 last 28 days, t/m ' + gl.lastDate : '';
+      if(gHasData){
+        var roasCls = gRoas30 >= GBRK ? 'up' : (gRoas30 > 0 ? 'down' : 'flat');
+        $('gads-nums').innerHTML =
+          num('Google omzet 30d', '\u20AC' + gRev30.toFixed(2), '') +
+          num('spend 30d', '\u20AC' + gSpend30.toFixed(2), '') +
+          num('ROAS 30d', gRoas30.toFixed(2) + '\u00d7',
+              '<span class="d ' + roasCls + '">' + (gRoas30 >= GBRK ? '\u25B2 boven' : '\u25BC onder') + ' 1,58</span>') +
+          num('omzet (' + (gl.lastDate ? gl.lastDate.slice(5) : 'last day') + ')',
+              '\u20AC' + (gl.last.revenue || 0).toFixed(2), delta(gl.last.revenue, gl.prev.revenue)) +
+          num('conversies 30d', fmt(gConv30), '');
+        if(g28.length >= 2){
+          $('gads-chart').innerHTML = barChart(g28, [
+            { values: vals(gpv, g28, 'revenue'), color: '#ffd400' },
+            { values: vals(gpv, g28, 'spend'),   color: CLR.muted }
+          ], null, 210);
+          hookHover($('gads-chart'), g28, [
+            { label: 'Google omzet', values: vals(gpv, g28, 'revenue'), color: '#ffd400', format: eur2 },
+            { label: 'Spend',        values: vals(gpv, g28, 'spend'),   color: CLR.muted, format: eur2 },
+            { label: 'Conversies',   values: vals(gpv, g28, 'purchases'), color: CLR.green }
+          ], true);
+        } else {
+          $('gads-chart').innerHTML = '<p style="color:var(--muted);font-size:12px;margin:20px 0">Nog te weinig dagen voor een grafiek.</p>';
+        }
+        $('gads-foot').textContent = 'Break-even ROAS 1,58 (AOV ~\u20AC130, marge 70%). '
+          + 'Omzet = Google Ads conversiewaarde (Google\u2019s eigen attributie), niet GA4 last-click \u2014 daarom hoger dan de kanalenkaart hieronder. '
+          + 'Bron: bridge_kpi_daily (source=google), gevoed door \u201cHDB \u00b7 GOOGLE ADS \u00b7 Review\u201d (wekelijks ma 08:00).';
+      } else {
+        $('gads-nums').innerHTML = '';
+        $('gads-chart').innerHTML = '';
+        $('gads-foot').innerHTML = 'Nog geen Google Ads-data in bridge_kpi_daily (source = <b>google</b>). '
+          + 'Verschijnt na de eerstvolgende run van \u201cHDB \u00b7 GOOGLE ADS \u00b7 Review\u201d (ma 08:00) zodra Basic Access / leestoegang live is.';
+      }
+
       var open = memos.slice().sort(function(a,b){ return (a.days_left||0) - (b.days_left||0); });
       $('memo-count').textContent = '('+open.length+' open)';
       zset('zs-dewi-todo', String(open.length),
@@ -2267,6 +2320,13 @@
       var dt = String(r.date);
       (daily[dt] = daily[dt] || {})[k] = ((daily[dt] || {})[k] || 0) + rev;
     });
+    // Google-omzet uit Google Ads-attributie (bridge_kpi_daily source=google) erbij,
+    // want GA4/ads_metrics kent Google niet.
+    (chanState.goog || []).forEach(function(r){
+      var rev = Number(r.value || 0); if(!rev) return;
+      var dt = String(r.kpi_date);
+      (daily[dt] = daily[dt] || {}).google = ((daily[dt] || {}).google || 0) + rev;
+    });
     // 7-daags voortschrijdend totaal per kanaal over de volle reeks
     var roll = {};
     CHAN_DEF.forEach(function(c){
@@ -2316,7 +2376,8 @@
       + 'Attributie is GA4 last-click: Meta Ads = Facebook_UA, Organic Social = link-in-bio. '
       + 'Let op: organische social wordt door last-click stelselmatig onderschat \u2014 volgers zien je op IG en kopen later via Google of direct, '
       + 'dus een vlakke social-lijn betekent niet dat je following niets doet. '
-      + 'Google, E-mail en Direct verschijnen zodra de workflow \u201cHDB \u00b7 OFFICE \u00b7 Metrics GA4\u201d ook niet-Meta-bronnen ophaalt \u00b7 bron: ads_metrics (source=ga4).';
+      + 'Google = Google Ads-conversiewaarde (bridge_kpi_daily source=google), niet GA4 last-click. '
+      + 'E-mail en Direct verschijnen zodra de workflow \u201cHDB \u00b7 OFFICE \u00b7 Metrics GA4\u201d ook niet-Meta-bronnen ophaalt \u00b7 bron: ads_metrics (source=ga4) + bridge_kpi_daily (google).';
   }
   async function loadChannels(){
     var since = chanCutoff(90);
@@ -2325,8 +2386,16 @@
       .select('kpi_date,metric,value')
       .eq('source', 'meta_social').eq('metric', 'ig_followers')
       .gte('kpi_date', since).order('kpi_date', { ascending: true });
+    // Google-omzet komt uit Google Ads (bridge_kpi_daily source=google), niet uit
+    // ads_metrics/GA4 — Google auto-tagging levert geen hdb-utm. We injecteren die
+    // dagomzet in de kanaal-trend zodat 'Google' een eerlijke lijn krijgt.
+    var resG = await sb.from('bridge_kpi_daily')
+      .select('kpi_date,value')
+      .eq('source', 'google').eq('metric', 'revenue')
+      .gte('kpi_date', since).order('kpi_date', { ascending: true });
     chanState.rows = resA.data || [];
     chanState.foll = (resF && !resF.error) ? (resF.data || []) : [];
+    chanState.goog = (resG && !resG.error) ? (resG.data || []) : [];
     chanState.err = resA.error || null;
     renderChannels();
   }
