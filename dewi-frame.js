@@ -26,6 +26,20 @@
 (function (global) {
   "use strict";
 
+  /* --- HDB favicon (Zegel licht) — één bron voor alle dash-pagina's --------
+     dewi-frame.js wordt door elke cockpit-pagina geladen (kpi, organisation,
+     agents, competition, studio), dus hier gezet verschijnt de favicon op
+     alle tabs ineens. Bron: Cloudinary Zegel_licht, on-the-fly naar 64px. */
+  (function setFavicon(){
+    try{
+      var HREF = "https://res.cloudinary.com/dkujwmni2/image/upload/w_64,h_64,c_fit,f_png/v1787578926/Zegel_licht_ub6gym.png";
+      var link = document.querySelector('link[rel~="icon"]');
+      if(!link){ link = document.createElement("link"); link.rel = "icon"; document.head.appendChild(link); }
+      link.type = "image/png";
+      link.href = HREF;
+    }catch(e){}
+  })();
+
   var CFG     = global.DEWI_CONFIG || global.BRIDGE_CONFIG || {};
   var COCKPIT = CFG.COCKPIT_URL || "kpi.html";
 
