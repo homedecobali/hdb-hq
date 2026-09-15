@@ -517,7 +517,7 @@ function agentCardsHTML(d){
   }
   return html;
 }
-function managerVisualHTML(mgr,color,i){
+function managerVisualHTML(mgr,color,i,showRole=true){
   return `<div class="stage3d">
       <div class="floor3d"></div>
       <div class="av3d">
@@ -527,7 +527,7 @@ function managerVisualHTML(mgr,color,i){
       </div>
     </div>
     <div class="mgr-name"><span class="sd"></span>${mgr.persona}</div>
-    <div class="mgr-role">${mgr.role}</div>`;
+    ${showRole?`<div class="mgr-role">${mgr.role}</div>`:""}`;
 }
 function wireAgentCards(scope){
   scope.querySelectorAll(".agent-unit").forEach(unit=>{
@@ -663,7 +663,7 @@ function buildOrgOnce(){
         </div>
         <div class="mgr-card">
           <span class="mgr-eyebrow">Manager</span>
-          ${managerVisualHTML(mgr,d.color,i)}
+          ${managerVisualHTML(mgr,d.color,i,false)}
         </div>
         <div class="team">${agentCardsHTML(d)}</div>`;
       board.appendChild(lane);
