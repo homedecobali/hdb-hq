@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Bridge - Office</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="bridge-config.js"></script>
+<script src="bridge-frame.js"></script>
+<script src="bridge-agents.js"></script>
+<style>
+  :root{
+    --bg:#070b12; --panel:#0d1420; --panel2:#111a29; --line:#1c2940;
+    --cyan:#00d4ff; --green:#3ee08f; --red:#ff5f6b; --amber:#ffb547; --muted:#7d8ca3; --text:#dfe8f5;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{margin:0;background:var(--bg);color:var(--text);font:14px/1.5 "Segoe UI",system-ui,-apple-system,sans-serif;overflow:hidden}
+  .mono{font-family:ui-monospace,"Cascadia Code","JetBrains Mono",Consolas,monospace}
+  header{display:flex;align-items:center;gap:14px;padding:10px 18px;border-bottom:1px solid var(--line);background:var(--panel);height:54px}
+  header .brand{font-weight:900;letter-spacing:.28em;color:var(--cyan);font-size:15px;white-space:nowrap}
+  #depts{display:flex;gap:6px;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}
+  #depts::-webkit-scrollbar{display:none}
+  .dept-btn{flex:none;display:inline-flex;align-items:center;gap:7px;padding:5px 12px;border-radius:20px;border:1px solid var(--line);
+    background:var(--panel2);color:var(--muted);cursor:pointer;font:inherit;font-size:12px;white-space:nowrap}
+  .dept-btn:hover{color:var(--text)}
+  .dept-btn.sel{color:var(--text);border-color:var(--dc);box-shadow:inset 0 0 0 1px var(--dc)}
+  .dept-btn .sw{width:8px;height:8px;border-radius:50%;background:var(--dc)}
+  .dept-btn:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
+  #counts{margin-left:auto;font-size:12px;color:var(--muted);white-space:nowrap}
+  .layout{display:grid;grid-template-columns:1fr 300px;height:calc(100% - 54px)}
+  @media (max-width:900px){ .layout{grid-template-columns:1fr} aside{display:none} }
+  #stage{position:relative;overflow:hidden;background:radial-gradient(ellipse at 50% 30%,#0e1a2e 0%,#070b12 70%)}
+  #stage canvas{display:block;width:100%;height:100%;cursor:crosshair}
+  #tip{position:absolute;pointer-events:none;display:none;background:rgba(13,20,32,.95);border:1px solid var(--line);
+    border-radius:8px;padding:8px 11px;font-size:12px;max-width:260px;z-index:3}
+  #tip b{display:block;font-size:13px;margin-bottom:2px}
+  #tip .st{color:var(--muted)}
+  #stage .msg{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:13px}
+  #legend{position:absolute;left:14px;bottom:12px;font-size:11px;color:var(--muted);display:flex;gap:14px;flex-wrap:wrap}
+  #legend span::before{content:"";display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px;background:var(--c)}
+  aside{background:var(--panel);border-left:1px solid var(--line);display:flex;flex-direction:column;min-height:0}
+  aside h2{margin:0;padding:11px 14px;font-size:11px;letter-spacing:.22em;color:var(--muted);text-transform:uppercase;border-bottom:1px solid var(--line)}
+  #agent-list{overflow-y:auto;flex:1 1 55%;min-height:0}
+  .agent-row{display:flex;align-items:center;gap:9px;width:100%;text-align:left;padding:7px 14px;background:none;border:none;color:var(--text);cursor:pointer;font:inherit;font-size:13px}
+  .agent-row:hover,.agent-row.selected{background:var(--panel2)}
+  .agent-row.selected{box-shadow:inset 3px 0 0 var(--cyan)}
+  .agent-row small{color:var(--muted);margin-left:auto;font-size:11px;white-space:nowrap}
+  .dot{width:8px;height:8px;border-radius:50%;flex:none}
+  #feed{overflow-y:auto;flex:1 1 45%;min-height:0;border-top:1px solid var(--line);font-size:12px}
+  #feed div{padding:6px 14px;border-bottom:1px solid var(--line);color:var(--muted)}
+  #feed div b{color:var(--text);font-weight:600}
+  #feed .t{font-size:10px;margin-right:6px}
+  #detail{padding:10px 14px;border-top:1px solid var(--line);font-size:12px;color:var(--muted);display:none}
+  #detail b{color:var(--text);font-size:13px}
+  #detail .err{color:var(--red);word-break:break-word;margin-top:4px}
+</style>
+</head>
+<body>
+<header>
+  <span class="brand">THE&nbsp;BRIDGE</span>
+  <div id="depts"></div>
+  <span id="counts"></span>
+</header>
+<div class="layout">
+  <div id="stage">
+    <canvas id="c"></canvas>
+    <div id="tip"></div>
+    <div id="legend">
+      <span style="--c:#3ee08f">ok</span><span style="--c:#00d4ff">bezig</span><span style="--c:#ffb547">verouderd</span>
+      <span style="--c:#ff5f6b">fout</span><span style="--c:#7d8ca3">stil / gepauzeerd</span>
+    </div>
+    <div class="msg" id="msg">Laden&hellip;</div>
+  </div>
+  <aside>
+    <h2 id="side-h2">Agents</h2>
+    <div id="agent-list"></div>
+    <div id="detail"></div>
+    <h2>Bewegingen</h2>
+    <div id="feed"></div>
+  </aside>
+</div>
+
+<script>
+(async function(){
+  "use strict";
+  const cfg = window.BRIDGE_CONFIG || {};
+  const sb = supabase.createClient(cfg.SUPABASE_URL, cfg.SUPABASE_ANON_KEY);
+  const { data: { session } } = await sb.auth.getSession();
+  if(!session){ location.href = "/"; return; }
+
+  const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+  const fmtDT = t => t ? new Date(t).toLocaleString("nl-NL",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"}) : "-";
+  const fmtT = t => new Date(t).toLocaleTimeString("nl-NL",{hour:"2-digit",minute:"2-digit"});
+  const COLOR = { ok:"#3ee08f", running:"#00d4ff", idle:"#7d8ca3", error:"#ff5f6b", stale:"#ffb547", paused:"#7d8ca3" };
+  const ACTIVE_MS = 2*3600*1000;     // scherm scrollt als de laatste run jonger is dan dit
+  const RECENT_MS = 30*60*1000;      // bij het laden: runs jonger dan dit spelen hun contact-loop
+  const POLL_MS = 60000;
+  const $ = id => document.getElementById(id);
+
+  /* ---------------- data ---------------- */
+  let layout = [], index = {}, deps = [], stepDefs = {};
+  const byId = {};
+  async function loadAll(){
+    const [lay, shared, dp, st] = await Promise.all([
+      sb.from("bridge_layout").select("*").order("dept_sort").order("cluster_sort").order("agent_sort"),
+      window.BRIDGE_AGENTS.load(sb),
+      sb.from("agent_dependency_health").select("agent_id,depends_on_agent_id,kind"),
+      sb.from("bridge_agent_steps").select("agent_id,step_no,label").order("step_no")
+    ]);
+    if(lay.error) throw new Error(lay.error.message);
+    layout = lay.data || [];
+    index = {}; shared.agents.forEach(a => index[a.agent_id] = a);
+    deps = dp.data || [];
+    stepDefs = {}; (st.data||[]).forEach(r => (stepDefs[r.agent_id] = stepDefs[r.agent_id] || []).push(r.label));
+    layout.forEach(r => byId[r.agent_id] = r);
+  }
+  const idx = id => index[id] || {};
+  const classify = id => window.BRIDGE_AGENTS.classify(index[id]);
+  const isActive = id => { const a = idx(id); return a.last_status === "running" || (a.last_run && Date.now() - new Date(a.last_run).getTime() < ACTIVE_MS); };
+  const shortName = s => String(s||"").replace(/^JARVIS-/,"").replace(/^[A-Za-z]+-/,"").slice(0,20);
+
+  // wie moet met wie contact opnemen: de volgende stap in dezelfde groep + iedereen die van deze agent afhangt
+  function contactsFor(id){
+    const a = byId[id]; if(!a) return [];
+    const out = [];
+    if(a.grp) layout.forEach(b => { if(b.agent_id !== id && b.grp === a.grp && b.grp_step === (a.grp_step||0)+1) out.push(b); });
+    deps.forEach(d => { if(d.depends_on_agent_id === id && byId[d.agent_id]) out.push(byId[d.agent_id]); });
+    return out;
+  }
+
+  /* ---------------- n8n-stappen voor de schermen (via /api/agent-run, vers token per call) ---------------- */
+  const stepCache = {};   // agent_id -> {execId, lines, at}
+  async function apiGet(qs){
+    const { data:{ session: live } } = await sb.auth.getSession();
+    const token = live && live.access_token;
+    if(!token) throw new Error("sessie verlopen");
+    const r = await fetch("/api/agent-run?"+qs, { headers: { authorization: "Bearer "+token }});
+    if(!r.ok) throw new Error("API "+r.status);
+    return r.json();
+  }
+  async function fetchSteps(id){
+    const wf = byId[id] && byId[id].n8n_workflow_id; if(!wf) return null;
+    try{
+      const {executions} = await apiGet("workflow_id="+wf+"&limit=1");
+      const e = executions && executions[0]; if(!e) return null;
+      const c = stepCache[id];
+      if(c && c.execId === e.id) return c.lines;
+      const {steps} = await apiGet("workflow_id="+wf+"&execution_id="+e.id);
+      const lines = steps.map(s => (s.status === "error" ? "\u2717 " : "\u2713 ") + s.node);
+      stepCache[id] = { execId: e.id, lines, at: Date.now() };
+      return lines;
+    }catch(err){ return null; }
+  }
+  let stepQueue = [], stepBusy = false;
+  async function pumpSteps(){
+    if(stepBusy) return; stepBusy = true;
+    while(stepQueue.length){
+      const id = stepQueue.shift();
+      const lines = await fetchSteps(id);
+      if(lines && scene.desks[id]) scene.desks[id].screen.lines = lines;
+      await new Promise(r => setTimeout(r, 250));
+    }
+    stepBusy = false;
+  }
+  function queueSteps(ids){ ids.forEach(id => { if(!stepQueue.includes(id)) stepQueue.push(id); }); pumpSteps(); }
+
+  /* ---------------- three.js ---------------- */
+  const canvas = $("c"), stage = $("stage");
+  const renderer = new THREE.WebGLRenderer({canvas, antialias:true, alpha:true});
+  renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+  const camera = new THREE.OrthographicCamera(-10,10,10,-10,0.1,500);
+  const world = new THREE.Scene();
+  world.add(new THREE.HemisphereLight(0xbfd7ff, 0x0b1424, 0.85));
+  const sun = new THREE.DirectionalLight(0xffffff, 0.75); sun.position.set(6,12,4); world.add(sun);
+  const back = new THREE.DirectionalLight(0x00d4ff, 0.25); back.position.set(-6,8,-6); world.add(back);
+  const root = new THREE.Group(); world.add(root);
+  const scene = { desks:{}, avatars:[], W:20, D:16, door:null, doorZ:0, deptColor:"#00d4ff" };
+  const M = {
+    floor: null,
+    wall: new THREE.MeshLambertMaterial({color:0x1a2740}),
+    wallTop: new THREE.MeshLambertMaterial({color:0x2a3b5c}),
+    desk: new THREE.MeshLambertMaterial({color:0x2b3a57}),
+    deskTop: new THREE.MeshLambertMaterial({color:0x3a4d73}),
+    chair: new THREE.MeshLambertMaterial({color:0x1d2a44}),
+    monitor: new THREE.MeshLambertMaterial({color:0x0b1220}),
+    cabinet: new THREE.MeshLambertMaterial({color:0x3d4a66}),
+    pot: new THREE.MeshLambertMaterial({color:0x5a4634}),
+    leaf: new THREE.MeshLambertMaterial({color:0x2e9e6b}),
+    skin: new THREE.MeshLambertMaterial({color:0xf1c8a5}),
+    hair: new THREE.MeshLambertMaterial({color:0x2b2118}),
+    dark: new THREE.MeshLambertMaterial({color:0x0a0f1a}),
+    edge: new THREE.LineBasicMaterial({color:0x00d4ff, transparent:true, opacity:.35})
+  };
+  const box = (w,h,d,mat) => new THREE.Mesh(new THREE.BoxGeometry(w,h,d), mat);
+  function edged(mesh){ const l = new THREE.LineSegments(new THREE.EdgesGeometry(mesh.geometry), M.edge); mesh.add(l); return mesh; }
+  function textSprite(txt, color, size){
+    const cv = document.createElement("canvas"); cv.width = 512; cv.height = 96;
+    const x = cv.getContext("2d"); x.font = "bold 40px Segoe UI, system-ui, sans-serif"; x.textAlign = "center";
+    x.fillStyle = "rgba(7,11,18,.55)"; x.fillRect(0,0,512,96);
+    x.fillStyle = color; x.fillText(txt.slice(0,24), 256, 62);
+    const sp = new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(cv), transparent:true, depthTest:false}));
+    sp.scale.set(size*5.33, size, 1); return sp;
+  }
+  function windowTexture(){
+    const cv = document.createElement("canvas"); cv.width = 256; cv.height = 160; const x = cv.getContext("2d");
+    const g = x.createLinearGradient(0,0,0,160); g.addColorStop(0,"#050a1a"); g.addColorStop(1,"#0d1a3a");
+    x.fillStyle = g; x.fillRect(0,0,256,160);
+    for(let i=0;i<70;i++){ x.fillStyle = "rgba(255,255,255,"+(0.3+Math.random()*0.7)+")"; x.fillRect(Math.random()*256, Math.random()*130, 1.5, 1.5); }
+    x.strokeStyle = "rgba(0,212,255,.35)"; x.lineWidth = 3; x.strokeRect(2,2,252,156); x.beginPath(); x.moveTo(128,0); x.lineTo(128,160); x.stroke();
+    return new THREE.CanvasTexture(cv);
+  }
+  function floorTexture(W,D){
+    const cv = document.createElement("canvas"); cv.width = W*32; cv.height = D*32; const x = cv.getContext("2d");
+    x.fillStyle = "#0c1626"; x.fillRect(0,0,cv.width,cv.height);
+    x.strokeStyle = "rgba(0,212,255,.13)"; x.lineWidth = 1;
+    for(let i=0;i<=W;i++){ x.beginPath(); x.moveTo(i*32,0); x.lineTo(i*32,cv.height); x.stroke(); }
+    for(let j=0;j<=D;j++){ x.beginPath(); x.moveTo(0,j*32); x.lineTo(cv.width,j*32); x.stroke(); }
+    const t = new THREE.CanvasTexture(cv); return t;
+  }
+
+  /* --- scherm: canvas-texture per monitor --- */
+  function makeScreen(id){
+    const cv = document.createElement("canvas"); cv.width = 256; cv.height = 160;
+    const tex = new THREE.CanvasTexture(cv);
+    return { cv, ctx: cv.getContext("2d"), tex, id, lines: null, offset: 0, last: 0 };
+  }
+  function drawScreen(s, active){
+    const x = s.ctx, a = idx(s.id), st = classify(s.id), col = COLOR[st] || COLOR.idle;
+    x.fillStyle = "#06111f"; x.fillRect(0,0,256,160);
+    x.fillStyle = col; x.fillRect(0,0,256,22);
+    x.fillStyle = "#06111f"; x.font = "bold 13px Consolas, monospace"; x.textAlign = "left";
+    x.fillText(shortName(a.agent_name || byId[s.id].agent_name).toUpperCase(), 8, 16);
+    x.textAlign = "right"; x.fillText(active ? "RUN" : st.toUpperCase(), 248, 16); x.textAlign = "left";
+    const lines = s.lines || stepDefs[s.id] || [];
+    x.font = "12px Consolas, monospace";
+    if(active && lines.length){
+      const lh = 17, total = lines.length*lh + 40;
+      x.save(); x.beginPath(); x.rect(0,24,256,136); x.clip();
+      for(let k=-1;k<2;k++){
+        lines.forEach((ln,i) => {
+          const y = 42 + i*lh - (s.offset % total) + k*total;
+          if(y < 20 || y > 170) return;
+          x.fillStyle = ln.charAt(0) === "\u2717" ? "#ff5f6b" : (i === lines.length-1 ? "#00d4ff" : "#9fb3cc");
+          x.fillText(ln.slice(0,34), 8, y);
+        });
+      }
+      x.restore();
+      x.fillStyle = "#00d4ff"; if(Math.floor(performance.now()/500)%2) x.fillRect(8,150,7,2);
+    } else {
+      x.fillStyle = "#4b5a72";
+      x.fillText(a.schedule_human ? a.schedule_human.slice(0,34) : "vraaggestuurd", 8, 52);
+      x.fillText("laatste run " + fmtDT(a.last_run), 8, 72);
+      if(!lines.length) x.fillText("wacht op werk", 8, 92);
+      else lines.slice(0,4).forEach((ln,i) => x.fillText("\u00b7 " + ln.slice(0,32), 8, 92 + i*17));
+    }
+    s.tex.needsUpdate = true;
+  }
+
+  /* --- avatar --- */
+  function makeAvatar(col){
+    const g = new THREE.Group();
+    const shirt = new THREE.MeshLambertMaterial({color: col});
+    const legL = box(.16,.42,.18,M.dark), legR = box(.16,.42,.18,M.dark);
+    legL.position.set(-.1,.21,0); legR.position.set(.1,.21,0);
+    const hipL = new THREE.Group(), hipR = new THREE.Group(); hipL.position.set(-.1,.42,0); hipR.position.set(.1,.42,0);
+    legL.position.set(0,-.21,0); legR.position.set(0,-.21,0); hipL.add(legL); hipR.add(legR);
+    const body = box(.42,.5,.26,shirt); body.position.y = .67;
+    const armL = new THREE.Group(), armR = new THREE.Group(); armL.position.set(-.29,.88,0); armR.position.set(.29,.88,0);
+    const aL = box(.12,.42,.14,shirt), aR = box(.12,.42,.14,shirt); aL.position.y = -.19; aR.position.y = -.19; armL.add(aL); armR.add(aR);
+    const head = box(.34,.32,.32,M.skin); head.position.y = 1.1;
+    const hair = box(.36,.1,.34,M.hair); hair.position.y = 1.29;
+    const eyeL = box(.05,.05,.02,M.dark), eyeR = box(.05,.05,.02,M.dark); eyeL.position.set(-.08,1.12,.17); eyeR.position.set(.08,1.12,.17);
+    g.add(hipL,hipR,body,armL,armR,head,hair,eyeL,eyeR);
+    return { g, hipL, hipR, armL, armR, head, body };
+  }
+
+  /* --- kamer bouwen voor een afdeling --- */
+  function clearRoot(){ while(root.children.length){ const c = root.children.pop(); c.traverse(o => { if(o.geometry) o.geometry.dispose(); if(o.material && o.material.map && o.material.map.dispose) o.material.map.dispose(); }); } }
+  function buildDept(deptId){
+    clearRoot(); scene.desks = {}; scene.avatars = []; stepQueue = [];
+    const rows = layout.filter(r => r.bridge_dept === deptId);
+    const dept = rows[0] || {}; scene.deptColor = dept.dept_color || "#00d4ff";
+    // pods = clusters; losse agents in een eigen pod
+    const pods = {}; const order = [];
+    rows.forEach(r => { const k = r.cluster_id || "_"; if(!pods[k]){ pods[k] = {label: r.cluster_label || "", sort: r.cluster_id ? (r.cluster_sort||0) : 999, agents: []}; order.push(k);} pods[k].agents.push(r); });
+    order.sort((a,b) => pods[a].sort - pods[b].sort);
+    const SX = 2.1, SZ = 2.7, PER_ROW = 4, MAXW = 2*PER_ROW*SX + 2.5;
+    const placed = []; let cx = 0, cz = 0, rowD = 0, maxW = 0;
+    order.forEach(k => {
+      const p = pods[k], n = p.agents.length, cols = Math.min(n, PER_ROW), rws = Math.ceil(n/cols);
+      const w = cols*SX, d = rws*SZ;
+      if(cx + w > MAXW && cx > 0){ cz += rowD + 1.6; cx = 0; rowD = 0; }
+      p.agents.forEach((a,i) => { const c = i % cols, r = Math.floor(i/cols); placed.push({a, x: cx + c*SX + SX/2, z: cz + r*SZ + SZ/2, pod: p, px: cx, pz: cz, pw: w, pd: d, first: i === 0}); });
+      cx += w + 1.6; rowD = Math.max(rowD, d); maxW = Math.max(maxW, cx - 1.6);
+    });
+    const totalD = cz + rowD;
+    const W = Math.max(12, maxW + 4.5), D = Math.max(10, totalD + 4.5);
+    scene.W = W; scene.D = D;
+    const ox = -W/2 + 2.8, oz = -D/2 + 2.4;   // kantoor begint linksachter, corridor links vrij voor de deur
+    // vloer
+    const floor = new THREE.Mesh(new THREE.PlaneGeometry(W,D), new THREE.MeshLambertMaterial({map: floorTexture(Math.round(W),Math.round(D))}));
+    floor.rotation.x = -Math.PI/2; root.add(floor);
+    // wanden (links en achter), met lichte bovenrand
+    const wb = box(W+.3, 3.2, .18, M.wall); wb.position.set(0,1.6,-D/2-.09); root.add(wb);
+    const wl = box(.18, 3.2, D+.3, M.wall); wl.position.set(-W/2-.09,1.6,0); root.add(wl);
+    const tb = box(W+.3,.06,.22,M.wallTop); tb.position.set(0,3.2,-D/2-.09); root.add(tb);
+    const tl = box(.22,.06,D+.3,M.wallTop); tl.position.set(-W/2-.09,3.2,0); root.add(tl);
+    const sk = box(W,.12,.06,M.wallTop); sk.position.set(0,.06,-D/2+.03); root.add(sk);
+    const sk2 = box(.06,.12,D,M.wallTop); sk2.position.set(-W/2+.03,.06,0); root.add(sk2);
+    // naambord van de afdeling op de achterwand
+    const sign = textSprite((dept.dept_icon||"") + " " + (dept.dept_name||deptId), scene.deptColor, .9); sign.position.set(-W/2+4.2, 2.75, -D/2+.2); root.add(sign);
+    // vensters achterwand + linkerwand
+    const wt = windowTexture();
+    const nWin = Math.max(1, Math.floor((W-6)/4.5));
+    for(let i=0;i<nWin;i++){
+      const wx = -W/2 + 7 + i*4.5; if(wx > W/2-1.5) break;
+      const win = new THREE.Mesh(new THREE.PlaneGeometry(2.4,1.4), new THREE.MeshBasicMaterial({map: wt})); win.position.set(wx,1.95,-D/2+.02); root.add(win);
+    }
+    const nWinL = Math.max(1, Math.floor((D-5)/4.5));
+    for(let i=0;i<nWinL;i++){
+      const wz = -D/2 + 2.2 + i*4.5; if(wz > D/2 - 4.5) break;
+      const win = new THREE.Mesh(new THREE.PlaneGeometry(2.4,1.4), new THREE.MeshBasicMaterial({map: wt})); win.rotation.y = Math.PI/2; win.position.set(-W/2+.02,1.95,wz); root.add(win);
+    }
+    // deur op de linkerwand, vooraan
+    scene.doorZ = D/2 - 1.6;
+    const frame = edged(box(.12, 2.2, 1.1, M.wallTop)); frame.position.set(-W/2+.06, 1.1, scene.doorZ); root.add(frame);
+    const opening = box(.06, 2.05, .95, M.dark); opening.position.set(-W/2+.1, 1.02, scene.doorZ); root.add(opening);
+    const dsign = textSprite("\u2192 andere afdeling", "#7d8ca3", .45); dsign.position.set(-W/2+.4, 2.55, scene.doorZ); root.add(dsign);
+    // archiefkasten langs de achterwand en de linkerwand, planten in de hoeken
+    for(let x = -W/2 + 1.2; x < W/2 - 1; x += 3.6){
+      const cab = edged(box(.9,1.35,.45,M.cabinet)); cab.position.set(x,.675,-D/2+.25); root.add(cab); }
+    for(let z = -D/2 + 1.2; z < scene.doorZ - 2.2; z += 3.6){ const cab = edged(box(.45,1.35,.9,M.cabinet)); cab.position.set(-W/2+.25,.675,z); root.add(cab); }
+    [[W/2-.8,-D/2+.8],[-W/2+.8,D/2-.8],[W/2-.8,D/2-.8]].forEach(([px,pz]) => {
+      const pot = new THREE.Mesh(new THREE.CylinderGeometry(.25,.2,.4,10), M.pot); pot.position.set(px,.2,pz); root.add(pot);
+      const leaf = new THREE.Mesh(new THREE.SphereGeometry(.42,8,6), M.leaf); leaf.position.set(px,.8,pz); leaf.scale.y = 1.3; root.add(leaf);
+    });
+    // pods + buros
+    const seen = new Set();
+    placed.forEach(p => {
+      const x = ox + p.x, z = oz + p.z;
+      if(p.first && !seen.has(p.pod)){
+        seen.add(p.pod);
+        const mat = new THREE.Mesh(new THREE.PlaneGeometry(p.pw+.5, p.pd+.5), new THREE.MeshBasicMaterial({color: new THREE.Color(scene.deptColor), transparent:true, opacity:.07}));
+        mat.rotation.x = -Math.PI/2; mat.position.set(ox+p.px+p.pw/2, .01, oz+p.pz+p.pd/2); root.add(mat);
+        if(p.pod.label){ const lab = textSprite(p.pod.label, scene.deptColor, .55); lab.position.set(ox+p.px+p.pw/2, 2.05, oz+p.pz-.4); root.add(lab); }
+      }
+      buildDesk(p.a, x, z);
+    });
+    // camera
+    const s = Math.max(W, D) * .62 + 1.5, asp = stage.clientWidth / Math.max(1, stage.clientHeight);
+    camera.left = -s*asp; camera.right = s*asp; camera.top = s; camera.bottom = -s; camera.updateProjectionMatrix();
+    camera.position.set(60, 52, 60); camera.lookAt(0, 0.6, 0);
+    // schermen vullen
+    queueSteps(rows.filter(r => isActive(r.agent_id)).map(r => r.agent_id));
+    // wie recent draaide, speelt zijn contact-loop bij het laden (gespreid)
+    let delay = 800;
+    rows.forEach(r => { const a = idx(r.agent_id); if(a.last_run && Date.now() - new Date(a.last_run).getTime() < RECENT_MS){ setTimeout(() => triggerContact(r.agent_id, true), delay); delay += 2200; } });
+  }
+  function buildDesk(a, x, z){
+    const id = a.agent_id, g = new THREE.Group(); g.position.set(x, 0, z);
+    const top = edged(box(1.4,.06,.7,M.deskTop)); top.position.y = .74; top.userData.agentId = id; g.add(top);
+    const l1 = box(.06,.72,.66,M.desk), l2 = box(.06,.72,.66,M.desk); l1.position.set(-.64,.36,0); l2.position.set(.64,.36,0); g.add(l1,l2);
+    const kb = box(.42,.02,.14,M.dark); kb.position.set(.25,.78,.02); g.add(kb);
+    const stand = box(.08,.14,.08,M.monitor); stand.position.set(-.3,.84,-.18); g.add(stand);
+    const bezel = edged(box(.72,.46,.05,M.monitor)); bezel.position.set(-.3,1.14,-.2); bezel.userData.agentId = id; g.add(bezel);
+    const screen = makeScreen(id);
+    const sm = new THREE.Mesh(new THREE.PlaneGeometry(.64,.4), new THREE.MeshBasicMaterial({map: screen.tex})); sm.position.set(-.3,1.14,-.17); g.add(sm);
+    const chair = box(.5,.08,.5,M.chair); chair.position.set(.25,.45,-.75); g.add(chair);
+    const cb = box(.5,.5,.08,M.chair); cb.position.set(.25,.75,-.98); g.add(cb);
+    const col = new THREE.Color(scene.deptColor).offsetHSL(((id.length*37)%40-20)/360, 0, ((id.charCodeAt(0)%5)-2)*.05);
+    const av = makeAvatar(col);
+    av.g.position.set(.25, .04, -.75); g.add(av.g);
+    av.g.traverse(o => { o.userData.agentId = id; });
+    root.add(g);
+    const seat = new THREE.Vector3(x+.25, 0, z-.75);
+    const d = { id, g, screen, av, seat, x, z, state:"sit", t:0, path:null, pi:0, pos: seat.clone(), fade:1, retTo:null };
+    scene.desks[id] = d; scene.avatars.push(d);
+    drawScreen(screen, isActive(id));
+  }
+
+  /* --- bewegingen --- */
+  function feed(msg){ const f = $("feed"); const div = document.createElement("div"); div.innerHTML = "<span class='t mono'>"+fmtT(Date.now())+"</span>"+msg; f.prepend(div); while(f.children.length > 14) f.lastChild.remove(); }
+  function triggerContact(id, silent){
+    const d = scene.desks[id]; if(!d || d.state !== "sit") return;
+    const targets = contactsFor(id); if(!targets.length) return;
+    const t = targets[0]; const same = scene.desks[t.agent_id];
+    const aisleZ = d.z - 1.45;      // gangpad achter de eigen rij
+    const path = [new THREE.Vector3(d.x, 0, aisleZ)];
+    if(same){
+      const goal = new THREE.Vector3(same.x + .85, 0, same.z - .75);
+      path.push(new THREE.Vector3(same.x + .85, 0, aisleZ), new THREE.Vector3(same.x + .85, 0, same.z - 1.45), goal);
+      d.mode = "visit";
+      feed("<b>"+esc(shortName(idx(id).agent_name||id))+"</b> loopt naar <b>"+esc(shortName(idx(t.agent_id).agent_name||t.agent_id))+"</b>");
+    } else {
+      const corr = -scene.W/2 + 1.35;
+      path.push(new THREE.Vector3(corr, 0, aisleZ), new THREE.Vector3(corr, 0, scene.doorZ), new THREE.Vector3(-scene.W/2 + .3, 0, scene.doorZ));
+      d.mode = "door";
+      feed("<b>"+esc(shortName(idx(id).agent_name||id))+"</b> gaat de deur uit naar <b>"+esc(t.dept_name||t.bridge_dept)+"</b> ("+esc(shortName(idx(t.agent_id).agent_name||t.agent_id))+")");
+    }
+    d.path = path; d.pi = 0; d.state = "stand"; d.t = 0; d.retTo = path.slice().reverse().concat([d.seat.clone()]);
+  }
+  function setPose(d, sitting){
+    const a = d.av;
+    a.g.position.y = sitting ? .04 : 0;
+    a.hipL.rotation.x = a.hipR.rotation.x = sitting ? -Math.PI/2 : 0;
+    a.armL.rotation.x = a.armR.rotation.x = sitting ? -1.15 : 0;
+  }
+  const SPEED = 2.6;
+  function stepAvatar(d, dt, now){
+    const a = d.av;
+    if(d.state === "sit"){
+      const active = isActive(d.id), k = now/1000;
+      a.armL.rotation.x = -1.15 + (active ? Math.sin(k*9)*.18 : Math.sin(k*1.2)*.03);
+      a.armR.rotation.x = -1.15 + (active ? Math.sin(k*9 + 1.6)*.18 : Math.cos(k*1.1)*.03);
+      a.head.rotation.y = -.35 + Math.sin(k*.7 + d.x)*.12; a.head.position.y = 1.1 + (active ? Math.sin(k*4.5)*.012 : Math.sin(k*1.5)*.006);
+      a.g.rotation.y = 0; return;
+    }
+    if(d.state === "stand"){ d.t += dt; setPose(d, false); a.g.position.y = 0; d.pos.copy(d.seat); if(d.t > .4){ d.state = "walk"; d.t = 0; } return; }
+    if(d.state === "walk" || d.state === "return"){
+      const list = d.state === "walk" ? d.path : d.retTo, goal = list[d.pi];
+      const dir = goal.clone().sub(d.pos), dist = dir.length();
+      if(dist < .04){ d.pi++; if(d.pi >= list.length){ if(d.state === "walk"){ d.state = d.mode === "door" ? "away" : "talk"; d.t = 0; if(d.mode==="door") a.g.visible = false; } else { d.state = "sitdown"; d.t = 0; } } return; }
+      const mv = Math.min(dist, SPEED*dt); d.pos.add(dir.normalize().multiplyScalar(mv));
+      a.g.position.set(d.pos.x - d.x, 0, d.pos.z - d.z);
+      a.g.rotation.y = Math.atan2(dir.x, dir.z);
+      const k = now/1000*9; a.hipL.rotation.x = Math.sin(k)*.7; a.hipR.rotation.x = -Math.sin(k)*.7; a.armL.rotation.x = -Math.sin(k)*.5; a.armR.rotation.x = Math.sin(k)*.5;
+      a.g.position.y = Math.abs(Math.sin(k))*.05; return;
+    }
+    if(d.state === "talk"){ d.t += dt; const k = now/1000; a.armR.rotation.x = -.6 + Math.sin(k*5)*.3; a.head.rotation.y = 0; a.g.rotation.y = -Math.PI/2 + Math.sin(k*2)*.1; if(d.t > 3){ d.state = "return"; d.pi = 0; } return; }
+    if(d.state === "away"){ d.t += dt; if(d.t > 5){ a.g.visible = true; d.state = "return"; d.pi = 0; } return; }
+    if(d.state === "sitdown"){ d.t += dt; setPose(d, true); a.g.position.set(.25,.04,-.75); a.g.rotation.y = 0; d.pos.copy(d.seat); if(d.t > .4){ d.state = "sit"; d.path = null; } }
+  }
+
+  /* --- render-loop --- */
+  let last = performance.now();
+  function frame(now){
+    requestAnimationFrame(frame);
+    const dt = Math.min(.05, (now - last)/1000); last = now;
+    if(document.hidden) return;
+    scene.avatars.forEach(d => stepAvatar(d, dt, now));
+    scene.avatars.forEach(d => { const s = d.screen, act = isActive(d.id); if(act){ s.offset += 22*dt; if(now - s.last > 90){ drawScreen(s, true); s.last = now; } } else if(now - s.last > 4000){ drawScreen(s, false); s.last = now; } });
+    renderer.render(world, camera);
+  }
+  function resize(){
+    const w = stage.clientWidth, h = stage.clientHeight; renderer.setSize(w, h, false);
+    const s = camera.top, asp = w/Math.max(1,h); camera.left = -s*asp; camera.right = s*asp; camera.updateProjectionMatrix();
+  }
+  addEventListener("resize", resize);
+
+  /* --- hover / klik --- */
+  const ray = new THREE.Raycaster(), mouse = new THREE.Vector2(), tip = $("tip");
+  function pick(ev){
+    const r = canvas.getBoundingClientRect(); mouse.x = ((ev.clientX-r.left)/r.width)*2-1; mouse.y = -((ev.clientY-r.top)/r.height)*2+1;
+    ray.setFromCamera(mouse, camera);
+    const hit = ray.intersectObjects(root.children, true).find(h => h.object.userData && h.object.userData.agentId);
+    return hit ? hit.object.userData.agentId : null;
+  }
+  canvas.addEventListener("pointermove", ev => {
+    const id = pick(ev); if(!id){ tip.style.display = "none"; return; }
+    const a = idx(id), st = classify(id);
+    tip.innerHTML = "<b>"+esc(a.agent_name||id)+"</b><span class='st'>"+esc(a.schedule_human||"vraaggestuurd")+"<br>"+st+" \u00b7 laatste run "+fmtDT(a.last_run)+"</span>";
+    tip.style.display = "block"; tip.style.left = (ev.clientX - stage.getBoundingClientRect().left + 14)+"px"; tip.style.top = (ev.clientY - stage.getBoundingClientRect().top + 14)+"px";
+  });
+  canvas.addEventListener("pointerleave", () => tip.style.display = "none");
+  canvas.addEventListener("click", ev => { const id = pick(ev); if(id) selectAgent(id); });
+
+  /* --- zijpaneel --- */
+  let currentDept = null;
+  function renderSide(deptId){
+    const rows = layout.filter(r => r.bridge_dept === deptId), dept = rows[0] || {};
+    const agents = rows.map(r => index[r.agent_id]).filter(Boolean);
+    const counts = window.BRIDGE_AGENTS.count(agents);
+    $("counts").innerHTML = window.BRIDGE_AGENTS.summaryHTML(counts);
+    $("side-h2").textContent = (dept.dept_name || deptId) + " \u2014 " + rows.length + " agents";
+    const list = $("agent-list"); list.innerHTML = "";
+    rows.forEach(r => {
+      const a = idx(r.agent_id), st = classify(r.agent_id);
+      const b = document.createElement("button"); b.className = "agent-row"; b.dataset.id = r.agent_id;
+      b.innerHTML = "<span class='dot' style='background:"+COLOR[st]+"'></span><span>"+esc(a.agent_name||r.agent_name)+"</span><small>"+esc(r.grp ? (r.grp+" "+(r.grp_step||"")) : (r.cluster_label||""))+"</small>";
+      b.addEventListener("click", () => { selectAgent(r.agent_id); triggerContact(r.agent_id); });
+      list.appendChild(b);
+    });
+    $("detail").style.display = "none";
+  }
+  function selectAgent(id){
+    document.querySelectorAll(".agent-row.selected").forEach(x => x.classList.remove("selected"));
+    const row = document.querySelector(".agent-row[data-id='"+CSS.escape(id)+"']"); if(row){ row.classList.add("selected"); row.scrollIntoView({block:"nearest"}); }
+    const a = idx(id), st = classify(id), c = contactsFor(id), el = $("detail");
+    el.style.display = "block";
+    el.innerHTML = "<b>"+esc(a.agent_name||id)+"</b><br>"+esc(a.schedule_human||"vraaggestuurd")+" \u00b7 <span style='color:"+COLOR[st]+"'>"+st+"</span> \u00b7 "+fmtDT(a.last_run)+
+      (c.length ? "<br>geeft door aan: "+c.map(t => esc(shortName(idx(t.agent_id).agent_name||t.agent_id))+(t.bridge_dept!==a.bridge_dept?" ("+esc(t.dept_name||"")+")":"")).join(", ") : "<br>geen doorgifte bekend")+
+      (a.last_status === "error" && a.last_error ? "<div class='err'>"+esc(a.last_error).slice(0,220)+"</div>" : "")+
+      "<br><a href='agents.html' style='color:var(--cyan)'>pipeline en runs</a>";
+  }
+  function selectDept(deptId){
+    currentDept = deptId; location.hash = "dept=" + deptId;
+    document.querySelectorAll(".dept-btn").forEach(b => b.classList.toggle("sel", b.dataset.id === deptId));
+    renderSide(deptId); buildDept(deptId); resize();
+  }
+
+  /* --- start --- */
+  try{ await loadAll(); }catch(e){ $("msg").textContent = "Kon de layout niet laden: " + e.message; return; }
+  $("msg").remove();
+  const depts = []; layout.forEach(r => { if(!depts.find(d => d.id === r.bridge_dept)) depts.push({id:r.bridge_dept, name:r.dept_name||r.bridge_dept, color:r.dept_color||"#00d4ff", icon:r.dept_icon||"", sort:r.dept_sort||99}); });
+  depts.sort((a,b) => a.sort - b.sort);
+  const tabs = $("depts");
+  depts.forEach(d => { const b = document.createElement("button"); b.className = "dept-btn"; b.dataset.id = d.id; b.style.setProperty("--dc", d.color);
+    b.innerHTML = "<span class='sw'></span>"+esc(d.icon)+" "+esc(d.name); b.addEventListener("click", () => selectDept(d.id)); tabs.appendChild(b); });
+  const want = (location.hash.match(/dept=([\w-]+)/)||[])[1];
+  resize(); requestAnimationFrame(frame);
+  selectDept(depts.find(d => d.id === want) ? want : (depts[0] && depts[0].id));
+
+  // elke minuut: nieuwe runs -> contact-loop + schermen verversen
+  setInterval(async () => {
+    try{
+      const prev = {}; Object.keys(index).forEach(k => prev[k] = index[k].last_run);
+      const shared = await window.BRIDGE_AGENTS.load(sb);
+      index = {}; shared.agents.forEach(a => index[a.agent_id] = a);
+      if(!currentDept) return;
+      const changed = layout.filter(r => r.bridge_dept === currentDept && index[r.agent_id] && index[r.agent_id].last_run !== prev[r.agent_id]).map(r => r.agent_id);
+      const running = layout.filter(r => r.bridge_dept === currentDept && idx(r.agent_id).last_status === "running").map(r => r.agent_id);
+      queueSteps(changed.concat(running));
+      let delay = 0; changed.forEach(id => { setTimeout(() => triggerContact(id), delay); delay += 2200; });
+      renderSide(currentDept);
+    }catch(e){}
+  }, POLL_MS);
+})();
+</script>
+</body>
+</html>
