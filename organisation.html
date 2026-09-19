@@ -44,7 +44,7 @@
   .org-board{position:relative;display:flex;gap:18px;align-items:flex-start;min-width:min-content;padding:18px 0 8px}
   .org-board::before{content:"";position:absolute;left:0;right:0;top:0;height:2px;
     background:linear-gradient(90deg,transparent,color-mix(in srgb,#ffd166 55%,transparent) 7%,color-mix(in srgb,#ffd166 55%,transparent) 93%,transparent)}
-  .org-lane{--a:var(--cyan);position:relative;flex:0 0 222px;display:flex;flex-direction:column;gap:13px}
+  .org-lane{--a:var(--cyan);position:relative;flex:0 0 var(--lane-w,222px);display:flex;flex-direction:column;gap:13px}
   .org-lane::before{content:"";position:absolute;left:50%;top:-18px;width:2px;height:18px;transform:translateX(-50%);
     background:color-mix(in srgb,#ffd166 55%,transparent)}
   .lane-head{display:flex;align-items:center;gap:10px;padding:2px 2px 9px;
@@ -90,6 +90,23 @@
   .ac-sched .schedtxt{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
   .ac-sched .ac24{flex:0 0 auto;font-size:9px;letter-spacing:.2px}
   .ac-sched .ac24 b{font-weight:800;font-variant-numeric:tabular-nums;color:var(--cyan)}
+  .ac-res{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;gap:5px;font-size:9.5px;line-height:1.25;margin-top:2px;
+    color:var(--dim);min-width:0}
+  .ac-res .rs{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;cursor:help;
+    border-bottom:1px dotted color-mix(in srgb,var(--dim) 45%,transparent)}
+  .ac-res .rsk{flex:0 0 auto;font-size:8px;letter-spacing:.12em;text-transform:uppercase;color:var(--dim);opacity:.8}
+  .ac-res.res-ok .rs{color:#9fc7b1} .ac-res.res-err .rs{color:#e2a3a5}
+  .ac-res.res-stale .rs{color:#e8c98a} .ac-res.res-go .rs{color:#8fd6e8}
+  .ac-res.res-none .rs{opacity:.55;border-bottom:none;cursor:default}
+  .ac-name[data-tip]{cursor:help}
+  /* custom tooltip (mouseover) */
+  #tip{position:fixed;z-index:300;max-width:min(440px,92vw);padding:8px 11px;border-radius:9px;
+    background:#0b1220;border:1px solid color-mix(in srgb,var(--cyan) 35%,var(--hair));
+    box-shadow:0 10px 30px rgba(0,0,0,.6),0 0 18px rgba(0,212,255,.08);
+    color:var(--text);font:500 11.5px/1.45 system-ui;white-space:pre-wrap;word-break:break-word;
+    pointer-events:none;opacity:0;transform:translateY(3px);transition:opacity .12s,transform .12s}
+  #tip.on{opacity:1;transform:none}
+  #tip .tip-h{display:block;font:700 9px/1 system-ui;letter-spacing:.14em;text-transform:uppercase;color:var(--cyan);margin-bottom:5px}
   .ac-wf{display:block;font-size:9px;line-height:1.25;margin-top:1px;color:var(--dim);opacity:.75;
     text-decoration:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
   a.ac-wf:hover{color:var(--cyan);opacity:1;text-decoration:underline}
@@ -130,6 +147,10 @@
   .exec-list .ex-k.run-go{color:var(--cyan)}
   .exec-list .ex-when{color:var(--text);font-variant-numeric:tabular-nums;letter-spacing:.2px}
   .exec-list .ex-dur{margin-left:auto;color:var(--dim);font-size:10px;font-variant-numeric:tabular-nums}
+  .exec-list li{flex-wrap:wrap}
+  .exec-list .ex-sum{flex:1 0 100%;min-width:0;max-width:100%;contain:inline-size;font-size:10px;line-height:1.3;color:var(--dim);
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-left:21px;cursor:help}
+  .exec-list .ex-sum:empty{display:none}
   .exec-msg{font-size:11px;color:var(--dim);padding:9px 4px 11px}
 
   .org-foot{margin-top:22px;font-size:11px;color:var(--dim);letter-spacing:.4px}
@@ -157,7 +178,7 @@
     background:linear-gradient(180deg,color-mix(in srgb,#ffd166 75%,transparent),color-mix(in srgb,#ffd166 22%,transparent))}
 
   .mgmt-block{--a:#ffd166;position:relative;display:flex;flex-direction:column;gap:13px;
-    width:min(780px,100%);padding:15px 22px 18px;border-radius:18px;
+    width:min(100%,max(780px,calc(var(--lane-w,222px)*3 + 240px)));padding:15px 22px 18px;border-radius:18px;
     border:1px solid color-mix(in srgb,var(--a) 42%, var(--hair));
     background:linear-gradient(180deg, color-mix(in srgb,var(--a) 14%, var(--panel2)), var(--panelSolid));
     box-shadow:0 0 34px color-mix(in srgb,var(--a) 16%, transparent), inset 0 0 0 1px color-mix(in srgb,var(--a) 10%, transparent)}
@@ -169,7 +190,7 @@
   .mgmt-body{display:flex;align-items:center;gap:28px;flex-wrap:wrap;justify-content:center}
   .mgmt-person{position:relative;display:flex;flex-direction:column;align-items:center;text-align:center;flex:0 0 auto}
   .mgmt-tasks{display:flex;gap:11px;flex-wrap:wrap;align-items:flex-start;justify-content:center;flex:1 1 320px;min-width:0}
-  .mgmt-tasks .agent-unit{flex:0 0 210px}
+  .mgmt-tasks .agent-unit{flex:0 0 var(--lane-w,210px)}
   .mgmt-tasks .agent-card{width:100%}
   .mgmt-tasks .agent-card::before{display:none}
 
@@ -251,6 +272,7 @@
     </form>
   </div>
 </div>
+<div id="tip" role="tooltip"></div>
 <div id="app">
   <header>
     <div class="brand">
@@ -279,7 +301,7 @@
       <div class="org-connect"><span class="org-trunk"></span></div>
       <div class="org-board" id="orgBoard"></div>
     </div>
-    <div class="org-foot">Organigram · live · <b>homedecobali</b> · klik een agent voor de <b>laatste 10 executies</b> · agents gesorteerd op <b>runs/24u</b> (meeste eerst) · <b style="color:#ffd166">MANAGEMENT</b> overziet alle afdelingen · <span class="ac-nopb" style="vertical-align:baseline">⊘ playbook</span> = buiten de playbook-pijplijn (eigen bron)</div>
+    <div class="org-foot">Organigram · live · <b>homedecobali</b> · klik een agent voor de <b>laatste 10 executies</b> · onder het schema staat het <b>resultaat van de laatste run</b> · muis over naam/resultaat = volledige tekst · agents gesorteerd op <b>runs/24u</b> (meeste eerst) · <b style="color:#ffd166">MANAGEMENT</b> overziet alle afdelingen · <span class="ac-nopb" style="vertical-align:baseline">⊘ playbook</span> = buiten de playbook-pijplijn (eigen bron)</div>
   </div>
 </div>
 
@@ -483,6 +505,8 @@ function midLayer(o,accent,i){
 const orgRefs=[];
 const orgAgentDots={};
 const orgAgentRun={};
+const orgAgentRes={};
+const lastRes={};   /* run_token -> {run_at,status,summary} (laatste run per workflow) */
 
 /* ---- gedeelde org-builders ---- */
 function agentCardHTML(a){
@@ -493,8 +517,9 @@ function agentCardHTML(a){
       <div class="agent-card${a.paused?' paused':''}${a.offPlaybook?' off-playbook':''}" data-agent="${a.id}">
         <div class="mini-av${step?' pl-av':''}">${av}<span class="sd"></span></div>
         <div class="ac-meta">
-          <div class="ac-name">${nm}${a.paused?'<span class="ac-paused">PAUSED</span>':''}${a.offPlaybook?'<span class="ac-nopb" title="Buiten de playbook-pijplijn — eigen bron; leest/voedt ad_research_playbook niet">⊘ playbook</span>':''}</div>
+          <div class="ac-name" data-tip="${escH(a.name)}${a.paused?' · PAUSED':''}" data-tiph="${escH(a.deptName||"")} · agent">${nm}${a.paused?'<span class="ac-paused">PAUSED</span>':''}${a.offPlaybook?'<span class="ac-nopb" title="Buiten de playbook-pijplijn — eigen bron; leest/voedt ad_research_playbook niet">⊘ playbook</span>':''}</div>
           <div class="ac-sched"><span class="schedtxt">${a.sched}</span><span class="ac24" data-24="${a.id}"></span></div>
+          <div class="ac-res res-none" data-res="${a.id}"><span class="rsk">run</span><span class="rs">—</span></div>
           ${a.wf?`<span class="ac-wf" title="${escH(a.wf)}">${escH(shortWf(a.wf))||escH(a.wf)}</span>`:""}
         </div>
         <div class="ac-run" data-run="${a.id}" title="laatst gedraaid"><span class="rk">·</span><span class="rt">—</span></div>
@@ -535,6 +560,7 @@ function wireAgentCards(scope){
     const card=unit.querySelector(".agent-card");
     orgAgentDots[id]=card.querySelector(".sd");
     orgAgentRun[id]=card.querySelector(".ac-run");
+    orgAgentRes[id]=card.querySelector(".ac-res");
     card.addEventListener("click",e=>{
       if(e.target.closest(".wf-ic")) return;
       toggleExec(id,unit);
@@ -580,6 +606,56 @@ async function load24h(){ if(!sbClient)return;
   if(error){ console.warn("dewi_runs_24h:",error.message); return; }
   const byWf={}; (data||[]).forEach(r=>byWf[r.workflow]=r.runs_24h);
   for(const id in BY_ID){ const tok=(rows[id]||{}).run_token; runs24[id]= tok?(byWf[tok]||0):0; } }
+/* laatste resultaat (summary) per agent uit dewi_runs_public — 1 query, client-side eerste-per-workflow */
+async function loadLastResults(){ if(!sbClient)return;
+  const toks=[...new Set(Object.values(rows).map(r=>r.run_token).filter(Boolean))];
+  if(!toks.length)return;
+  const {data,error}=await sbClient.from("dewi_runs_public")
+    .select("workflow,run_at,status,summary").in("workflow",toks).order("run_at",{ascending:false}).limit(900);
+  if(error){ console.warn("dewi_runs_public (laatste resultaat):",error.message); return; }
+  for(const k in lastRes)delete lastRes[k];
+  (data||[]).forEach(r=>{ if(!lastRes[r.workflow]) lastRes[r.workflow]=r; }); }
+const RESCLS={ok:"res-ok",error:"res-err",stale:"res-stale",running:"res-go"};
+function fillResults(){
+  for(const id in orgAgentRes){ const el=orgAgentRes[id]; if(!el)continue;
+    const r=rows[id]||{}, lr=r.run_token?lastRes[r.run_token]:null;
+    let txt="", st="", when="";
+    if(lr&&lr.summary){ txt=lr.summary; st=lr.status; when=lr.run_at; }
+    else if(r.status==="error"&&r.last_error){ txt=r.last_error; st="error"; when=r.last_run; }
+    const rs=el.querySelector(".rs");
+    el.className="ac-res "+(txt?(RESCLS[st]||""):"res-none");
+    if(!txt){ rs.textContent="—"; rs.removeAttribute("data-tip"); continue; }
+    const one=String(txt).replace(/\s+/g," ").trim();
+    rs.textContent=one;
+    rs.setAttribute("data-tip",String(txt).trim()); rs.setAttribute("data-tiph","laatste run"+(when?" · "+fmtRunFull(when):"")+(st?" · "+st:""));
+  } }
+/* laanbreedte = breedste agentnaam + vaste kaart-chrome, zodat geen naam meer wordt afgekapt */
+function fitLaneWidth(){
+  const m=document.createElement("span");
+  m.style.cssText="position:absolute;visibility:hidden;white-space:nowrap;font:600 12px system-ui,-apple-system,sans-serif;left:-9999px;top:0";
+  document.body.appendChild(m);
+  let w=0;
+  document.querySelectorAll(".agent-card .ac-name").forEach(n=>{ m.innerHTML=n.innerHTML; w=Math.max(w,m.offsetWidth); });
+  m.remove();
+  const CHROME=205; /* avatar 30 + gaps 20 + run-blok ~54 + wf-icoon 23 + caret 14 + padding/border 22 + team-inspringing 14 + marge */
+  const lane=Math.min(460,Math.max(222,Math.ceil(w)+CHROME));
+  document.documentElement.style.setProperty("--lane-w",lane+"px");
+}
+/* mouseover-tooltip voor alles met data-tip */
+(function(){
+  const tip=$("tip"); if(!tip)return; let cur=null;
+  function show(el){ cur=el; const t=el.getAttribute("data-tip")||""; if(!t)return;
+    const h=el.getAttribute("data-tiph"); tip.innerHTML=(h?`<span class="tip-h">${escH(h)}</span>`:"")+escH(t);
+    tip.classList.add("on"); place(el); }
+  function place(el){ const r=el.getBoundingClientRect(); tip.style.left="0px"; tip.style.top="0px";
+    const tw=tip.offsetWidth, th=tip.offsetHeight, vw=innerWidth, vh=innerHeight;
+    let x=r.left, y=r.bottom+7; if(x+tw>vw-8)x=Math.max(8,vw-8-tw); if(y+th>vh-8)y=Math.max(8,r.top-7-th);
+    tip.style.left=x+"px"; tip.style.top=y+"px"; }
+  function hide(){ cur=null; tip.classList.remove("on"); }
+  document.addEventListener("mouseover",e=>{ const el=e.target.closest("[data-tip]"); if(el&&el!==cur)show(el); else if(!el&&cur)hide(); });
+  document.addEventListener("mouseout",e=>{ if(cur&&!cur.contains(e.relatedTarget))hide(); });
+  document.addEventListener("scroll",hide,true);
+})();
 function sortDepts(){
   const actKey=a=>[runs24[a.id]||0,(rows[a.id]&&rows[a.id].run_count)||0];
   DEPTS.forEach(d=>{
@@ -617,7 +693,7 @@ async function loadExec(id){
   if(!tok){ execCache[id]="notoken"; return; }
   if(!sbClient)return;
   try{ const {data,error}=await sbClient.from("dewi_runs_public")
-      .select("run_at,status,duration_ms").eq("workflow",tok).order("run_at",{ascending:false}).limit(10);
+      .select("run_at,status,duration_ms,summary").eq("workflow",tok).order("run_at",{ascending:false}).limit(10);
     if(error){ console.warn("dewi_runs_public:",error.message); execCache[id]="error"; return; }
     execCache[id]=(data&&data.length)?data:"none";
   }catch(e){ execCache[id]="error"; } }
@@ -628,7 +704,7 @@ function renderExec(id,panel){
   else if(data==="none") body=`<div class="exec-msg">nog geen executies gelogd</div>`;
   else if(data==="error") body=`<div class="exec-msg">kon executies niet laden</div>`;
   else body=`<div class="exec-head">laatste ${data.length} executies</div><ul class="exec-list">`+
-    data.map(r=>{ const g=RUNGLYPH[r.status]||RUNGLYPH.idle; return `<li><span class="ex-k ${g.cls}">${g.ch}</span><span class="ex-when">${fmtRunFull(r.run_at)}</span><span class="ex-dur">${fmtDur(r.duration_ms)}</span></li>`; }).join("")+`</ul>`;
+    data.map(r=>{ const g=RUNGLYPH[r.status]||RUNGLYPH.idle; const sm=String(r.summary||"").trim(); return `<li><span class="ex-k ${g.cls}">${g.ch}</span><span class="ex-when">${fmtRunFull(r.run_at)}</span><span class="ex-dur">${fmtDur(r.duration_ms)}</span>${sm?`<span class="ex-sum" data-tip="${escH(sm)}" data-tiph="${fmtRunFull(r.run_at)}">${escH(sm.replace(/\s+/g," "))}</span>`:""}</li>`; }).join("")+`</ul>`;
   inner.innerHTML=body; }
 
 function buildOrgOnce(){
@@ -636,6 +712,7 @@ function buildOrgOnce(){
   orgRefs.length=0; execOpen.clear();
   for(const k in orgAgentDots)delete orgAgentDots[k];
   for(const k in orgAgentRun)delete orgAgentRun[k];
+  for(const k in orgAgentRes)delete orgAgentRes[k];
   DEPTS.forEach((d,i)=>{
     const mgr=ORG_MGR[d.id]||{persona:"Bot",role:d.name+" Lead",skin:"#e8b48c",hair:"#3a2c25",style:"buzz",acc:"none",expr:"calm"};
     if(d.id==="mgmt"){
@@ -671,6 +748,7 @@ function buildOrgOnce(){
       wireManager(lane,d);
     }
   });
+  fitLaneWidth();
 }
 function updateOrgStatus(){
   for(const id in orgAgentDots){ const st=statusOf(id), sc=STATUS[st].c, dot=orgAgentDots[id];
@@ -735,8 +813,10 @@ function setConn(ok,txt){ const d=$("connDot"); if(d){d.style.background=ok?C.gr
 function applyRow(r){ if(!r||!r.agent_id)return;
   rows[r.agent_id]={status:r.status,last_run:r.last_run,run_count:r.run_count,last_error:r.last_error,run_token:r.run_token};
   renderMetrics(); updateOrgStatus();
-  refreshAgentCountsDebounced();
+  refreshAgentCountsDebounced(); refreshResultsDebounced();
 }
+let _resT=null;
+function refreshResultsDebounced(){ clearTimeout(_resT); _resT=setTimeout(async()=>{ await loadLastResults(); fillResults(); },1500); }
 let sbClient=null;
 /* ---- registry-gedreven indeling (fail-safe) ---- */
 async function loadRegistryLayout(sb){
@@ -774,14 +854,14 @@ async function start(){
   const {data,error}=await sb.from("agent_status").select("*");
   if(error){ setConn(false,"verbinding mislukt"); console.error(error); return; }
   (data||[]).forEach(r=>{ rows[r.agent_id]={status:r.status,last_run:r.last_run,run_count:r.run_count,last_error:r.last_error,run_token:r.run_token}; });
-  await load24h();
+  await Promise.all([load24h(),loadLastResults()]);
   sortDepts();
   buildOrgOnce();
-  updateOrgStatus(); renderMetrics(); fillRuns24();
+  updateOrgStatus(); renderMetrics(); fillRuns24(); fillResults();
   refreshAgentCounts();
   setConn(true,"live · homedecobali");
   sb.channel("agent_status_live").on("postgres_changes",{event:"*",schema:"public",table:"agent_status"},p=>{ applyRow(p.new); }).subscribe(s=>{ if(s==="SUBSCRIBED")setConn(true,"live · homedecobali"); });
-  setInterval(async()=>{ await load24h(); fillRuns24(); refreshAgentCounts(); }, 5*60*1000);
+  setInterval(async()=>{ await Promise.all([load24h(),loadLastResults()]); fillRuns24(); fillResults(); refreshAgentCounts(); }, 5*60*1000);
 }
 
 /* === AUTH GATE (Supabase login) ======================================= */
