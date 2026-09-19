@@ -629,16 +629,28 @@ function fillResults(){
     rs.textContent=one;
     rs.setAttribute("data-tip",String(txt).trim()); rs.setAttribute("data-tiph","laatste run"+(when?" · "+fmtRunFull(when):"")+(st?" · "+st:""));
   } }
-/* laanbreedte = breedste agentnaam + vaste kaart-chrome, zodat geen naam meer wordt afgekapt */
+/* laanbreedte = breedste tekstregel (agentnaam / schema / workflownaam) van álle kaarten + de werkelijke
+   kaart-chrome van die kaart (avatar, run-blok, iconen, padding, pipeline-inspringing), zodat geen enkele naam wordt afgekapt */
 function fitLaneWidth(){
   const m=document.createElement("span");
-  m.style.cssText="position:absolute;visibility:hidden;white-space:nowrap;font:600 12px system-ui,-apple-system,sans-serif;left:-9999px;top:0";
+  m.style.cssText="position:absolute;visibility:hidden;white-space:nowrap;left:-9999px;top:0";
   document.body.appendChild(m);
-  let w=0;
-  document.querySelectorAll(".agent-card .ac-name").forEach(n=>{ m.innerHTML=n.innerHTML; w=Math.max(w,m.offsetWidth); });
+  const measure=(el)=>{ if(!el)return 0; const cs=getComputedStyle(el);
+    m.style.font=cs.font; m.style.letterSpacing=cs.letterSpacing; m.innerHTML=el.innerHTML; return m.offsetWidth; };
+  let need=0;
+  document.querySelectorAll(".org-lane, .mgmt-tasks").forEach(scope=>{
+    scope.querySelectorAll(".agent-card").forEach(card=>{
+      const meta=card.querySelector(".ac-meta"); if(!meta)return;
+      const txt=Math.max(measure(card.querySelector(".ac-name")),
+                         measure(card.querySelector(".ac-wf")),
+                         measure(card.querySelector(".schedtxt"))+ (card.querySelector(".ac24")?.offsetWidth||0)+6);
+      const unit=card.closest(".agent-unit");
+      const chrome=scope.getBoundingClientRect().width-meta.getBoundingClientRect().width; /* alles behalve de tekstkolom, incl. pipeline-inspringing */
+      need=Math.max(need,Math.ceil(txt+chrome)+8);
+    });
+  });
   m.remove();
-  const CHROME=205; /* avatar 30 + gaps 20 + run-blok ~54 + wf-icoon 23 + caret 14 + padding/border 22 + team-inspringing 14 + marge */
-  const lane=Math.min(460,Math.max(222,Math.ceil(w)+CHROME));
+  const lane=Math.min(560,Math.max(222,need));
   document.documentElement.style.setProperty("--lane-w",lane+"px");
 }
 /* mouseover-tooltip voor alles met data-tip */
