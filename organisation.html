@@ -76,9 +76,9 @@
   .ac-missed{margin-left:6px;font:800 8px/1 system-ui;letter-spacing:.1em;color:#ffb547;
     border:1px dashed rgba(255,181,71,.6);border-radius:5px;padding:2px 5px;vertical-align:middle;cursor:help}
   /* 7d-statistiek in run-blok */
-  .ac-run .rs7{font-size:8.5px;color:var(--dim);font-variant-numeric:tabular-nums;white-space:nowrap;letter-spacing:.1px}
-  .ac-run .rs7 b{font-weight:800}
-  .ac-run .rs7.good b{color:var(--green)} .ac-run .rs7.meh b{color:var(--amber)} .ac-run .rs7.bad b{color:var(--red)}
+  .rs7{margin-left:6px;font-size:8.5px;color:var(--dim);font-variant-numeric:tabular-nums;white-space:nowrap;letter-spacing:.1px;cursor:help}
+  .rs7:empty{display:none} .rs7 b{font-weight:800}
+  .rs7.good b{color:var(--green)} .rs7.meh b{color:var(--amber)} .rs7.bad b{color:var(--red)}
   /* deeplink-highlight */
   .agent-card.flash{animation:flash 1.6s ease-out 2}
   @keyframes flash{0%{box-shadow:0 0 0 2px var(--cyan),0 0 26px var(--cyan)}100%{box-shadow:none}}
@@ -118,9 +118,9 @@
   .team{position:relative;display:flex;flex-direction:column;gap:9px;padding-left:14px;margin-top:2px}
   .team::before{content:"";position:absolute;left:5px;top:-11px;bottom:16px;width:2px;
     background:linear-gradient(180deg, color-mix(in srgb,var(--a) 55%, transparent), color-mix(in srgb,var(--a) 7%, transparent))}
-  .agent-card{position:relative;display:flex;align-items:center;gap:10px;cursor:pointer;
+  .agent-card{position:relative;display:flex;align-items:center;gap:8px;cursor:pointer;
     background:linear-gradient(180deg,var(--panel2),var(--panelSolid));
-    border:1px solid var(--hair);border-radius:11px;padding:8px 10px;
+    border:1px solid var(--hair);border-radius:11px;padding:8px 8px;
     transition:transform .13s ease,border-color .13s ease,box-shadow .13s ease}
   .agent-card:hover{transform:translateY(-2px);
     border-color:color-mix(in srgb,var(--a) 45%, var(--hair));box-shadow:0 7px 20px rgba(0,0,0,.45)}
@@ -174,7 +174,8 @@
   .ac-run.run-go  .rk{color:var(--cyan);animation:jc-blink .9s infinite}
   .ac-run.run-go  .rt{color:#8fd6e8}
 
-  .ac-caret{flex:0 0 auto;margin-left:2px;font-size:10px;color:var(--dim);
+  .ac-tail{flex:0 0 auto;display:flex;flex-direction:column;align-items:center;gap:2px;margin-left:4px}
+  .ac-caret{flex:0 0 auto;margin-left:0;font-size:10px;color:var(--dim);
     transition:transform .25s ease,color .15s}
   .agent-card.exp .ac-caret{transform:rotate(180deg);color:var(--a)}
   .agent-card.exp{border-color:color-mix(in srgb,var(--a) 55%,var(--hair));
@@ -460,7 +461,7 @@ const ago=ts=>{ if(!ts)return"—"; const s=Math.floor((Date.now()-new Date(ts))
 const statusOf=id=>(BY_ID[id]&&BY_ID[id].paused)?"paused":((rows[id]&&rows[id].status)||"idle");
 const fmtRun=ts=>{ if(!ts)return"—"; const d=new Date(ts); if(isNaN(d))return"—";
   const p=n=>String(n).padStart(2,"0");
-  return `${p(d.getDate())}/${p(d.getMonth()+1)} ${p(d.getHours())}:${p(d.getMinutes())}`; };
+  const n=new Date(); return d.toDateString()===n.toDateString()?`${p(d.getHours())}:${p(d.getMinutes())}`:`${p(d.getDate())}/${p(d.getMonth()+1)}`; };
 const RUNGLYPH={ ok:{ch:"✓",cls:"run-ok"}, running:{ch:"⟳",cls:"run-go"},
   error:{ch:"✕",cls:"run-err"}, stale:{ch:"!",cls:"run-stale"}, idle:{ch:"·",cls:""} };
 function deptStatus(depId){
@@ -586,14 +587,13 @@ function agentCardHTML(a){
         <div class="mini-av${step?' pl-av':''}">${av}<span class="sd"></span></div>
         <div class="ac-meta">
           <div class="ac-name" data-tip="${escH(a.name)}${a.paused?' · PAUSED':''}" data-tiph="${escH(a.deptName||"")} · agent">${nm}${a.paused?'<span class="ac-paused">PAUSED</span>':''}${a.offPlaybook?'<span class="ac-nopb" title="Buiten de playbook-pijplijn — eigen bron; leest/voedt ad_research_playbook niet">⊘ playbook</span>':''}</div>
-          <div class="ac-sched"><span class="schedtxt">${a.sched}</span><span class="ac24" data-24="${a.id}"></span><span class="ac-missed" data-missed="${a.id}" style="display:none">GEMIST</span></div>
+          <div class="ac-sched"><span class="schedtxt">${a.sched}</span><span class="ac24" data-24="${a.id}"></span><span class="rs7" data-s7="${a.id}"></span><span class="ac-missed" data-missed="${a.id}" style="display:none">GEMIST</span></div>
           <div class="ac-next" data-next="${a.id}"></div>
           <div class="ac-res res-none" data-res="${a.id}"><span class="rsk">run</span><span class="rs">—</span></div>
           ${a.wf?`<span class="ac-wf" title="${escH(a.wf)}">${escH(shortWf(a.wf))||escH(a.wf)}</span>`:""}
         </div>
-        <div class="ac-run" data-run="${a.id}" title="laatst gedraaid"><span class="rk">·</span><span class="rt">—</span><span class="rs7" data-s7="${a.id}"></span></div>
-        ${wfIcon(a)}
-        <span class="ac-caret">⌄</span>
+        <div class="ac-run" data-run="${a.id}"><span class="rk">·</span><span class="rt">—</span></div>
+        <div class="ac-tail">${wfIcon(a)}<span class="ac-caret">⌄</span></div>
       </div>
       <div class="ac-exec" data-exec="${a.id}"><div class="inner"></div></div>
     </div>`;
@@ -705,13 +705,13 @@ function fitLaneWidth(){
   m.style.cssText="position:absolute;visibility:hidden;white-space:nowrap;left:-9999px;top:0";
   document.body.appendChild(m);
   let need=0;
-  document.querySelectorAll(".org-lane, .mgmt-tasks").forEach(scope=>{
-    scope.querySelectorAll(".agent-card").forEach(card=>{
-      const meta=card.querySelector(".ac-meta"), nm=card.querySelector(".ac-name"); if(!meta||!nm)return;
-      const cs=getComputedStyle(nm); m.style.font=cs.font; m.style.letterSpacing=cs.letterSpacing; m.innerHTML=nm.innerHTML;
-      const chrome=scope.getBoundingClientRect().width-meta.getBoundingClientRect().width;
-      need=Math.max(need,Math.ceil(m.offsetWidth+chrome)+8);
-    });
+  document.querySelectorAll(".agent-card").forEach(card=>{
+    const meta=card.querySelector(".ac-meta"), nm=card.querySelector(".ac-name"); if(!meta||!nm)return;
+    /* referentie = het element dat --lane-w volgt: de laan (afdeling) of, in het management-blok, de agent-unit zelf */
+    const ref=card.closest(".org-lane")||card.closest(".agent-unit"); if(!ref)return;
+    const cs=getComputedStyle(nm); m.style.font=cs.font; m.style.letterSpacing=cs.letterSpacing; m.innerHTML=nm.innerHTML;
+    const chrome=ref.getBoundingClientRect().width-meta.getBoundingClientRect().width;
+    need=Math.max(need,Math.ceil(m.offsetWidth+chrome)+8);
   });
   m.remove();
   document.documentElement.style.setProperty("--lane-w",Math.min(560,Math.max(222,need))+"px");
@@ -973,7 +973,7 @@ function updateOrgStatus(){
     const r=rows[id]||{}, st=r.status||"idle", g=RUNGLYPH[st]||RUNGLYPH.idle, lr=r.last_run;
     el.className="ac-run "+g.cls;
     el.querySelector(".rk").textContent=g.ch;
-    el.querySelector(".rt").textContent=lr?fmtRun(lr):"—";
+    el.querySelector(".rt").textContent=lr?fmtRun(lr):"—"; el.setAttribute("data-tip",lr?"laatst gedraaid · "+fmtRunFull(lr):"nog niet gedraaid");
     el.title=lr?("laatst gedraaid · "+ago(lr)):"nog niet gedraaid"; }
   orgRefs.forEach(ref=>{ const st=deptStatus(ref.deptId), sc=STATUS[st].c;
     ref.mgrDot.style.background=sc; ref.mgrDot.style.boxShadow=`0 0 7px ${sc}`;
@@ -1074,12 +1074,13 @@ async function start(){
   sortDepts();
   buildOrgOnce();
   updateOrgStatus(); renderMetrics(); fillRuns24(); fillResults(); fillStats7(); fillNextRuns(); renderAlerts(); applyFilters();
+  fitLaneWidth(); if(document.fonts&&document.fonts.ready)document.fonts.ready.then(fitLaneWidth);
   handleDeeplink();
   setInterval(()=>{ fillNextRuns(); renderAlerts(); applyFilters(); },60*1000);
   refreshAgentCounts();
   setConn(true,"live · homedecobali");
   sb.channel("agent_status_live").on("postgres_changes",{event:"*",schema:"public",table:"agent_status"},p=>{ applyRow(p.new); }).subscribe(s=>{ if(s==="SUBSCRIBED")setConn(true,"live · homedecobali"); });
-  setInterval(async()=>{ await Promise.all([load24h(),loadLastResults(),loadStats7()]); fillRuns24(); fillResults(); fillStats7(); fillNextRuns(); renderAlerts(); applyFilters(); refreshAgentCounts(); }, 5*60*1000);
+  setInterval(async()=>{ await Promise.all([load24h(),loadLastResults(),loadStats7()]); fillRuns24(); fillResults(); fillStats7(); fillNextRuns(); renderAlerts(); applyFilters(); fitLaneWidth(); refreshAgentCounts(); }, 5*60*1000);
 }
 
 /* === AUTH GATE (Supabase login) ======================================= */
