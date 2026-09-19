@@ -36,6 +36,52 @@
   .depbtn .ic{font-size:12px}
   .depbtn:hover{color:var(--text)}
 
+  /* filterbalk */
+  .filters{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+  .filters input[type=search]{appearance:none;width:200px;border:1px solid var(--line);background:rgba(0,0,0,.32);color:var(--text);
+    font:600 11px system-ui;letter-spacing:.3px;padding:7px 10px;border-radius:11px;outline:none}
+  .filters input[type=search]:focus{border-color:var(--cyan);box-shadow:0 0 0 1px rgba(0,212,255,.3)}
+  .filters input::placeholder{color:var(--dim)}
+  .filters .depbtn.on{color:#06131a;background:var(--cyan);border-color:var(--cyan);box-shadow:0 0 10px rgba(0,212,255,.35)}
+  .filters .depbtn.on.warn{background:var(--amber);border-color:var(--amber)}
+  .filters .depbtn.on.err{background:var(--red);border-color:var(--red);color:#fff}
+  /* alarm-strip */
+  #alertStrip{display:none;align-items:center;gap:8px;flex-wrap:wrap;padding:8px 22px;
+    border-bottom:1px solid rgba(227,30,36,.35);background:linear-gradient(90deg,rgba(227,30,36,.14),rgba(255,181,71,.06) 60%,transparent)}
+  #alertStrip.on{display:flex}
+  #alertStrip .as-h{font:800 9.5px/1 system-ui;letter-spacing:.16em;color:var(--red);flex:0 0 auto}
+  .as-chip{display:inline-flex;align-items:center;gap:6px;max-width:340px;cursor:pointer;
+    border:1px solid rgba(227,30,36,.45);background:rgba(0,0,0,.35);border-radius:9px;padding:4px 8px;font-size:10.5px;color:var(--text)}
+  .as-chip.stale{border-color:rgba(255,181,71,.5)} .as-chip.missed{border-color:rgba(255,181,71,.5);border-style:dashed}
+  .as-chip .k{font-weight:800;flex:0 0 auto} .as-chip.error .k{color:var(--red)} .as-chip.stale .k,.as-chip.missed .k{color:var(--amber)}
+  .as-chip .d{color:var(--dim);font-size:9px;letter-spacing:.08em;flex:0 0 auto}
+  .as-chip .n{font-weight:700;white-space:nowrap}
+  .as-chip .s{color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+  .as-chip:hover{border-color:var(--cyan);color:#fff}
+  /* inklapbare afdelingen */
+  .lane-head{cursor:pointer;user-select:none}
+  .lane-head .lane-caret{margin-left:6px;font-size:10px;color:var(--dim);transition:transform .25s}
+  .org-lane.collapsed .lane-head .lane-caret{transform:rotate(-90deg)}
+  .org-lane.collapsed .mgr-card,.org-lane.collapsed .team{display:none}
+  .org-lane.collapsed{flex-basis:auto!important;min-width:150px}
+  .org-lane.collapsed .lane-head{border-bottom-style:dashed}
+  .mgmt-head{cursor:pointer;user-select:none}
+  .mgmt-block.collapsed .mgmt-body{display:none}
+  /* filter-resultaat */
+  .agent-unit.fhide,.pipeline.fhide,.org-lane.fhide{display:none!important}
+  .lane-sub .fcnt{color:var(--cyan)}
+  /* volgende run / gemist */
+  .ac-next{font-size:9px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;opacity:.9}
+  .ac-next b{color:var(--text);font-weight:600}
+  .ac-missed{margin-left:6px;font:800 8px/1 system-ui;letter-spacing:.1em;color:#ffb547;
+    border:1px dashed rgba(255,181,71,.6);border-radius:5px;padding:2px 5px;vertical-align:middle;cursor:help}
+  /* 7d-statistiek in run-blok */
+  .ac-run .rs7{font-size:8.5px;color:var(--dim);font-variant-numeric:tabular-nums;white-space:nowrap;letter-spacing:.1px}
+  .ac-run .rs7 b{font-weight:800}
+  .ac-run .rs7.good b{color:var(--green)} .ac-run .rs7.meh b{color:var(--amber)} .ac-run .rs7.bad b{color:var(--red)}
+  /* deeplink-highlight */
+  .agent-card.flash{animation:flash 1.6s ease-out 2}
+  @keyframes flash{0%{box-shadow:0 0 0 2px var(--cyan),0 0 26px var(--cyan)}100%{box-shadow:none}}
   #view-org{flex:1;min-height:0;overflow:auto;padding:22px 22px 30px}
   #view-org::-webkit-scrollbar{height:10px;width:10px}
   #view-org::-webkit-scrollbar-thumb{background:#1b2638;border-radius:8px}
@@ -224,6 +270,11 @@
   .agent-card.off-playbook{border-style:dashed}
 
   @media (max-width:760px){
+    header{gap:8px;padding:10px 12px}
+    .metric{min-width:40px} .metric .v{font-size:13px} .metric .l{font-size:7.5px;letter-spacing:.8px}
+    .ttl{font-size:13px;letter-spacing:2px} .byrick{display:none}
+    .filters input[type=search]{width:130px}
+    #alertStrip{padding:6px 12px}
     .org-board{flex-direction:column}
     .org-lane{flex-basis:auto;width:100%}
     .org-lane::before,.org-board::before,.org-connect{display:none}
@@ -286,6 +337,13 @@
          De DEPS-knop is vervallen, dus dit lege element bepaalt de plek. -->
     <span id="depsBtn" style="display:none"></span>
     <button class="depbtn" id="logoutBtn" title="Uitloggen"><span class="ic">⏻</span>EXIT</button>
+    <div class="filters" id="filters">
+      <input type="search" id="fQ" placeholder="zoek (/) agent · afdeling · workflow" autocomplete="off" spellcheck="false">
+      <button class="depbtn err"  id="fErr"  data-tip="Alleen agents met status error, verouderd of een gemiste run"><span class="ic">⚠</span>PROBLEMEN</button>
+      <button class="depbtn"      id="fRun"  data-tip="Alleen agents die nu draaien"><span class="ic">⟳</span>RUNNING</button>
+      <button class="depbtn warn" id="fPaused" data-tip="Gepauzeerde agents verbergen"><span class="ic">⏸</span>GEEN PAUZE</button>
+      <button class="depbtn"      id="fReset" data-tip="Filters wissen en alle afdelingen uitklappen"><span class="ic">✕</span>RESET</button>
+    </div>
     <div class="spacer"></div>
     <div class="metric"><div class="v" id="mNodes">0</div><div class="l">AGENTS ZICHTBAAR</div></div>
     <div class="metric"><div class="v" id="mAgents">0</div><div class="l">AGENTS TOT.</div></div>
@@ -295,13 +353,14 @@
     <div class="clock"><span id="clk">--:--:--</span><span class="sub">CET</span></div>
   </header>
 
+  <div id="alertStrip"><span class="as-h">AANDACHT</span><span id="alertChips" style="display:contents"></span></div>
   <div id="view-org">
     <div class="org-tree">
       <div class="org-top" id="orgTop"></div>
       <div class="org-connect"><span class="org-trunk"></span></div>
       <div class="org-board" id="orgBoard"></div>
     </div>
-    <div class="org-foot">Organigram · live · <b>homedecobali</b> · klik een agent voor de <b>laatste 10 executies</b> · onder het schema staat het <b>resultaat van de laatste run</b> · muis over naam/resultaat = volledige tekst · agents gesorteerd op <b>runs/24u</b> (meeste eerst) · <b style="color:#ffd166">MANAGEMENT</b> overziet alle afdelingen · <span class="ac-nopb" style="vertical-align:baseline">⊘ playbook</span> = buiten de playbook-pijplijn (eigen bron)</div>
+    <div class="org-foot">Organigram · live · <b>homedecobali</b> · klik een <b>afdelingskop</b> om in/uit te klappen · klik een agent voor de <b>laatste 10 executies</b> · <b>?agent=&lt;id&gt;</b> in de URL springt naar een agent · onder het schema staat het <b>resultaat van de laatste run</b> · muis over naam/resultaat = volledige tekst · agents gesorteerd op <b>runs/24u</b> (meeste eerst) · <b style="color:#ffd166">MANAGEMENT</b> overziet alle afdelingen · <span class="ac-nopb" style="vertical-align:baseline">⊘ playbook</span> = buiten de playbook-pijplijn (eigen bron)</div>
   </div>
 </div>
 
@@ -422,8 +481,9 @@ function mix(a,b,t){
   return "#"+pa.map((v,i)=>Math.round(v+(pb[i]-v)*t).toString(16).padStart(2,"0")).join("");
 }
 function initials(name){
-  const clean=name.replace(/\(.*?\)/g,"").trim();
-  const p=clean.split(/\s+/);
+  const clean=name.replace(/\(.*?\)/g," ").replace(/[^\p{L}\p{N}\s]/gu," ").trim();
+  const p=clean.split(/\s+/).filter(w=>/^[\p{L}\p{N}]/u.test(w));
+  if(!p.length)return "?";
   return ((p[0][0]||"")+(p[1]?p[1][0]:(p[0][1]||""))).toUpperCase();
 }
 
@@ -506,6 +566,14 @@ const orgRefs=[];
 const orgAgentDots={};
 const orgAgentRun={};
 const orgAgentRes={};
+const stats7={};        /* run_token -> {n,ok,pct} (7 dagen, client-side uit dewi_runs_public) */
+const LS_COLL="dewi_org_collapsed", LS_FILT="dewi_org_filter";
+const collapsedSet=new Set((()=>{ try{ return JSON.parse(localStorage.getItem(LS_COLL)||"[]"); }catch(e){ return []; } })());
+function toggleLane(el,id){ el.classList.toggle("collapsed");
+  if(el.classList.contains("collapsed"))collapsedSet.add(id); else collapsedSet.delete(id);
+  try{ localStorage.setItem(LS_COLL,JSON.stringify([...collapsedSet])); }catch(e){} }
+function expandLane(id){ collapsedSet.delete(id); document.querySelectorAll(`[data-dept="${id}"]`).forEach(e=>e.classList.remove("collapsed"));
+  try{ localStorage.setItem(LS_COLL,JSON.stringify([...collapsedSet])); }catch(e){} }
 const lastRes={};   /* run_token -> {run_at,status,summary} (laatste run per workflow) */
 
 /* ---- gedeelde org-builders ---- */
@@ -518,11 +586,12 @@ function agentCardHTML(a){
         <div class="mini-av${step?' pl-av':''}">${av}<span class="sd"></span></div>
         <div class="ac-meta">
           <div class="ac-name" data-tip="${escH(a.name)}${a.paused?' · PAUSED':''}" data-tiph="${escH(a.deptName||"")} · agent">${nm}${a.paused?'<span class="ac-paused">PAUSED</span>':''}${a.offPlaybook?'<span class="ac-nopb" title="Buiten de playbook-pijplijn — eigen bron; leest/voedt ad_research_playbook niet">⊘ playbook</span>':''}</div>
-          <div class="ac-sched"><span class="schedtxt">${a.sched}</span><span class="ac24" data-24="${a.id}"></span></div>
+          <div class="ac-sched"><span class="schedtxt">${a.sched}</span><span class="ac24" data-24="${a.id}"></span><span class="ac-missed" data-missed="${a.id}" style="display:none">GEMIST</span></div>
+          <div class="ac-next" data-next="${a.id}"></div>
           <div class="ac-res res-none" data-res="${a.id}"><span class="rsk">run</span><span class="rs">—</span></div>
           ${a.wf?`<span class="ac-wf" title="${escH(a.wf)}">${escH(shortWf(a.wf))||escH(a.wf)}</span>`:""}
         </div>
-        <div class="ac-run" data-run="${a.id}" title="laatst gedraaid"><span class="rk">·</span><span class="rt">—</span></div>
+        <div class="ac-run" data-run="${a.id}" title="laatst gedraaid"><span class="rk">·</span><span class="rt">—</span><span class="rs7" data-s7="${a.id}"></span></div>
         ${wfIcon(a)}
         <span class="ac-caret">⌄</span>
       </div>
@@ -629,29 +698,23 @@ function fillResults(){
     rs.textContent=one;
     rs.setAttribute("data-tip",String(txt).trim()); rs.setAttribute("data-tiph","laatste run"+(when?" · "+fmtRunFull(when):"")+(st?" · "+st:""));
   } }
-/* laanbreedte = breedste tekstregel (agentnaam / schema / workflownaam) van álle kaarten + de werkelijke
-   kaart-chrome van die kaart (avatar, run-blok, iconen, padding, pipeline-inspringing), zodat geen enkele naam wordt afgekapt */
+/* laanbreedte = breedste AGENTNAAM (.ac-name, incl. badges) + de werkelijke kaart-chrome van die kaart
+   (avatar, run-blok, iconen, padding, pipeline-inspringing). Schema- en workflowregel tellen NIET mee (die mogen ellipsen). */
 function fitLaneWidth(){
   const m=document.createElement("span");
   m.style.cssText="position:absolute;visibility:hidden;white-space:nowrap;left:-9999px;top:0";
   document.body.appendChild(m);
-  const measure=(el)=>{ if(!el)return 0; const cs=getComputedStyle(el);
-    m.style.font=cs.font; m.style.letterSpacing=cs.letterSpacing; m.innerHTML=el.innerHTML; return m.offsetWidth; };
   let need=0;
   document.querySelectorAll(".org-lane, .mgmt-tasks").forEach(scope=>{
     scope.querySelectorAll(".agent-card").forEach(card=>{
-      const meta=card.querySelector(".ac-meta"); if(!meta)return;
-      const txt=Math.max(measure(card.querySelector(".ac-name")),
-                         measure(card.querySelector(".ac-wf")),
-                         measure(card.querySelector(".schedtxt"))+ (card.querySelector(".ac24")?.offsetWidth||0)+6);
-      const unit=card.closest(".agent-unit");
-      const chrome=scope.getBoundingClientRect().width-meta.getBoundingClientRect().width; /* alles behalve de tekstkolom, incl. pipeline-inspringing */
-      need=Math.max(need,Math.ceil(txt+chrome)+8);
+      const meta=card.querySelector(".ac-meta"), nm=card.querySelector(".ac-name"); if(!meta||!nm)return;
+      const cs=getComputedStyle(nm); m.style.font=cs.font; m.style.letterSpacing=cs.letterSpacing; m.innerHTML=nm.innerHTML;
+      const chrome=scope.getBoundingClientRect().width-meta.getBoundingClientRect().width;
+      need=Math.max(need,Math.ceil(m.offsetWidth+chrome)+8);
     });
   });
   m.remove();
-  const lane=Math.min(560,Math.max(222,need));
-  document.documentElement.style.setProperty("--lane-w",lane+"px");
+  document.documentElement.style.setProperty("--lane-w",Math.min(560,Math.max(222,need))+"px");
 }
 /* mouseover-tooltip voor alles met data-tip */
 (function(){
@@ -668,6 +731,141 @@ function fitLaneWidth(){
   document.addEventListener("mouseout",e=>{ if(cur&&!cur.contains(e.relatedTarget))hide(); });
   document.addEventListener("scroll",hide,true);
 })();
+/* ---- schema-parser: schedule_human -> volgende run (lokale tijd) ---- */
+const DOW={zo:0,ma:1,di:2,wo:3,do:4,vr:5,za:6};
+function parseSched(h){
+  const t=String(h||"").toLowerCase().replace(/\u00b7/g," ").replace(/\s+/g," ").trim();
+  if(!t||/webhook|event|handmatig|on approve|sub-workflow|aangeroepen|wacht op|bij inschrijving|continu/.test(t))return null;
+  let m;
+  if((m=t.match(/elke\s*(\d+)\s*min/)))return {type:"every",ms:+m[1]*60e3};
+  if(/elk uur/.test(t))return {type:"every",ms:3600e3};
+  if((m=t.match(/elke\s*(\d+)\s*uur/)))return {type:"every",ms:+m[1]*3600e3};
+  const days=[]; t.replace(/\b(zo|ma|di|wo|do|vr|za)\b/g,(x,d)=>{ if(!days.includes(DOW[d]))days.push(DOW[d]); return x; });
+  const times=[]; t.replace(/\b(\d{1,2}):(\d{2})\b/g,(x,hh,mm)=>{ times.push([+hh,+mm]); return x; });
+  if(!times.length){ const g=t.match(/\b(\d{1,2})(?:\/(\d{1,2}))+\b/); if(g){ g[0].split("/").forEach(x=>times.push([+x,0])); } }
+  if(!times.length)return null;
+  if(days.length)return {type:"weekly",days,times};
+  if(/daily|dagelijks|elke dag/.test(t))return {type:"daily",times};
+  return null;
+}
+function nextRun(sp,last){
+  if(!sp)return null; const now=new Date();
+  if(sp.type==="every"){ const base=last?new Date(last):now; let n=new Date(base.getTime()+sp.ms); while(n<now)n=new Date(n.getTime()+sp.ms); return n; }
+  let best=null;
+  for(let d=0;d<8;d++){ const day=new Date(now); day.setDate(now.getDate()+d);
+    if(sp.type==="weekly"&&!sp.days.includes(day.getDay()))continue;
+    for(const [hh,mm] of sp.times){ const c=new Date(day.getFullYear(),day.getMonth(),day.getDate(),hh,mm,0,0); if(c>now&&(!best||c<best))best=c; } }
+  return best;
+}
+function fmtNext(d){ if(!d)return ""; const now=new Date(), diff=d-now;
+  const p=n=>String(n).padStart(2,"0"); const sameDay=d.toDateString()===now.toDateString();
+  const tom=new Date(now); tom.setDate(now.getDate()+1); const isTom=d.toDateString()===tom.toDateString();
+  const when=(sameDay?"vandaag":isTom?"morgen":NL_DOW[d.getDay()]+" "+p(d.getDate())+"/"+p(d.getMonth()+1))+" "+p(d.getHours())+":"+p(d.getMinutes());
+  const h=Math.floor(diff/3600e3), mnt=Math.floor((diff%3600e3)/60e3);
+  const rel=h>=24?Math.floor(h/24)+"d "+(h%24)+"u":h>0?h+"u "+mnt+"m":mnt+"m";
+  return `volgende: <b>${when}</b> · over ${rel}`; }
+function fillNextRuns(){
+  document.querySelectorAll("[data-next]").forEach(el=>{
+    const id=el.getAttribute("data-next"), a=BY_ID[id]; if(!a){el.textContent="";return;}
+    const r=rows[id]||{}; let html="";
+    if(!a.paused){ const sp=parseSched(a.sched); let n=nextRun(sp,r.last_run);
+      if(!n&&a.ivh&&r.last_run){ n=new Date(new Date(r.last_run).getTime()+a.ivh*3600e3); if(n<new Date())n=null; }
+      html=n?fmtNext(n):""; }
+    el.innerHTML=html;
+    const mb=document.querySelector(`[data-missed="${id}"]`); if(mb){
+      let missed=false;
+      if(!a.paused&&a.ivh&&r.last_run){ const due=new Date(r.last_run).getTime()+a.ivh*3600e3*1.25; missed=Date.now()>due; }
+      mb.style.display=missed?"":"none";
+      if(missed)mb.setAttribute("data-tip",`Verwacht elke ${a.ivh}u, laatste run ${ago(r.last_run)} — geen run binnen het verwachte interval (+25% marge).`);
+      a._missed=missed; }
+  });
+}
+/* ---- 7d-statistiek client-side (1 query, alleen workflow+status) ---- */
+async function loadStats7(){ if(!sbClient)return;
+  const since=new Date(Date.now()-7*86400e3).toISOString();
+  const {data,error}=await sbClient.from("dewi_runs_public").select("workflow,status").gte("run_at",since).limit(6000);
+  if(error){ console.warn("dewi_runs_public (7d):",error.message); return; }
+  for(const k in stats7)delete stats7[k];
+  (data||[]).forEach(r=>{ const s=stats7[r.workflow]||(stats7[r.workflow]={n:0,ok:0}); s.n++; if(r.status==="ok")s.ok++; });
+  for(const k in stats7){ const s=stats7[k]; s.pct=s.n?Math.round(100*s.ok/s.n):null; } }
+function fillStats7(){
+  document.querySelectorAll("[data-s7]").forEach(el=>{
+    const id=el.getAttribute("data-s7"), tok=(rows[id]||{}).run_token, s=tok?stats7[tok]:null;
+    if(!s||!s.n){ el.textContent=""; el.className="rs7"; el.removeAttribute("data-tip"); return; }
+    el.className="rs7 "+(s.pct>=95?"good":s.pct>=80?"meh":"bad");
+    el.innerHTML=`<b>${s.pct}%</b> · ${s.n}/7d`;
+    el.setAttribute("data-tip",`Laatste 7 dagen: ${s.n} run(s), ${s.ok} geslaagd, ${s.n-s.ok} mislukt (${s.pct}% succes).`);
+    el.setAttribute("data-tiph","succes 7d");
+  });
+}
+/* ---- filters ---- */
+const filt=(()=>{ try{ return Object.assign({q:"",err:false,run:false,nopause:false},JSON.parse(localStorage.getItem(LS_FILT)||"{}")); }catch(e){ return {q:"",err:false,run:false,nopause:false}; } })();
+function saveFilt(){ try{ localStorage.setItem(LS_FILT,JSON.stringify(filt)); }catch(e){} }
+function agentMatches(a){
+  const st=statusOf(a.id);
+  if(filt.nopause&&a.paused)return false;
+  if(filt.err&&!(st==="error"||st==="stale"||a._missed))return false;
+  if(filt.run&&st!=="running")return false;
+  if(filt.q){ const q=filt.q.toLowerCase();
+    const hay=[a.name,a.deptName,a.wf,a.sched,a.id].filter(Boolean).join(" ").toLowerCase();
+    if(!hay.includes(q))return false; }
+  return true;
+}
+function applyFilters(){
+  const active=!!(filt.q||filt.err||filt.run||filt.nopause);
+  let visible=0;
+  const perDept={};
+  document.querySelectorAll(".agent-unit").forEach(u=>{ const id=u.getAttribute("data-unit"), a=BY_ID[id]; if(!a)return;
+    const ok=agentMatches(a); u.classList.toggle("fhide",!ok); if(ok){visible++; perDept[a.dept]=(perDept[a.dept]||0)+1;} });
+  document.querySelectorAll(".pipeline").forEach(p=>{ p.classList.toggle("fhide",!p.querySelector(".agent-unit:not(.fhide)")); });
+  document.querySelectorAll(".org-lane").forEach(l=>{ const id=l.dataset.dept; l.classList.toggle("fhide",active&&!(perDept[id]>0)); });
+  document.querySelectorAll("[data-lanesub]").forEach(el=>{ const id=el.getAttribute("data-lanesub"), d=DEPTS.find(x=>x.id===id); if(!d)return;
+    const n=perDept[id]||0; el.innerHTML=active?`<span class="fcnt">${n}</span> van ${d.agents.length} agents`:`${d.agents.length} agents`; });
+  const mn=$("mNodes"); if(mn)mn.textContent=active?visible:AGENTS.length;
+  $("fErr").classList.toggle("on",filt.err); $("fRun").classList.toggle("on",filt.run); $("fPaused").classList.toggle("on",filt.nopause);
+  if($("fQ").value!==filt.q)$("fQ").value=filt.q;
+}
+(function wireFilters(){
+  const q=$("fQ"); q.value=filt.q;
+  let t=null; q.addEventListener("input",()=>{ clearTimeout(t); t=setTimeout(()=>{ filt.q=q.value.trim(); saveFilt(); applyFilters(); },120); });
+  $("fErr").addEventListener("click",()=>{ filt.err=!filt.err; if(filt.err)filt.run=false; saveFilt(); applyFilters(); });
+  $("fRun").addEventListener("click",()=>{ filt.run=!filt.run; if(filt.run)filt.err=false; saveFilt(); applyFilters(); });
+  $("fPaused").addEventListener("click",()=>{ filt.nopause=!filt.nopause; saveFilt(); applyFilters(); });
+  $("fReset").addEventListener("click",()=>{ filt.q="";filt.err=false;filt.run=false;filt.nopause=false; saveFilt();
+    collapsedSet.clear(); try{localStorage.removeItem(LS_COLL);}catch(e){}
+    document.querySelectorAll(".org-lane.collapsed,.mgmt-block.collapsed").forEach(e=>e.classList.remove("collapsed")); applyFilters(); });
+  document.addEventListener("keydown",e=>{ if(e.key==="/"&&document.activeElement!==q&&!/input|textarea/i.test(document.activeElement.tagName)){ e.preventDefault(); q.focus(); q.select(); }
+    if(e.key==="Escape"&&document.activeElement===q){ q.value=""; filt.q=""; saveFilt(); applyFilters(); q.blur(); } });
+})();
+/* ---- alarm-strip: alle agents met error / verouderd / gemist ---- */
+function renderAlerts(){
+  const strip=$("alertStrip"), chips=$("alertChips"); if(!strip||!chips)return;
+  const items=[];
+  AGENTS.forEach(a=>{ if(a.paused)return; const st=statusOf(a.id);
+    let kind=null; if(st==="error")kind="error"; else if(st==="stale")kind="stale"; else if(a._missed)kind="missed";
+    if(!kind)return; const r=rows[a.id]||{}, lr=r.run_token?lastRes[r.run_token]:null;
+    const txt=(st==="error"&&r.last_error)?r.last_error:(lr&&lr.summary)||"";
+    items.push({a,kind,txt,st}); });
+  items.sort((x,y)=>({error:0,stale:1,missed:2}[x.kind]-{error:0,stale:1,missed:2}[y.kind])||x.a.name.localeCompare(y.a.name));
+  chips.innerHTML=items.map(it=>{ const g=it.kind==="error"?"✕":it.kind==="stale"?"!":"⏱";
+    const lbl=it.kind==="error"?"error":it.kind==="stale"?"verouderd":"gemist";
+    return `<span class="as-chip ${it.kind}" data-goto="${it.a.id}" data-tip="${escH(it.txt||lbl)}" data-tiph="${escH(it.a.name)} · ${lbl}"><span class="k">${g}</span><span class="d">${escH(it.a.deptName)}</span><span class="n">${escH(it.a.name)}</span>${it.txt?`<span class="s">${escH(String(it.txt).replace(/\s+/g," "))}</span>`:""}</span>`; }).join("");
+  strip.classList.toggle("on",items.length>0);
+  chips.querySelectorAll("[data-goto]").forEach(c=>c.addEventListener("click",()=>gotoAgent(c.getAttribute("data-goto"),true)));
+}
+/* ---- deeplink ?agent=<id> ---- */
+function gotoAgent(id,pushUrl){
+  const a=BY_ID[id]; if(!a)return false;
+  expandLane(a.dept);
+  const unit=document.querySelector(`.agent-unit[data-unit="${CSS.escape(id)}"]`); if(!unit)return false;
+  if(unit.classList.contains("fhide")){ filt.q="";filt.err=false;filt.run=false;filt.nopause=false; saveFilt(); applyFilters(); }
+  unit.scrollIntoView({behavior:"smooth",block:"center",inline:"center"});
+  const card=unit.querySelector(".agent-card"); card.classList.remove("flash"); void card.offsetWidth; card.classList.add("flash");
+  const panel=unit.querySelector(".ac-exec"); if(panel&&!panel.classList.contains("open"))toggleExec(id,unit);
+  if(pushUrl){ try{ const u=new URL(location.href); u.searchParams.set("agent",id); history.replaceState(null,"",u); }catch(e){} }
+  return true;
+}
+function handleDeeplink(){ try{ const id=new URL(location.href).searchParams.get("agent"); if(id)setTimeout(()=>gotoAgent(id,false),250); }catch(e){} }
 function sortDepts(){
   const actKey=a=>[runs24[a.id]||0,(rows[a.id]&&rows[a.id].run_count)||0];
   DEPTS.forEach(d=>{
@@ -739,15 +937,18 @@ function buildOrgOnce(){
           <div class="mgmt-person">${managerVisualHTML(mgr,d.color,i)}</div>
           <div class="mgmt-tasks">${agentCardsHTML(d)}</div>
         </div>`;
+      block.dataset.dept=d.id; if(collapsedSet.has(d.id))block.classList.add("collapsed");
       top.appendChild(block);
+      block.querySelector(".mgmt-head").addEventListener("click",()=>toggleLane(block,d.id));
       wireAgentCards(block);
       wireManager(block.querySelector(".mgmt-person"),d);
     } else {
       const lane=document.createElement("section"); lane.className="org-lane"; lane.style.setProperty("--a",d.color);
+      lane.dataset.dept=d.id; if(collapsedSet.has(d.id))lane.classList.add("collapsed");
       lane.innerHTML=`
         <div class="lane-head">
           <div class="lane-ic">${d.icon}</div>
-          <div><div class="lane-name">${d.name}</div><div class="lane-sub">${d.agents.length} agents</div></div>
+          <div><div class="lane-name">${d.name}<span class="lane-caret">⌄</span></div><div class="lane-sub" data-lanesub="${d.id}">${d.agents.length} agents</div></div>
           <span class="lane-count">${d.agents.length}</span>
         </div>
         <div class="mgr-card">
@@ -756,11 +957,13 @@ function buildOrgOnce(){
         </div>
         <div class="team">${agentCardsHTML(d)}</div>`;
       board.appendChild(lane);
+      lane.querySelector(".lane-head").addEventListener("click",()=>toggleLane(lane,d.id));
       wireAgentCards(lane);
       wireManager(lane,d);
     }
   });
   fitLaneWidth();
+  applyFilters();
 }
 function updateOrgStatus(){
   for(const id in orgAgentDots){ const st=statusOf(id), sc=STATUS[st].c, dot=orgAgentDots[id];
@@ -828,7 +1031,7 @@ function applyRow(r){ if(!r||!r.agent_id)return;
   refreshAgentCountsDebounced(); refreshResultsDebounced();
 }
 let _resT=null;
-function refreshResultsDebounced(){ clearTimeout(_resT); _resT=setTimeout(async()=>{ await loadLastResults(); fillResults(); },1500); }
+function refreshResultsDebounced(){ clearTimeout(_resT); _resT=setTimeout(async()=>{ await Promise.all([loadLastResults(),loadStats7()]); fillResults(); fillStats7(); fillNextRuns(); renderAlerts(); applyFilters(); },1500); }
 let sbClient=null;
 /* ---- registry-gedreven indeling (fail-safe) ---- */
 async function loadRegistryLayout(sb){
@@ -843,7 +1046,8 @@ async function loadRegistryLayout(sb){
       if(!dm[r.bridge_dept]) dm[r.bridge_dept]={id:r.bridge_dept,name:r.dept_name,color:r.dept_color,icon:r.dept_icon,_s:r.dept_sort||100,agents:[]};
       const d=dm[r.bridge_dept];
       const a={id:r.agent_id,name:r.agent_name,sched:r.schedule_human||"\u2014",_s:r.agent_sort||100,
-               wf:r.workflow_name||null,wfid:r.n8n_workflow_id||null};
+               wf:r.workflow_name||null,wfid:r.n8n_workflow_id||null,
+               ivh:(r.expected_interval_hours!=null?Number(r.expected_interval_hours):null)};
       if(r.grp){ a.grp=r.grp; a.step=r.grp_step||0; }
       if(r.paused) a.paused=true;
       if(r.playbook_pipeline===false) a.offPlaybook=true;
@@ -866,14 +1070,16 @@ async function start(){
   const {data,error}=await sb.from("agent_status").select("*");
   if(error){ setConn(false,"verbinding mislukt"); console.error(error); return; }
   (data||[]).forEach(r=>{ rows[r.agent_id]={status:r.status,last_run:r.last_run,run_count:r.run_count,last_error:r.last_error,run_token:r.run_token}; });
-  await Promise.all([load24h(),loadLastResults()]);
+  await Promise.all([load24h(),loadLastResults(),loadStats7()]);
   sortDepts();
   buildOrgOnce();
-  updateOrgStatus(); renderMetrics(); fillRuns24(); fillResults();
+  updateOrgStatus(); renderMetrics(); fillRuns24(); fillResults(); fillStats7(); fillNextRuns(); renderAlerts(); applyFilters();
+  handleDeeplink();
+  setInterval(()=>{ fillNextRuns(); renderAlerts(); applyFilters(); },60*1000);
   refreshAgentCounts();
   setConn(true,"live · homedecobali");
   sb.channel("agent_status_live").on("postgres_changes",{event:"*",schema:"public",table:"agent_status"},p=>{ applyRow(p.new); }).subscribe(s=>{ if(s==="SUBSCRIBED")setConn(true,"live · homedecobali"); });
-  setInterval(async()=>{ await Promise.all([load24h(),loadLastResults()]); fillRuns24(); fillResults(); refreshAgentCounts(); }, 5*60*1000);
+  setInterval(async()=>{ await Promise.all([load24h(),loadLastResults(),loadStats7()]); fillRuns24(); fillResults(); fillStats7(); fillNextRuns(); renderAlerts(); applyFilters(); refreshAgentCounts(); }, 5*60*1000);
 }
 
 /* === AUTH GATE (Supabase login) ======================================= */
