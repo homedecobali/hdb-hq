@@ -497,7 +497,7 @@
             </div>
             <div>
               <div class="chart" id="gads-chart-rev"></div>
-              <div class="legend"><span><i style="background:var(--green)"></i>Omzet &mdash; linkeras</span>
+              <div class="legend" id="gads-legend-rev"><span><i style="background:var(--green)"></i>Omzet &mdash; linkeras</span>
                 <span><i style="background:var(--yellow)"></i>Conversies &mdash; rechteras</span></div>
             </div>
           </div>
@@ -1620,9 +1620,9 @@
       // ---- GOOGLE ADS (eigen zone; bron: bridge_kpi_daily source=google — Google Ads-attributie, niet GA4) ----
       var GBRK = 1.58; // break-even ROAS (AOV ~130, marge 70%) — zelfde lijn als de Google Review
       var gpv = pivot(kpi, 'google'); var g28 = lastDates(gpv, 28); var gl = lastTwo(gpv);
-      var gRev30 = 0, gSpend30 = 0, gConv30 = 0;
+      var gRev30 = 0, gSpend30 = 0, gConv30 = 0, gClicks30 = 0;
       Object.keys(gpv).forEach(function(d){
-        gRev30 += (gpv[d].revenue || 0); gSpend30 += (gpv[d].spend || 0); gConv30 += (gpv[d].purchases || 0);
+        gRev30 += (gpv[d].revenue || 0); gSpend30 += (gpv[d].spend || 0); gConv30 += (gpv[d].purchases || 0); gClicks30 += (gpv[d].clicks || 0);
       });
       var gRoas30 = gSpend30 > 0 ? (gRev30 / gSpend30) : 0;
       var gHasData = Object.keys(gpv).length > 0 && (gRev30 > 0 || gSpend30 > 0);
@@ -1643,7 +1643,10 @@
           num('ROAS 30d', gRoas30.toFixed(2) + '\u00d7',
               '<span class="d ' + roasCls + '">' + (gRoas30 >= GBRK ? '\u25B2 boven' : '\u25BC onder') + ' 1,58</span>') +
           num('conversies 30d', fmt(gConv30), '') +
-          num('CPA 30d', '\u20AC' + (gConv30 > 0 ? (gSpend30 / gConv30) : 0).toFixed(2), '');
+          (gConv30 > 0
+            ? num('CPA 30d', '\u20AC' + (gSpend30 / gConv30).toFixed(2), '')
+            : num('CPC 30d', '\u20AC' + (gClicks30 > 0 ? (gSpend30 / gClicks30) : 0).toFixed(2),
+                  '<span class="d flat">' + fmt(gClicks30) + ' clicks \u00b7 nog geen conversies</span>'));
         if(g28.length >= 2){
           $('gads-chart-spend').innerHTML = barChart(g28, [
             { values: vals(gpv, g28, 'spend'), color: CLR.blue }
@@ -1653,14 +1656,35 @@
             { label: 'Omzet',   values: vals(gpv, g28, 'revenue'), color: CLR.green, format: eur2 },
             { label: 'Clicks',  values: vals(gpv, g28, 'clicks'), color: CLR.muted }
           ], true);
-          $('gads-chart-rev').innerHTML = dualLineChart(g28,
-            { label: 'Omzet',      values: vals(gpv, g28, 'revenue'),   color: CLR.green, fill: true },
-            { label: 'Conversies', values: vals(gpv, g28, 'purchases'), color: CLR.yellow },
-            210, { zero: true });
-          hookHover($('gads-chart-rev'), g28, [
-            { label: 'Omzet',      values: vals(gpv, g28, 'revenue'),   color: CLR.green, format: eur2 },
-            { label: 'Conversies', values: vals(gpv, g28, 'purchases'), color: CLR.yellow }
-          ], false, { padL: 52, padR: 52 });
+          if(gConv30 > 0){
+            $('gads-chart-rev').innerHTML = dualLineChart(g28,
+              { label: 'Omzet',      values: vals(gpv, g28, 'revenue'),   color: CLR.green, fill: true },
+              { label: 'Conversies', values: vals(gpv, g28, 'purchases'), color: CLR.yellow },
+              210, { zero: true });
+            hookHover($('gads-chart-rev'), g28, [
+              { label: 'Omzet',      values: vals(gpv, g28, 'revenue'),   color: CLR.green, format: eur2 },
+              { label: 'Conversies', values: vals(gpv, g28, 'purchases'), color: CLR.yellow }
+            ], false, { padL: 52, padR: 52 });
+            $('gads-legend-rev').innerHTML = '<span><i style="background:var(--green)"></i>Omzet \u2014 linkeras</span>'
+              + '<span><i style="background:var(--yellow)"></i>Conversies \u2014 rechteras</span>';
+          } else {
+            // nog geen verkopen via Google Ads: clicks + CPC per dag i.p.v. omzet/conversies
+            var gClk = vals(gpv, g28, 'clicks'), gSp = vals(gpv, g28, 'spend');
+            // CPC in eurocent: de dual-as werkt met hele getallen (niceMax/round), in euro's zou €0,20 plat op nul liggen
+            var gCpc = gClk.map(function(c, i){ return c > 0 ? Math.round(gSp[i] / c * 100) : 0; });
+            var ctEur = function(v){ return '\u20AC' + (v / 100).toFixed(2); };
+            $('gads-chart-rev').innerHTML = dualLineChart(g28,
+              { label: 'Clicks', values: gClk, color: CLR.blue, fill: true },
+              { label: 'CPC ct', values: gCpc, color: CLR.yellow },
+              210, { zero: true });
+            hookHover($('gads-chart-rev'), g28, [
+              { label: 'Clicks', values: gClk, color: CLR.blue },
+              { label: 'CPC',    values: gCpc, color: CLR.yellow, format: ctEur },
+              { label: 'Spend',  values: gSp,  color: CLR.muted,  format: eur2 }
+            ], false, { padL: 52, padR: 52 });
+            $('gads-legend-rev').innerHTML = '<span><i style="background:var(--z-google)"></i>Clicks \u2014 linkeras</span>'
+              + '<span><i style="background:var(--yellow)"></i>CPC in eurocent \u2014 rechteras</span>';
+          }
         } else {
           $('gads-chart-spend').innerHTML = '<p style="color:var(--muted);font-size:12px;margin:20px 0">Nog te weinig dagen voor een grafiek.</p>';
           $('gads-chart-rev').innerHTML = '';
