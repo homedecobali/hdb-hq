@@ -151,6 +151,17 @@ a{color:inherit}
 .orow.clk{cursor:zoom-in} .orow.clk:hover{background:var(--panel-2)}
 .orow.smclk{cursor:zoom-in} .orow.smclk:hover{background:var(--panel-2)}
 .orow .ochev{color:var(--dim);font-size:13px;flex:none;margin-left:2px}
+/* ---- aanbiedingsnieuwsbrief (offer) ---- */
+.ofgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:6px}
+.ofgrid img{width:100%;aspect-ratio:1/1;object-fit:cover;border-radius:10px;border:1px solid var(--line);background:#000;max-height:none}
+.ofgrid.one{grid-template-columns:1fr}
+.offacts{display:grid;grid-template-columns:auto 1fr;gap:5px 14px;font-size:12.5px;color:#cfd8e3;
+  background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:11px 13px}
+.offacts .k{color:var(--dim)}
+.ofchip{display:inline-block;font-size:10.5px;font-weight:700;padding:2px 9px;border-radius:999px;margin-left:6px;vertical-align:1px}
+.ofchip.on{background:var(--ok-bg);color:var(--ok);border:1px solid var(--ok)}
+.ofchip.off{background:var(--panel-2);color:var(--dim);border:1px solid var(--line)}
+.lb-inner.scroll{overflow-y:auto}
 @media(max-width:620px){ .card{width:132px} .pcard{width:150px} }
 </style>
 </head>
@@ -278,8 +289,12 @@ function renderStudio(pending, rows, outs, sent){
   stage.querySelectorAll('.card').forEach(el=>{ el.onclick=()=>openFeedMedia(el.dataset.slot, +el.dataset.i); });
   stage.querySelectorAll('.pcard .frame').forEach(el=>{ el.onclick=()=>openPendingMedia(+el.dataset.i); });
   stage.querySelectorAll('.mini').forEach(b=>{ b.onclick=()=>decideCard(b.dataset.id, b.dataset.kind, b); });
-  stage.querySelectorAll('.orow.clk').forEach(el=>{ el.onclick=()=>{ const o=_outs.find(x=>x.key===el.dataset.okey); if(o) openMail({preview:o.ref_preview,label:o.label,mail_creative:o.ref_creative}); }; });
-  stage.querySelectorAll('.orow.smclk[data-smi]').forEach(el=>{ el.onclick=()=>{ const m=_sent[+el.dataset.smi]; if(m) openMail({preview:m.preview,label:mailSubject(m),mail_creative:m.mail_creative}); }; });
+  stage.querySelectorAll('.orow.clk').forEach(el=>{ el.onclick=()=>{ const o=_outs.find(x=>x.key===el.dataset.okey); if(!o) return;
+    if(o.ref_offer) return openOffer(o.ref_offer, o.last_sent);
+    openMail({preview:o.ref_preview,label:o.label,mail_creative:o.ref_creative}); }; });
+  stage.querySelectorAll('.orow.smclk[data-smi]').forEach(el=>{ el.onclick=()=>{ const m=_sent[+el.dataset.smi]; if(!m) return;
+    if(m.offer) return openOffer(m.offer, m.sent_at);
+    openMail({preview:m.preview,label:mailSubject(m),mail_creative:m.mail_creative}); }; });
 }
 
 function pendingCard(p,i){
@@ -386,13 +401,13 @@ async function decideCard(id,kind,btn){
 
 function renderOutputs(outs){
   if(!outs || !outs.length) return '';
-  const ICON={story_news:'✉️',product_news:'🛍️',blog:'📝',preorder:'📦',welcome:'👋',favorites:'❤️'};
+  const ICON={story_news:'✉️',product_news:'🛍️',offer_news:'🏷️',blog:'📝',preorder:'📦',welcome:'👋',favorites:'❤️'};
   const PANELS=[['broadcast','Nieuwsbrieven & blog','var(--stories)'],['lifecycle','Lifecycle-mails','var(--stills)']];
   const block=PANELS.map(([pk,ptitle,color])=>{
     const items=outs.filter(o=>o.panel===pk);
     const orows=items.map(o=>{
       const amt=(o.amount!=null)?`<span class="oamt">${fmtN(o.amount)} ${esc(o.unit||'')}</span>`:'';
-      const clk=Array.isArray(o.ref_creative)&&o.ref_creative.length;
+      const clk=(Array.isArray(o.ref_creative)&&o.ref_creative.length)||!!o.ref_offer;
       return `<div class="orow${clk?' clk':''}"${clk?` data-okey="${esc(o.key)}"`:''}>
         <div class="oic">${ICON[o.key]||'•'}</div>
         <div class="om">
@@ -422,12 +437,12 @@ function mailSubject(m){
 }
 function renderSentMailings(sent){
   if(!sent || !sent.length) return '';
-  const TYPE={product_news:['🛍️','Product'],story_news:['✉️','Verhaal'],overig:['📩','Overig']};
+  const TYPE={product_news:['🛍️','Product'],story_news:['✉️','Verhaal'],offer_news:['🏷️','Aanbieding'],overig:['📩','Overig']};
   const rows=sent.map((m,i)=>{
     const t=TYPE[m.mtype]||['📩','Nieuwsbrief'];
     const subj=mailSubject(m);
     const det=[t[1],m.variant].filter(Boolean).join(' · ');
-    const clk=Array.isArray(m.mail_creative)&&m.mail_creative.some(c=>c&&c.html);
+    const clk=(Array.isArray(m.mail_creative)&&m.mail_creative.some(c=>c&&c.html))||!!m.offer;
     return `<div class="orow${clk?' smclk':''}"${clk?` data-smi="${i}"`:''}>
       <div class="oic">${t[0]}</div>
       <div class="om">
@@ -526,8 +541,35 @@ function openMail(o){
   document.getElementById('lb').classList.add('open');
 }
 
+/* ============ aanbiedingsnieuwsbrief (dewi_offer_mailings, om de week) ============ */
+function openOffer(f, sentAt){
+  const imgs=(Array.isArray(f.images)?f.images:[]).filter(Boolean).slice(0,4);
+  const grid=imgs.length?`<div class="ofgrid${imgs.length===1?' one':''}">${imgs.map(u=>`<img src="${esc(u)}" alt="" loading="lazy">`).join('')}</div>`:'';
+  const until=f.valid_until?new Date(f.valid_until).toLocaleDateString('nl-NL',{weekday:'short',day:'numeric',month:'short'}):'';
+  const chip=f.active?'<span class="ofchip on">actief</span>':'<span class="ofchip off">verlopen</span>';
+  const code=f.code?esc(f.code):(f.active?'<span style="color:var(--dim)">verborgen zolang actief</span>':'—');
+  const rec=[f.recipients_es!=null?'ES '+fmtN(f.recipients_es):'',f.recipients_pt!=null?'PT '+fmtN(f.recipients_pt):''].filter(Boolean).join(' · ');
+  const links=[];
+  if(f.handle) links.push(`<a href="https://homedecobali.es/products/${encodeURIComponent(f.handle)}" target="_blank" rel="noopener">Product ↗</a>`);
+  showLb(`${grid}
+    <div class="lb-cap" style="font-weight:600">−${esc(f.pct)}% · ${esc(f.title||'')}</div>
+    ${f.title_pt?`<div class="lb-meta">PT · ${esc(f.title_pt)}</div>`:''}
+    <div class="offacts">
+      <span class="k">Editie</span><span>${esc(f.edition?dateTxt(f.edition):dateTxt(sentAt))} · verzonden ${esc(relTxt(sentAt))}</span>
+      <span class="k">Korting</span><span>${esc(f.pct)}% hele bestelling ${chip}</span>
+      <span class="k">Geldig t/m</span><span>${esc(until)}</span>
+      <span class="k">Code</span><span>${code}</span>
+      <span class="k">Ontvangers</span><span>${fmtN(f.recipients_total)}${rec?' ('+esc(rec)+')':''}</span>
+      ${f.utm?`<span class="k">UTM</span><span>${esc(f.utm)}</span>`:''}
+      ${Array.isArray(f.campaign_ids)&&f.campaign_ids.length?`<span class="k">Brevo</span><span>campagne ${f.campaign_ids.map(esc).join(' · ')}</span>`:''}
+    </div>
+    ${f.desc_es?`<div class="lb-cap" style="font-size:12.5px;color:var(--muted)">${esc(f.desc_es)}</div>`:''}
+    ${links.length?`<div class="lb-links">${links.join('')}</div>`:''}`);
+  document.getElementById('lbInner').classList.add('scroll');
+}
+
 /* ============ lightbox ============ */
-function showLb(inner){ document.getElementById('lbInner').innerHTML=inner; document.getElementById('lb').classList.add('open'); }
+function showLb(inner){ const el=document.getElementById('lbInner'); el.classList.remove('scroll'); el.innerHTML=inner; document.getElementById('lb').classList.add('open'); }
 function closeLightbox(){ document.getElementById('lb').classList.remove('open'); document.getElementById('lbInner').innerHTML=''; }
 document.getElementById('lb').onclick=closeLightbox;
 document.getElementById('lbClose').onclick=e=>{e.stopPropagation();closeLightbox();};
