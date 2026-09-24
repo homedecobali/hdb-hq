@@ -17,3 +17,18 @@ window.DEWI_CONFIG = {
 };
 // compat: code die nog BRIDGE_CONFIG leest blijft werken
 window.BRIDGE_CONFIG = window.DEWI_CONFIG;
+
+// TEAM-GUARD (24-09): collega's (app_metadata.dewi_role = 'team') mogen alleen team.html zien.
+// Echte afscherming zit in Supabase-RLS (dewi_is_team()); dit is alleen de doorverwijzing.
+(function(){
+  try{
+    if(/team\.html$/i.test(location.pathname)) return;
+    var raw = localStorage.getItem('sb-jucubuoftjehwancegma-auth-token');
+    if(!raw) return;
+    var tok = JSON.parse(raw).access_token; if(!tok) return;
+    var p = tok.split('.')[1].replace(/-/g,'+').replace(/_/g,'/');
+    while(p.length % 4) p += '=';
+    var claims = JSON.parse(atob(p));
+    if(claims && claims.app_metadata && claims.app_metadata.dewi_role === 'team') location.replace('team.html');
+  }catch(e){}
+})();

@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<title>HomeDecoBali · Team</title>
+<link rel="icon" href="https://res.cloudinary.com/dkujwmni2/image/upload/w_64,f_png/56582_mocca_cis6np.png">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="dewi-config.js"></script>
+<style>
+:root{--hdb-sand:#EFE6D6;--hdb-cream:#FAF6EF;--hdb-border:#E2D6C2;--hdb-soft:#F3EBDD;--hdb-brand:#7A5230;--hdb-copper:#A4763F;--hdb-espresso:#3B2F24;--hdb-text:#5C5245;--hdb-footer-text:#D8CBB4;--hdb-white:#FFFFFF;--hdb-font:Georgia,"Times New Roman",serif}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--hdb-sand);color:var(--hdb-text);font-family:var(--hdb-font);font-size:15px;line-height:1.45}
+.hidden{display:none!important}
+a{color:var(--hdb-copper)}
+header{background:var(--hdb-espresso);color:var(--hdb-footer-text);padding:calc(14px + env(safe-area-inset-top,0px)) 22px 14px;display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+header img{height:46px;width:auto;display:block}
+header .ttl{font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:var(--hdb-footer-text);border-left:1px solid rgba(216,203,180,.35);padding-left:16px}
+header .sp{flex:1}
+header .who{font-size:13px}
+.btn{font-family:var(--hdb-font);font-size:14px;border:1px solid var(--hdb-copper);background:var(--hdb-copper);color:var(--hdb-white);border-radius:6px;padding:8px 14px;cursor:pointer}
+.btn.ghost{background:transparent;color:var(--hdb-footer-text);border-color:rgba(216,203,180,.5)}
+.btn.line{background:transparent;color:var(--hdb-copper)}
+.btn:disabled{opacity:.5;cursor:default}
+main{max-width:1180px;margin:0 auto;padding:22px 18px 40px}
+.card{background:var(--hdb-cream);border:1px solid var(--hdb-border);border-radius:10px;padding:18px 20px;margin-bottom:18px}
+h1{font-weight:normal;color:var(--hdb-brand);font-size:26px;margin:4px 0 2px}
+h2{font-weight:normal;color:var(--hdb-brand);font-size:19px;margin:0 0 12px;display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+h2 small{font-size:12px;color:var(--hdb-text);opacity:.8}
+.sub{font-size:13px;opacity:.85;margin:0 0 18px}
+.bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:16px}
+.tabs{display:inline-flex;border:1px solid var(--hdb-border);border-radius:8px;overflow:hidden;background:var(--hdb-cream)}
+.tabs button{font-family:var(--hdb-font);font-size:14px;border:0;background:transparent;color:var(--hdb-text);padding:7px 14px;cursor:pointer}
+.tabs button.on{background:var(--hdb-brand);color:var(--hdb-white)}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-bottom:18px}
+.tile{background:var(--hdb-cream);border:1px solid var(--hdb-border);border-radius:10px;padding:14px 16px}
+.tile .l{font-size:12px;letter-spacing:.06em;text-transform:uppercase;opacity:.85}
+.tile .v{font-size:26px;color:var(--hdb-espresso);margin:4px 0 2px}
+.tile .d{font-size:12px}
+.up{color:var(--hdb-brand)}.down{color:var(--hdb-copper)}
+.chart{position:relative;overflow-x:auto}
+.chart svg{display:block;width:100%;min-width:560px;height:auto}
+.legend{display:flex;gap:18px;font-size:13px;margin-top:8px;flex-wrap:wrap}
+.legend i{display:inline-block;width:12px;height:12px;border-radius:2px;margin-right:6px;vertical-align:-1px}
+#tip{position:fixed;pointer-events:none;background:var(--hdb-espresso);color:var(--hdb-cream);font-size:13px;padding:8px 10px;border-radius:6px;z-index:10;display:none;white-space:nowrap}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+@media (max-width:860px){.grid2{grid-template-columns:1fr}}
+.tbl{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th{font-weight:normal;text-align:left;font-size:12px;letter-spacing:.05em;text-transform:uppercase;border-bottom:1px solid var(--hdb-border);padding:6px 8px;white-space:nowrap}
+td{border-bottom:1px solid var(--hdb-soft);padding:7px 8px;vertical-align:middle}
+td.n,th.n{text-align:right;white-space:nowrap}
+td img{width:38px;height:38px;object-fit:cover;border-radius:4px;border:1px solid var(--hdb-border);display:block}
+.pill{display:inline-block;font-size:12px;border:1px solid var(--hdb-border);background:var(--hdb-soft);border-radius:20px;padding:1px 9px;white-space:nowrap}
+.pill.warn{border-color:var(--hdb-copper);color:var(--hdb-brand)}
+.nums{display:flex;gap:26px;flex-wrap:wrap;margin-bottom:12px;font-size:13px}
+.nums b{display:block;font-size:20px;font-weight:normal;color:var(--hdb-espresso)}
+.muted{opacity:.8;font-size:13px}
+footer{background:var(--hdb-espresso);color:var(--hdb-footer-text);font-size:13px;padding:18px 22px calc(18px + env(safe-area-inset-bottom,0px));text-align:center}
+footer a{color:var(--hdb-footer-text)}
+/* login */
+#login{max-width:400px;margin:70px auto;padding:0 18px}
+#login .card{padding:26px 26px 22px}
+label{display:block;font-size:12px;letter-spacing:.06em;text-transform:uppercase;margin:12px 0 4px}
+input{width:100%;font-family:var(--hdb-font);font-size:15px;padding:9px 11px;border:1px solid var(--hdb-border);border-radius:6px;background:var(--hdb-white);color:var(--hdb-espresso)}
+input:focus{outline:2px solid var(--hdb-copper);outline-offset:0}
+.err{color:var(--hdb-brand);font-size:13px;min-height:18px;margin-top:10px}
+#pwbox{margin-top:0}
+</style>
+</head>
+<body>
+
+<header>
+  <img src="https://res.cloudinary.com/dkujwmni2/image/upload/w_360,f_png/4349_wit_rnt5kk.png" alt="HomeDecoBali">
+  <span class="ttl">Team-dashboard</span>
+  <span class="sp"></span>
+  <span class="who hidden" id="who"></span>
+  <button class="btn ghost hidden" id="btnPw">Wachtwoord wijzigen</button>
+  <button class="btn ghost hidden" id="btnOut">Uitloggen</button>
+</header>
+
+<!-- ================= LOGIN ================= -->
+<div id="login" class="hidden">
+  <div class="card">
+    <h2>Inloggen</h2>
+    <p class="muted" style="margin:0 0 6px">Welkom bij het HomeDecoBali team-dashboard.</p>
+    <label for="lEmail">E-mail</label>
+    <input type="email" id="lEmail" autocomplete="username">
+    <label for="lPass">Wachtwoord</label>
+    <input type="password" id="lPass" autocomplete="current-password">
+    <div style="margin-top:16px"><button class="btn" id="btnIn">Inloggen</button></div>
+    <div class="err" id="lErr"></div>
+    <p class="muted" style="margin:6px 0 0">Wachtwoord kwijt? Vraag Rick om een nieuw wachtwoord.</p>
+  </div>
+</div>
+
+<!-- ================= DASHBOARD ================= -->
+<main id="app" class="hidden">
+
+  <div class="card hidden" id="pwbox">
+    <h2>Wachtwoord wijzigen</h2>
+    <label for="pw1">Nieuw wachtwoord (min. 10 tekens)</label>
+    <input type="password" id="pw1" autocomplete="new-password">
+    <label for="pw2">Herhaal</label>
+    <input type="password" id="pw2" autocomplete="new-password">
+    <div style="margin-top:14px;display:flex;gap:10px">
+      <button class="btn" id="pwSave">Opslaan</button>
+      <button class="btn line" id="pwCancel">Annuleren</button>
+    </div>
+    <div class="err" id="pwErr"></div>
+  </div>
+
+  <h1>Hoe gaat het met de winkel?</h1>
+  <p class="sub" id="fresh">Gegevens laden…</p>
+
+  <div class="bar">
+    <div class="tabs" id="tabs">
+      <button data-p="7">7 dagen</button>
+      <button data-p="30" class="on">30 dagen</button>
+      <button data-p="90">90 dagen</button>
+      <button data-p="mtd">Deze maand</button>
+    </div>
+    <span class="muted" id="plabel"></span>
+  </div>
+
+  <div class="tiles" id="tiles"></div>
+
+  <div class="card">
+    <h2>Omzet per dag <small>online en winkel</small></h2>
+    <div class="chart" id="chart"></div>
+    <div class="legend">
+      <span><i style="background:var(--hdb-copper)"></i>Online (webshop)</span>
+      <span><i style="background:var(--hdb-espresso)"></i>Winkel</span>
+    </div>
+  </div>
+
+  <div class="grid2">
+    <div class="card">
+      <h2>Bestsellers <small>laatste 30 dagen · alle kanalen</small></h2>
+      <div class="tbl" id="top"></div>
+    </div>
+    <div class="card">
+      <h2>Laatste verkopen <small>14 dagen · alle kanalen</small></h2>
+      <div class="tbl" id="recent"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Nog te verzenden <small>openstaande bestellingen</small></h2>
+    <div class="nums" id="oNums"></div>
+    <div class="tbl" id="open"></div>
+  </div>
+
+</main>
+
+<footer>
+  Con cariño desde la familia Bali · Marco, Rick, Ingrid &amp; Lisette · <a href="https://homedecobali.es" target="_blank" rel="noopener">homedecobali.es</a>
+</footer>
+<div id="tip"></div>
+
+<script>
+(function(){
+  var CFG = window.DEWI_CONFIG || {};
+  var sb = supabase.createClient(CFG.SUPABASE_URL || 'https://jucubuoftjehwancegma.supabase.co', CFG.SUPABASE_ANON_KEY || '');
+  var $ = function(id){ return document.getElementById(id); };
+  var TZ = 'Europe/Madrid';
+  var eur = function(v, dec){ return '€ ' + Number(v || 0).toLocaleString('nl-NL', { minimumFractionDigits: dec||0, maximumFractionDigits: dec||0 }); };
+  var int = function(v){ return Number(v || 0).toLocaleString('nl-NL'); };
+  var esc = function(s){ return String(s == null ? '' : s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); };
+  var dParts = function(iso, opts){
+    var d = new Date(String(iso).replace(' ', 'T').replace(/([+-]\d{2})$/, '$1:00'));
+    if(isNaN(d)) return String(iso).slice(0,10);
+    return new Intl.DateTimeFormat('nl-NL', Object.assign({ timeZone: TZ }, opts)).format(d);
+  };
+  var dayShort = function(ymd){ var p = ymd.split('-'); return p[2] + '/' + p[1]; };
+  var today = new Intl.DateTimeFormat('en-CA', { timeZone: TZ, year:'numeric', month:'2-digit', day:'2-digit' }).format(new Date());
+  var addDays = function(ymd, n){ var d = new Date(ymd + 'T12:00:00Z'); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0,10); };
+
+  var DATA = null, PERIOD = '30';
+
+  /* ---------------- auth ---------------- */
+  async function start(){
+    var s = await sb.auth.getSession();
+    if(!s.data.session){ $('login').classList.remove('hidden'); $('lEmail').focus(); return; }
+    var u = s.data.session.user;
+    $('who').textContent = (u.user_metadata && u.user_metadata.name) || u.email;
+    ['who','btnPw','btnOut'].forEach(function(id){ $(id).classList.remove('hidden'); });
+    $('login').classList.add('hidden');
+    $('app').classList.remove('hidden');
+    load();
+    setInterval(load, 10 * 60 * 1000);
+  }
+  async function signIn(){
+    $('lErr').textContent = ''; $('btnIn').disabled = true;
+    var r = await sb.auth.signInWithPassword({ email: $('lEmail').value.trim(), password: $('lPass').value });
+    $('btnIn').disabled = false;
+    if(r.error){ $('lErr').textContent = 'Inloggen mislukt — controleer e-mail en wachtwoord.'; return; }
+    start();
+  }
+  $('btnIn').onclick = signIn;
+  $('lPass').addEventListener('keydown', function(e){ if(e.key === 'Enter') signIn(); });
+  $('btnOut').onclick = async function(){ await sb.auth.signOut(); location.reload(); };
+  $('btnPw').onclick = function(){ $('pwbox').classList.toggle('hidden'); $('pwErr').textContent = ''; $('pw1').focus(); };
+  $('pwCancel').onclick = function(){ $('pwbox').classList.add('hidden'); };
+  $('pwSave').onclick = async function(){
+    var a = $('pw1').value, b = $('pw2').value;
+    if(a.length < 10){ $('pwErr').textContent = 'Minimaal 10 tekens.'; return; }
+    if(a !== b){ $('pwErr').textContent = 'De twee wachtwoorden zijn niet gelijk.'; return; }
+    var r = await sb.auth.updateUser({ password: a });
+    if(r.error){ $('pwErr').textContent = 'Opslaan mislukt: ' + r.error.message; return; }
+    $('pw1').value = $('pw2').value = '';
+    $('pwErr').textContent = 'Wachtwoord gewijzigd.';
+    setTimeout(function(){ $('pwbox').classList.add('hidden'); }, 1500);
+  };
+
+  /* ---------------- data ---------------- */
+  async function load(){
+    var r = await sb.rpc('team_dashboard');
+    if(r.error){
+      if(/niet ingelogd|JWT/i.test(r.error.message)){ await sb.auth.signOut(); location.reload(); return; }
+      $('fresh').textContent = 'Kon de gegevens niet laden (' + r.error.message + ').'; return;
+    }
+    DATA = r.data || {};
+    var s = DATA.synced || {};
+    $('fresh').textContent = 'Cijfers t/m ' + (s.kpi ? dParts(s.kpi + 'T12:00:00Z', { weekday:'long', day:'numeric', month:'long' }) : '—')
+      + (s.open_orders ? ' · bestellingen bijgewerkt ' + dParts(s.open_orders, { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' }) : '')
+      + '. Omzet ververst elke ochtend, openstaande bestellingen elk uur.';
+    render();
+  }
+
+  function range(){
+    var last = (DATA.synced && DATA.synced.kpi) || addDays(today, -1);
+    var from, prevFrom, prevTo, label;
+    if(PERIOD === 'mtd'){
+      from = last.slice(0,8) + '01';
+      var len = Math.round((new Date(last) - new Date(from)) / 864e5);
+      prevTo = addDays(from, -1); prevFrom = prevTo.slice(0,8) + '01';
+      var cap = addDays(prevFrom, len); if(cap < prevTo) prevTo = cap;
+      label = 'vergeleken met dezelfde dagen vorige maand';
+    } else {
+      var n = Number(PERIOD);
+      from = addDays(last, -(n - 1)); prevTo = addDays(from, -1); prevFrom = addDays(prevTo, -(n - 1));
+      label = 'vergeleken met de ' + n + ' dagen daarvoor';
+    }
+    return { from: from, to: last, prevFrom: prevFrom, prevTo: prevTo, label: label };
+  }
+  function sum(rows, k){ return rows.reduce(function(a, r){ return a + Number(r[k] || 0); }, 0); }
+
+  function render(){
+    if(!DATA) return;
+    var rg = range(), daily = DATA.daily || [];
+    var cur = daily.filter(function(d){ return d.kpi_date >= rg.from && d.kpi_date <= rg.to; });
+    var prev = daily.filter(function(d){ return d.kpi_date >= rg.prevFrom && d.kpi_date <= rg.prevTo; });
+    $('plabel').textContent = dayShort(rg.from) + ' t/m ' + dayShort(rg.to) + ' · ' + rg.label;
+
+    var t = function(rows){
+      var rev = sum(rows,'revenue'), ord = sum(rows,'orders');
+      return { rev: rev, ord: ord, aov: ord ? rev / ord : 0,
+        on: sum(rows,'online_revenue'), onO: sum(rows,'online_orders'),
+        st: sum(rows,'store_revenue'), stO: sum(rows,'store_orders'),
+        nc: sum(rows,'new_customers'), ses: sum(rows,'sessions') };
+    };
+    var c = t(cur), p = t(prev);
+    var delta = function(a, b){
+      if(!b) return '<span class="muted">geen vergelijking</span>';
+      var pct = (a - b) / b * 100, up = pct >= 0;
+      return '<span class="' + (up ? 'up' : 'down') + '">' + (up ? '▲ ' : '▼ ') + Math.abs(pct).toFixed(0) + '%</span>';
+    };
+    var tile = function(l, v, d){ return '<div class="tile"><div class="l">' + l + '</div><div class="v">' + v + '</div><div class="d">' + d + '</div></div>'; };
+    $('tiles').innerHTML =
+      tile('Omzet totaal', eur(c.rev), delta(c.rev, p.rev)) +
+      tile('Online (webshop)', eur(c.on), int(c.onO) + ' bestellingen · ' + delta(c.on, p.on)) +
+      tile('Winkel', eur(c.st), int(c.stO) + ' verkopen · ' + delta(c.st, p.st)) +
+      tile('Bestellingen', int(c.ord), delta(c.ord, p.ord)) +
+      tile('Gem. bestelwaarde', eur(c.aov), delta(c.aov, p.aov)) +
+      tile('Nieuwe klanten', int(c.nc), delta(c.nc, p.nc)) +
+      tile('Websitebezoeken', int(c.ses), delta(c.ses, p.ses));
+
+    chart(cur);
+    tables();
+  }
+
+  /* ---------------- grafiek ---------------- */
+  function chart(rows){
+    var byDay = {}; rows.forEach(function(r){ byDay[r.kpi_date] = r; });
+    var rg = range(), days = [];
+    for(var d = rg.from; d <= rg.to; d = addDays(d, 1)) days.push(d);
+    var W = 1000, H = 260, L = 56, R = 12, T = 12, B = 30;
+    var max = 0; days.forEach(function(d){ var r = byDay[d] || {}; max = Math.max(max, Number(r.online_revenue||0) + Number(r.store_revenue||0)); });
+    var step = [50,100,250,500,1000,2500,5000].find(function(s){ return max / s <= 5; }) || 10000;
+    var top = Math.max(step, Math.ceil(max / step) * step);
+    var y = function(v){ return T + (H - T - B) * (1 - v / top); };
+    var bw = (W - L - R) / days.length, g = '';
+    for(var v = 0; v <= top; v += step){
+      g += '<line x1="' + L + '" x2="' + (W - R) + '" y1="' + y(v) + '" y2="' + y(v) + '" stroke="#E2D6C2" stroke-width="1"/>' +
+           '<text x="' + (L - 8) + '" y="' + (y(v) + 4) + '" text-anchor="end" font-size="12" fill="#5C5245">' + (v >= 1000 ? (v/1000).toLocaleString('nl-NL') + 'k' : v) + '</text>';
+    }
+    var every = Math.ceil(days.length / 12);
+    days.forEach(function(d, i){
+      var r = byDay[d] || {}, on = Number(r.online_revenue||0), st = Number(r.store_revenue||0);
+      var x = L + i * bw + bw * 0.15, w = bw * 0.7;
+      var tip = esc(dParts(d + 'T12:00:00Z', { weekday:'short', day:'2-digit', month:'2-digit' })) + '|' + eur(on + st) +
+                '|Online ' + eur(on) + ' (' + int(r.online_orders) + ')|Winkel ' + eur(st) + ' (' + int(r.store_orders) + ')';
+      g += '<g data-tip="' + tip + '"><rect x="' + (L + i * bw) + '" y="' + T + '" width="' + bw + '" height="' + (H - T - B) + '" fill="transparent"/>';
+      if(st) g += '<rect x="' + x + '" y="' + y(st) + '" width="' + w + '" height="' + (y(0) - y(st)) + '" fill="#3B2F24" rx="2"/>';
+      if(on) g += '<rect x="' + x + '" y="' + y(st + on) + '" width="' + w + '" height="' + (y(st) - y(st + on)) + '" fill="#A4763F" rx="2"/>';
+      g += '</g>';
+      if(i % every === 0) g += '<text x="' + (L + i * bw + bw / 2) + '" y="' + (H - 10) + '" text-anchor="middle" font-size="12" fill="#5C5245">' + dayShort(d) + '</text>';
+    });
+    $('chart').innerHTML = '<svg viewBox="0 0 ' + W + ' ' + H + '" font-family="Georgia, serif">' + g + '</svg>';
+  }
+  var tipEl = $('tip');
+  document.addEventListener('mousemove', function(e){
+    var el = e.target.closest && e.target.closest('[data-tip]');
+    if(!el){ tipEl.style.display = 'none'; return; }
+    var p = el.getAttribute('data-tip').split('|');
+    tipEl.innerHTML = '<b>' + p[0] + '</b> · ' + p[1] + '<br>' + p.slice(2).join('<br>');
+    tipEl.style.display = 'block';
+    var x = e.clientX + 14, w = tipEl.offsetWidth;
+    if(x + w > window.innerWidth - 8) x = e.clientX - w - 14;
+    tipEl.style.left = x + 'px'; tipEl.style.top = (e.clientY + 14) + 'px';
+  });
+
+  /* ---------------- tabellen ---------------- */
+  var FIN = { PAID:'betaald', PENDING:'in afwachting', REFUNDED:'terugbetaald', PARTIALLY_REFUNDED:'deels terug', AUTHORIZED:'geautoriseerd' };
+  var FUL = { UNFULFILLED:'nog niet verzonden', PARTIALLY_FULFILLED:'deels verzonden' };
+  function tables(){
+    var top = DATA.top_products || [];
+    $('top').innerHTML = top.length ? '<table><tr><th></th><th>Product</th><th class="n">Stuks</th><th class="n">Omzet</th></tr>' +
+      top.map(function(p){
+        return '<tr><td>' + (p.image_url ? '<img src="' + esc(p.image_url) + '" alt="" loading="lazy">' : '') + '</td><td>' + esc(p.title) +
+               '</td><td class="n">' + int(p.qty) + '</td><td class="n">' + eur(p.net) + '</td></tr>';
+      }).join('') + '</table>' : '<p class="muted">Nog geen verkopen in deze periode.</p>';
+
+    var rec = DATA.recent_orders || [];
+    $('recent').innerHTML = rec.length ? '<table><tr><th>Order</th><th>Datum</th><th>Plaats</th><th class="n">Items</th><th class="n">Bedrag</th></tr>' +
+      rec.map(function(o){
+        var plaats = [o.city, o.country].filter(Boolean).join(', ');
+        return '<tr><td>' + esc(o.order_name) + (o.financial_status === 'REFUNDED' ? ' <span class="pill">terugbetaald</span>' : '') +
+               '</td><td>' + esc(dParts(o.order_created_at, { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' })) +
+               '</td><td>' + esc(plaats) + '</td><td class="n">' + int(o.items) + '</td><td class="n">' + eur(o.net, 2) + '</td></tr>';
+      }).join('') + '</table>' : '<p class="muted">Geen verkopen in de laatste 14 dagen.</p>';
+
+    var oo = DATA.open_orders || [], now = Date.now();
+    var total = sum(oo, 'total_price');
+    var age = function(o){ return Math.floor((now - new Date(o.order_created_at)) / 864e5); };
+    var oldest = oo.length ? Math.max.apply(null, oo.map(age)) : 0;
+    $('oNums').innerHTML = '<div>Openstaand<b>' + int(oo.length) + '</b></div><div>Waarde<b>' + eur(total) + '</b></div>' +
+      '<div>Oudste wacht<b>' + int(oldest) + ' dagen</b></div>';
+    $('open').innerHTML = oo.length ? '<table><tr><th>Order</th><th>Besteld</th><th>Klant</th><th class="n">Items</th><th class="n">Bedrag</th><th>Betaling</th><th>Status</th><th class="n">Wacht</th></tr>' +
+      oo.map(function(o){
+        var a = age(o);
+        return '<tr><td>' + esc(o.order_name) + '</td><td>' + esc(dParts(o.order_created_at, { day:'2-digit', month:'2-digit', year:'2-digit' })) +
+               '</td><td>' + esc(o.customer_name) + '</td><td class="n">' + int(o.line_item_count) + '</td><td class="n">' + eur(o.total_price, 2) +
+               '</td><td><span class="pill' + (o.financial_status === 'PENDING' ? ' warn' : '') + '">' + esc(FIN[o.financial_status] || o.financial_status) + '</span>' +
+               '</td><td>' + esc(FUL[o.fulfillment_status] || o.fulfillment_status || '') + '</td><td class="n">' + a + ' d</td></tr>';
+      }).join('') + '</table>' : '<p class="muted">Alles is verzonden.</p>';
+  }
+
+  $('tabs').addEventListener('click', function(e){
+    var b = e.target.closest('button'); if(!b) return;
+    PERIOD = b.dataset.p;
+    Array.prototype.forEach.call($('tabs').querySelectorAll('button'), function(x){ x.classList.toggle('on', x === b); });
+    render();
+  });
+
+  start();
+})();
+</script>
+</body>
+</html>
