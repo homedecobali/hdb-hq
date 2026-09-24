@@ -53,6 +53,9 @@ td{border-bottom:1px solid var(--hdb-soft);padding:7px 8px;vertical-align:middle
 td.n,th.n{text-align:right;white-space:nowrap}
 td img{width:38px;height:38px;object-fit:cover;border-radius:4px;border:1px solid var(--hdb-border);display:block}
 .pill{display:inline-block;font-size:12px;border:1px solid var(--hdb-border);background:var(--hdb-soft);border-radius:20px;padding:1px 9px;white-space:nowrap}
+.bo{display:inline-block;vertical-align:-3px;margin-left:6px;color:var(--hdb-copper);line-height:0;cursor:help}
+.bo svg{width:16px;height:16px}
+.bo.q{color:var(--hdb-border)}
 .pill.warn{border-color:var(--hdb-copper);color:var(--hdb-brand)}
 .nums{display:flex;gap:26px;flex-wrap:wrap;margin-bottom:12px;font-size:13px}
 .nums b{display:block;font-size:20px;font-weight:normal;color:var(--hdb-espresso)}
@@ -72,6 +75,47 @@ input:focus{outline:2px solid var(--hdb-copper);outline-offset:0}
 .pw .eye:focus-visible{outline:2px solid var(--hdb-copper)}
 .pw .eye svg{width:20px;height:20px}
 #pwbox{margin-top:0}
+
+/* ---- shop-kaart & omzet/winst (overgenomen uit kpi.html, HDB-huisstijl) ---- */
+.split-bar{height:8px;border-radius:5px;background:var(--hdb-espresso);overflow:hidden;margin:14px 0 8px}
+.split-bar i{display:block;height:100%;background:var(--hdb-copper)}
+.split-legend{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;font-size:13px}
+.split-legend b{font-weight:normal;color:var(--hdb-espresso)}
+.split-legend .on b{color:var(--hdb-copper)}
+.split-note{font-size:12px;opacity:.85;margin:6px 0 0}
+.kanalen{display:flex;gap:12px;flex-wrap:wrap;margin:2px 0 16px}
+.kanaal{flex:1 1 230px;background:var(--hdb-white);border:1px solid var(--hdb-border);border-radius:10px;padding:12px 14px}
+.kanaal.totaal{border-color:var(--hdb-copper);background:var(--hdb-soft)}
+.kanaal-l{font-size:11px;letter-spacing:.08em;text-transform:uppercase;margin-bottom:10px}
+.kanaal-l b{font-weight:normal;color:var(--hdb-espresso)}
+.kgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px 12px}
+.kgrid .kv{font-size:18px;color:var(--hdb-espresso);line-height:1.1}
+.kgrid .kv.win{color:var(--hdb-brand)} .kgrid .kv.lose{color:var(--hdb-copper)}
+.kgrid .kl{font-size:10px;letter-spacing:.08em;text-transform:uppercase;margin-top:2px}
+.dagtotaal{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:16px 0 4px;padding:8px 12px;border-radius:8px;background:var(--hdb-soft);border:1px solid var(--hdb-border);border-left:3px solid var(--hdb-brand)}
+.dagtotaal .dgt-d{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--hdb-brand);min-width:110px}
+.dagtotaal .dgt-cells{display:flex;gap:6px 16px;flex-wrap:wrap;margin-left:auto}
+.dagtotaal .dc{display:flex;flex-direction:column;line-height:1.15;text-align:right}
+.dagtotaal .dcl{font-size:10px;letter-spacing:.06em;text-transform:uppercase}
+.dagtotaal .dcv{font-size:14px;color:var(--hdb-espresso);margin-top:2px;white-space:nowrap}
+.dagtotaal .dcv.big{font-size:16px;color:var(--hdb-brand)}
+.dagtotaal .dc.tot{padding-right:14px;border-right:1px solid var(--hdb-border)}
+.win{color:var(--hdb-brand)} .lose{color:var(--hdb-copper);font-style:italic} .nil{opacity:.6}
+.orow{display:flex;align-items:center;gap:10px;padding:7px 8px;border-bottom:1px solid var(--hdb-soft);cursor:pointer;font-size:14px;flex-wrap:wrap}
+.orow:hover{background:var(--hdb-soft)}
+.orow .cv{width:12px;color:var(--hdb-copper)}
+.orow .cn{color:var(--hdb-espresso);min-width:112px}
+.orow .ck{color:var(--hdb-brand)} .orow .ck.winkel{color:var(--hdb-copper);font-style:italic}
+.orow .cd{opacity:.8;font-size:13px}
+.orow .cm{margin-left:auto;font-size:13px;text-align:right}
+.olines{padding:4px 0 10px 22px;overflow-x:auto}
+.olines table{font-size:13px;min-width:760px}
+.olines td,.olines th{padding:5px 7px}
+.olines td.n,.olines th.n{text-align:right}
+.olines .sku{display:block;font-size:11px;opacity:.75;letter-spacing:.03em}
+.olines .var{font-size:12px;opacity:.85}
+.olines .none{width:34px;height:34px;border-radius:4px;border:1px dashed var(--hdb-border)}
+.olines tr.sum td{border-top:1px solid var(--hdb-border);color:var(--hdb-espresso)}
 </style>
 </head>
 <body>
@@ -131,6 +175,25 @@ input:focus{outline:2px solid var(--hdb-copper);outline-offset:0}
 
   <div class="tiles" id="tiles"></div>
 
+
+  <div class="card">
+    <h2>Shop (Shopify) <small id="shop-when"></small></h2>
+    <div class="nums" id="shop-nums"></div>
+    <div class="chart" id="shop-chart"></div>
+    <div class="legend">
+      <span><i style="background:var(--hdb-copper)"></i>Omzet (€) — linkeras</span>
+      <span><i style="background:var(--hdb-espresso);height:3px;vertical-align:3px"></i>Bestellingen (aantal) — rechteras</span>
+    </div>
+    <div id="shop-split"></div>
+  </div>
+
+  <div class="card">
+    <h2>Omzet &amp; winst — laatste 7 dagen <small id="sale-when"></small></h2>
+    <div class="kanalen" id="sale-kanalen"></div>
+    <div id="sale-table"></div>
+    <p class="muted" id="sale-foot" style="margin:12px 0 0;font-size:12px"></p>
+  </div>
+
   <div class="card">
     <h2>Omzet per dag <small>online en winkel</small></h2>
     <div class="chart" id="chart"></div>
@@ -152,7 +215,7 @@ input:focus{outline:2px solid var(--hdb-copper);outline-offset:0}
   </div>
 
   <div class="card">
-    <h2>Nog te verzenden <small>openstaande bestellingen</small></h2>
+    <h2>Nog te verzenden <small>openstaande bestellingen · nieuwste eerst · <span class="bo" style="margin:0 3px 0 0"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span>= bevat backorder-artikelen (2602)</small></h2>
     <div class="nums" id="oNums"></div>
     <div class="tbl" id="open"></div>
   </div>
@@ -301,6 +364,8 @@ input:focus{outline:2px solid var(--hdb-copper);outline-offset:0}
       tile('Nieuwe klanten', int(c.nc), delta(c.nc, p.nc)) +
       tile('Websitebezoeken', int(c.ses), delta(c.ses, p.ses));
 
+    renderSales();
+    renderShop();
     chart(cur);
     tables();
   }
@@ -346,7 +411,205 @@ input:focus{outline:2px solid var(--hdb-copper);outline-offset:0}
     tipEl.style.left = x + 'px'; tipEl.style.top = (e.clientY + 14) + 'px';
   });
 
+
+  /* ---------------- shop-kaart (14 dagen, zoals kpi.html) ---------------- */
+  var eur2 = function(v){ return eur(v, 2); };
+  var pct1 = function(v){ return Number(v || 0).toFixed(1).replace('.', ',') + '%'; };
+  var madYMD = function(iso){
+    var d = new Date(String(iso).replace(' ', 'T').replace(/([+-]\d{2})$/, '$1:00'));
+    return new Intl.DateTimeFormat('en-CA', { timeZone: TZ, year:'numeric', month:'2-digit', day:'2-digit' }).format(d);
+  };
+  var chg = function(a, b){
+    a = Number(a || 0); b = Number(b || 0);
+    if(!b) return '';
+    var p = (a - b) / b * 100;
+    return ' <span class="' + (p >= 0 ? 'up' : 'down') + '" style="font-size:12px">' + (p >= 0 ? '▲' : '▼') + Math.abs(p).toFixed(0) + '%</span>';
+  };
+  var nettoGisteren = null;
+  function renderShop(){
+    var byDay = {}; (DATA.daily || []).forEach(function(r){ byDay[r.kpi_date] = r; });
+    var last = (DATA.synced && DATA.synced.kpi) || addDays(today, -1);
+    var days = []; for(var d = addDays(last, -13); d <= last; d = addDays(d, 1)) days.push(d);
+    $('shop-when').textContent = '14 dagen, t/m ' + dayShort(last);
+    var y = byDay[addDays(today, -1)] || {}, yp = byDay[addDays(today, -2)] || {};
+    var num = function(l, v){ return '<div>' + l + '<b>' + v + '</b></div>'; };
+    $('shop-nums').innerHTML =
+      num('Omzet gisteren', eur2(y.revenue) + chg(y.revenue, yp.revenue)) +
+      num('Netto gisteren', '<span id="shop-netto-y">' + (nettoGisteren != null ? eur2(nettoGisteren) : '—') + '</span>') +
+      num('Bestellingen', int(y.orders) + chg(y.orders, yp.orders)) +
+      num('Gem. bestelwaarde', eur2(y.aov)) +
+      num('Nieuwe klanten', int(y.new_customers));
+
+    // grafiek: omzet = staven (linkeras), bestellingen = lijn (rechteras)
+    var W = 1000, H = 270, L = 56, R = 44, T = 12, B = 30;
+    var rev = days.map(function(d){ return Number((byDay[d] || {}).revenue || 0); });
+    var ord = days.map(function(d){ return Number((byDay[d] || {}).orders || 0); });
+    var mR = Math.max.apply(null, rev.concat([1])), mO = Math.max.apply(null, ord.concat([1]));
+    var stepR = [50,100,250,500,1000,2500,5000].find(function(s){ return mR / s <= 5; }) || 10000;
+    var topR = Math.ceil(mR / stepR) * stepR, topO = Math.max(4, Math.ceil(mO / 2) * 2);
+    var yR = function(v){ return T + (H - T - B) * (1 - v / topR); };
+    var yO = function(v){ return T + (H - T - B) * (1 - v / topO); };
+    var bw = (W - L - R) / days.length, g = '';
+    for(var v = 0; v <= topR; v += stepR){
+      g += '<line x1="' + L + '" x2="' + (W - R) + '" y1="' + yR(v) + '" y2="' + yR(v) + '" stroke="#E2D6C2"/>' +
+           '<text x="' + (L - 8) + '" y="' + (yR(v) + 4) + '" text-anchor="end" font-size="12" fill="#5C5245">' + v.toLocaleString('nl-NL') + '</text>';
+    }
+    for(var o = 0; o <= topO; o += topO / 4){
+      g += '<text x="' + (W - R + 8) + '" y="' + (yO(o) + 4) + '" font-size="12" fill="#3B2F24">' + Math.round(o) + '</text>';
+    }
+    var pts = [];
+    days.forEach(function(d, i){
+      var r = byDay[d] || {}, x = L + i * bw;
+      var tip = esc(dParts(d + 'T12:00:00Z', { weekday:'short', day:'2-digit', month:'2-digit' })) + '|' + eur2(r.revenue) +
+                '|' + int(r.orders) + ' bestellingen · gem. ' + eur2(r.aov) + '|Online ' + eur2(r.online_revenue) + ' · winkel ' + eur2(r.store_revenue);
+      g += '<g data-tip="' + tip + '"><rect x="' + x + '" y="' + T + '" width="' + bw + '" height="' + (H - T - B) + '" fill="transparent"/>';
+      if(rev[i]) g += '<rect x="' + (x + bw * .18) + '" y="' + yR(rev[i]) + '" width="' + (bw * .64) + '" height="' + (yR(0) - yR(rev[i])) + '" fill="#A4763F" rx="2"/>';
+      g += '</g>';
+      pts.push((x + bw / 2) + ',' + yO(ord[i]));
+      if(i % 2 === 0) g += '<text x="' + (x + bw / 2) + '" y="' + (H - 10) + '" text-anchor="middle" font-size="12" fill="#5C5245">' + dayShort(d) + '</text>';
+    });
+    g += '<polyline points="' + pts.join(' ') + '" fill="none" stroke="#3B2F24" stroke-width="2.5" pointer-events="none"/>';
+    pts.forEach(function(p){ var xy = p.split(','); g += '<circle cx="' + xy[0] + '" cy="' + xy[1] + '" r="4" fill="#3B2F24" pointer-events="none"/>'; });
+    $('shop-chart').innerHTML = '<svg viewBox="0 0 ' + W + ' ' + H + '" font-family="Georgia, serif">' + g + '</svg>';
+
+    var s14 = function(k){ return days.reduce(function(a, d){ return a + Number((byDay[d] || {})[k] || 0); }, 0); };
+    var onR = s14('online_revenue'), onO = s14('online_orders'), stR = s14('store_revenue'), stO = s14('store_orders');
+    var tot = onR + stR;
+    if(tot > 0){
+      var onPct = Math.round(onR / tot * 100);
+      $('shop-split').innerHTML = '<div class="split-bar"><i style="width:' + onPct + '%"></i></div>' +
+        '<div class="split-legend"><span class="on"><b>Online</b> ' + eur2(onR) + ' · ' + int(onO) + ' bestellingen · gem. ' + eur2(onO ? onR / onO : 0) + '</span>' +
+        '<span><b>Winkel</b> ' + eur2(stR) + ' · ' + int(stO) + ' verkopen · gem. ' + eur2(stO ? stR / stO : 0) + '</span></div>' +
+        '<p class="split-note">14 dagen · ' + onPct + '% van de omzet komt uit de webshop. Winkelverkoop = handmatig ingevoerde bonnen.</p>';
+    } else $('shop-split').innerHTML = '';
+  }
+
+  /* ---------------- omzet & winst, laatste 7 dagen (zoals kpi.html) ---------------- */
+  function renderSales(){
+    var rows = DATA.sales_7d || [];
+    if(!rows.length){
+      $('sale-kanalen').innerHTML = ''; $('sale-when').textContent = '';
+      $('sale-table').innerHTML = '<p class="muted">Nog geen verkopen in de laatste 7 dagen.</p>';
+      $('sale-foot').textContent = ''; return;
+    }
+    var byOrder = {}, volgorde = [];
+    rows.forEach(function(l){
+      var o = byOrder[l.order_name];
+      if(!o){
+        o = byOrder[l.order_name] = { naam: l.order_name, datum: l.order_created_at, status: l.financial_status,
+          shipping: Number(l.shipping || 0), klant: l.customer_name, plaats: l.customer_city, land: l.customer_country,
+          omzet: 0, btw: 0, kost: 0, winst: 0, korting: 0, bruto: 0, onbekend: 0, bo: 0, qty: 0, regels: [] };
+        volgorde.push(o);
+      }
+      o.regels.push(l);
+      o.bruto += Number(l.gross || 0);
+      // prijzen incl. btw, kostprijs ex btw -> netto = net - tax
+      o.btw += Number(l.tax || 0);
+      o.omzet += Number(l.net || 0) - Number(l.tax || 0);
+      o.kost += Number(l.cost || 0);
+      o.korting += Number(l.discount || 0);
+      o.qty += Number(l.qty || 0);
+      if(/^[A-Z]{2}2602/i.test(l.sku || '')) o.bo += Number(l.qty || 0);
+      if(l.unit_cost == null) o.onbekend++; else o.winst += Number(l.profit || 0);
+    });
+    var kanaal = { web: { orders: 0, omzet: 0, btw: 0, kost: 0, winst: 0 }, shop: { orders: 0, omzet: 0, btw: 0, kost: 0, winst: 0 } };
+    var tot = { orders: volgorde.length, omzet: 0, btw: 0, kost: 0, winst: 0 }, tOnbekend = 0;
+    volgorde.forEach(function(o){
+      o.winkel = !o.klant;
+      var k = kanaal[o.winkel ? 'shop' : 'web'];
+      ['omzet','btw','kost','winst'].forEach(function(f){ k[f] += o[f]; tot[f] += o[f]; });
+      k.orders++; tOnbekend += o.onbekend;
+    });
+    var kg = function(v, l, c){ return '<div><div class="kv ' + (c || '') + '">' + v + '</div><div class="kl">' + l + '</div></div>'; };
+    var strook = function(label, k, isTot){
+      var m = k.omzet > 0 ? k.winst / k.omzet * 100 : 0, c = k.winst < 0 ? 'lose' : 'win';
+      return '<div class="kanaal' + (isTot ? ' totaal' : '') + '"><div class="kanaal-l">' + label + '<b>' + k.orders + '</b>' +
+        (k.orders === 1 ? ' order' : ' orders') + '</div><div class="kgrid">' +
+        kg(eur2(k.omzet), 'netto omzet') + kg(eur2(k.btw), 'btw') + kg(eur2(k.kost), 'kostprijs') +
+        kg(eur2(k.winst), 'brutowinst', c) + kg(pct1(m), 'marge', c) + '</div></div>';
+    };
+    $('sale-kanalen').innerHTML = strook('Webshop · ', kanaal.web) + strook('Winkel · handmatige bon · ', kanaal.shop) + strook('Alles samen · ', tot, true);
+
+    var perDag = {}, dagKeys = volgorde.map(function(o){ return madYMD(o.datum); });
+    volgorde.forEach(function(o, i){
+      var d = perDag[dagKeys[i]] || (perDag[dagKeys[i]] = { iso: o.datum, orders: 0, bruto: 0, korting: 0, btw: 0, omzet: 0, kost: 0, winst: 0, verzend: 0, onbekend: 0 });
+      d.orders++; d.bruto += o.bruto; d.korting += o.korting; d.btw += o.btw; d.omzet += o.omzet;
+      d.kost += o.kost; d.winst += o.winst; d.verzend += o.shipping; d.onbekend += o.onbekend;
+    });
+    nettoGisteren = perDag[addDays(today, -1)] ? perDag[addDays(today, -1)].omzet : 0;
+    var ny = $('shop-netto-y'); if(ny) ny.textContent = eur2(nettoGisteren);
+
+    var dagHtml = function(d){
+      var m = d.omzet > 0 ? d.winst / d.omzet * 100 : 0, c = d.winst < 0 ? 'lose' : 'win';
+      var cel = function(l, v, cc){ return '<span class="dc"><span class="dcl">' + l + '</span><span class="dcv ' + (cc || '') + '">' + v + '</span></span>'; };
+      var totaal = Math.round((d.omzet + d.btw + d.verzend) * 100) / 100;
+      return '<div class="dagtotaal"><span class="dgt-d">' + esc(dParts(d.iso, { weekday:'short', day:'2-digit', month:'2-digit' })) + '</span><span class="dgt-cells">' +
+        '<span class="dc tot"><span class="dcl">Totale omzet</span><span class="dcv big">' + eur2(totaal) + '</span></span>' +
+        cel('Aantal', d.orders + (d.orders === 1 ? ' order' : ' orders')) + cel('Bruto omzet', eur2(d.bruto)) +
+        cel('Korting', d.korting > 0 ? '-' + eur2(d.korting) : '—', d.korting > 0 ? '' : 'nil') +
+        cel('BTW', d.btw > 0 ? '-' + eur2(d.btw) : '—', d.btw > 0 ? '' : 'nil') + cel('Netto omzet', eur2(d.omzet)) +
+        cel('Verzending', d.verzend > 0 ? eur2(d.verzend) : '—', d.verzend > 0 ? '' : 'nil') + cel('Kostprijs', eur2(d.kost)) +
+        cel('Winst', eur2(d.winst), c) + cel('Marge', d.onbekend ? '—' : pct1(m), d.onbekend ? 'nil' : c) + '</span></div>';
+    };
+    $('sale-table').innerHTML = volgorde.map(function(o, i){
+      var m = o.omzet > 0 ? o.winst / o.omzet * 100 : 0, c = o.winst < 0 ? 'lose' : 'win';
+      var klant = o.klant ? o.klant + (o.plaats ? ' · ' + o.plaats : '') + (o.land && o.land !== 'Spain' ? ' (' + o.land + ')' : '') : 'winkel · handmatige bon';
+      var head = '<div class="orow" data-i="' + i + '"><span class="cv">▸</span><span class="cn">' + esc(o.naam) +
+        boIcon({ backorder_qty: o.bo, total_qty: o.qty }) + '</span>' +
+        '<span class="ck' + (o.klant ? '' : ' winkel') + '">' + esc(klant) + '</span>' +
+        '<span class="cd">' + esc(dParts(o.datum, { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' })) + '</span>' +
+        '<span class="cm">' + o.regels.length + ' regel' + (o.regels.length === 1 ? '' : 's') + ' · ' + eur2(o.omzet) + ' netto · <span class="' + c + '">' + eur2(o.winst) + '</span>' +
+        (o.onbekend ? ' · <i>' + o.onbekend + ' zonder kostprijs</i>' : ' · ' + pct1(m)) + '</span></div>';
+      var cellen = o.regels.map(function(l){
+        var heeft = l.unit_cost != null, w = Number(l.profit || 0), btw = Number(l.tax || 0), netto = Number(l.net || 0) - btw;
+        var lm = heeft && netto > 0 ? w / netto * 100 : 0, lc = w < 0 ? 'lose' : 'win';
+        return '<tr><td>' + (l.image_url ? '<img src="' + esc(l.image_url) + '" alt="" loading="lazy">' : '<div class="none"></div>') + '</td>' +
+          '<td>' + esc(l.title || '') + (l.variant_title ? ' <span class="var">' + esc(l.variant_title) + '</span>' : '') +
+          '<span class="sku">' + esc(l.sku || '—') + (/^[A-Z]{2}2602/i.test(l.sku || '') ? boIcon({ backorder_qty: l.qty, total_qty: l.qty }) : '') + '</span></td>' +
+          '<td class="n">' + int(l.qty) + '</td><td class="n">' + eur2(l.gross) + '</td>' +
+          '<td class="n">' + (Number(l.discount) > 0 ? '-' + eur2(l.discount) : '<span class="nil">—</span>') + '</td>' +
+          '<td class="n">' + (btw > 0 ? '-' + eur2(btw) : '<span class="nil">—</span>') + '</td>' +
+          '<td class="n">' + eur2(netto) + '</td>' +
+          '<td class="n">' + (heeft ? eur2(l.cost) : '<i>n.v.t.</i>') + '</td>' +
+          '<td class="n">' + (heeft ? '<span class="' + lc + '">' + eur2(w) + '</span>' : '<span class="nil">—</span>') + '</td>' +
+          '<td class="n">' + (heeft ? '<span class="' + lc + '">' + pct1(lm) + '</span>' : '<span class="nil">—</span>') + '</td></tr>';
+      }).join('');
+      var som = '<tr class="sum"><td></td><td>' + (o.klant ? esc(o.klant) + (o.plaats ? ' · ' + esc(o.plaats) : '') + (o.land ? ', ' + esc(o.land) : '') : 'Winkel · handmatig ingevoerde bon') +
+        ' · verzendkosten ' + eur2(o.shipping) + '</td><td></td><td></td>' +
+        '<td class="n">' + (o.korting > 0 ? '-' + eur2(o.korting) : '—') + '</td><td class="n">' + (o.btw > 0 ? '-' + eur2(o.btw) : '—') + '</td>' +
+        '<td class="n">' + eur2(o.omzet) + '</td><td class="n">' + eur2(o.kost) + '</td>' +
+        '<td class="n"><span class="' + c + '">' + eur2(o.winst) + '</span></td><td class="n"><span class="' + c + '">' + pct1(m) + '</span></td></tr>';
+      var body = '<div class="olines hidden"><table><tr><th></th><th>Artikel &amp; SKU</th><th class="n">Aantal</th><th class="n">Bruto</th><th class="n">Korting</th>' +
+        '<th class="n">BTW</th><th class="n">Netto</th><th class="n">Kostprijs</th><th class="n">Winst</th><th class="n">Marge</th></tr>' + cellen + som + '</table></div>';
+      var blok = head + body;
+      if(i === 0 || dagKeys[i - 1] !== dagKeys[i]) blok = dagHtml(perDag[dagKeys[i]]) + blok;
+      return blok;
+    }).join('');
+    Array.prototype.forEach.call(document.querySelectorAll('#sale-table .orow'), function(h){
+      h.addEventListener('click', function(e){
+        if(e.target.closest('.bo')) return;
+        var dicht = h.nextElementSibling.classList.toggle('hidden');
+        h.querySelector('.cv').textContent = dicht ? '▸' : '▾';
+      });
+    });
+    $('sale-when').textContent = dParts(rows[rows.length - 1].order_created_at, { day:'2-digit', month:'2-digit' }) + ' – ' +
+      dParts(rows[0].order_created_at, { day:'2-digit', month:'2-digit' });
+    $('sale-foot').textContent = 'Orders zonder klantgegevens zijn handmatig ingevoerde winkelbonnen · klik op een order voor de artikelregels · ' +
+      'Totale omzet = netto + btw + verzending · netto omzet = na korting en ex btw · winst = netto − kostprijs' +
+      (tOnbekend ? ' · ' + tOnbekend + ' regel(s) zonder kostprijs tellen niet mee in de marge' : '') +
+      ' · bijgewerkt ' + dParts(rows[0].synced_at, { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' });
+  }
+
   /* ---------------- tabellen ---------------- */
+  var BO_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>';
+  function boIcon(o){
+    var bo = Number(o.backorder_qty || 0);
+    if(o.lines_known === null && 'lines_known' in o)
+      return ' <span class="bo q" data-tip="Artikelen nog niet bekend|nieuwe order, regels komen na de volgende sync">' + BO_SVG + '</span>';
+    if(bo <= 0) return '';
+    var tot = Number(o.total_qty || o.items || 0);
+    return ' <span class="bo" data-tip="Backorder (2602)|' + int(bo) + (tot ? ' van ' + int(tot) : '') + ' artikel' + (bo === 1 ? '' : 'en') + ' uit batch 2602">' + BO_SVG + '</span>';
+  }
   var FIN = { PAID:'betaald', PENDING:'in afwachting', REFUNDED:'terugbetaald', PARTIALLY_REFUNDED:'deels terug', AUTHORIZED:'geautoriseerd' };
   var FUL = { UNFULFILLED:'nog niet verzonden', PARTIALLY_FULFILLED:'deels verzonden' };
   function tables(){
@@ -361,21 +624,23 @@ input:focus{outline:2px solid var(--hdb-copper);outline-offset:0}
     $('recent').innerHTML = rec.length ? '<table><tr><th>Order</th><th>Datum</th><th>Plaats</th><th class="n">Items</th><th class="n">Bedrag</th></tr>' +
       rec.map(function(o){
         var plaats = [o.city, o.country].filter(Boolean).join(', ');
-        return '<tr><td>' + esc(o.order_name) + (o.financial_status === 'REFUNDED' ? ' <span class="pill">terugbetaald</span>' : '') +
+        return '<tr><td>' + esc(o.order_name) + boIcon(o) + (o.financial_status === 'REFUNDED' ? ' <span class="pill">terugbetaald</span>' : '') +
                '</td><td>' + esc(dParts(o.order_created_at, { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' })) +
                '</td><td>' + esc(plaats) + '</td><td class="n">' + int(o.items) + '</td><td class="n">' + eur(o.net, 2) + '</td></tr>';
       }).join('') + '</table>' : '<p class="muted">Geen verkopen in de laatste 14 dagen.</p>';
 
-    var oo = DATA.open_orders || [], now = Date.now();
+    var oo = (DATA.open_orders || []).slice().sort(function(a, b){ return String(b.order_created_at).localeCompare(String(a.order_created_at)); }), now = Date.now();
+    var boN = oo.filter(function(o){ return Number(o.backorder_qty || 0) > 0; }).length;
     var total = sum(oo, 'total_price');
     var age = function(o){ return Math.floor((now - new Date(o.order_created_at)) / 864e5); };
     var oldest = oo.length ? Math.max.apply(null, oo.map(age)) : 0;
     $('oNums').innerHTML = '<div>Openstaand<b>' + int(oo.length) + '</b></div><div>Waarde<b>' + eur(total) + '</b></div>' +
-      '<div>Oudste wacht<b>' + int(oldest) + ' dagen</b></div>';
+      '<div>Oudste wacht<b>' + int(oldest) + ' dagen</b></div>' +
+      '<div>Met backorder (2602)<b>' + int(boN) + '</b></div>';
     $('open').innerHTML = oo.length ? '<table><tr><th>Order</th><th>Besteld</th><th>Klant</th><th class="n">Items</th><th class="n">Bedrag</th><th>Betaling</th><th>Status</th><th class="n">Wacht</th></tr>' +
       oo.map(function(o){
         var a = age(o);
-        return '<tr><td>' + esc(o.order_name) + '</td><td>' + esc(dParts(o.order_created_at, { day:'2-digit', month:'2-digit', year:'2-digit' })) +
+        return '<tr><td>' + esc(o.order_name) + boIcon(o) + '</td><td>' + esc(dParts(o.order_created_at, { day:'2-digit', month:'2-digit', year:'2-digit' })) +
                '</td><td>' + esc(o.customer_name) + '</td><td class="n">' + int(o.line_item_count) + '</td><td class="n">' + eur(o.total_price, 2) +
                '</td><td><span class="pill' + (o.financial_status === 'PENDING' ? ' warn' : '') + '">' + esc(FIN[o.financial_status] || o.financial_status) + '</span>' +
                '</td><td>' + esc(FUL[o.fulfillment_status] || o.fulfillment_status || '') + '</td><td class="n">' + a + ' d</td></tr>';
