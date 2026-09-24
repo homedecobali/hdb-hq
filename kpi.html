@@ -1503,7 +1503,7 @@
       var camp = (res[7] && !res[7].error) ? (res[7].data || []) : [];
       var campErr = res[7] ? res[7].error : null;
       var LANG_LBL = { es: 'ES', pt: 'PT', en: 'EN', xx: '?' };
-      var TYPE_CLR = { product_news: CLR.yellow, story_news: CLR.cyan, other: CLR.muted };
+      var TYPE_CLR = { product_news: CLR.yellow, offer_news: '#e67e22', story_news: CLR.cyan, other: CLR.muted };
 
       // per type: de laatste verzenddag, met de talen van die dag opgeteld
       var lastPerType = {};
@@ -2516,6 +2516,7 @@
     { key:'meta_untagged', label:'Meta zonder UTM',      color:'#7d8ca3', h:'referral / story?' },
     { key:'bio',           label:'Link in bio',          color:'#4fd1a1', h:'IG / FB profiel' },
     { key:'mail_nb',       label:'Nieuwsbrief (product)',color:'#e67e22', h:'hdb-nb' },
+    { key:'mail_offer',    label:'Aanbiedingsnieuwsbrief',color:'#ff9f43', h:'hdb-nb \u00b7 oferta-*' },
     { key:'mail_verhaal',  label:'Verhaal-nieuwsbrief',  color:'#ffd400', h:'hdb-verhaal' },
     { key:'social_post',   label:'Social post',          color:'#ff5fa2', h:'hdb-post' },
     { key:'social_reel',   label:'Reel',                 color:'#ff8fc0', h:'hdb-reel' },
@@ -2552,7 +2553,7 @@
       var cc = p.camps[ck] || (p.camps[ck] = { campaign:r.utm_campaign, content:r.utm_content, clicks:0, purchases:0, revenue:0 });
       cc.clicks += c; cc.purchases += pu; cc.revenue += rv;
     });
-    var ownedKeys = ['bio','mail_nb','mail_verhaal','social_post','social_reel','social_story','blog'];
+    var ownedKeys = ['bio','mail_nb','mail_offer','mail_verhaal','social_post','social_reel','social_story','blog'];
     var owned = ownedKeys.reduce(function(a, k){ return a + ((per[k]||{}).clicks || 0); }, 0);
     var untagged = ((per.meta_untagged||{}).clicks || 0) + ((per.overig||{}).clicks || 0);
     var cvr = tot.clicks ? (tot.purchases / tot.clicks * 100) : 0;
