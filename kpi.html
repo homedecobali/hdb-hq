@@ -157,6 +157,10 @@
   .kgrid .kv.green{color:var(--green)}
   .kgrid .kv.red{color:var(--red)}
   .kgrid .kl{font-size:9px;letter-spacing:.11em;text-transform:uppercase;color:var(--muted);margin-top:3px}
+  /* backorder-indicatie (batch 2602: SKU XX2602…) */
+  .bo{display:inline-flex;vertical-align:-3px;margin-left:6px;line-height:0;cursor:help}
+  .bo svg{width:14px;height:14px}
+  .bo.yes{color:var(--yellow)} .bo.no{color:var(--green);opacity:.75} .bo.unk{color:var(--muted);opacity:.6}
   .camphead .ck.winkel{color:var(--orange);font-style:normal}
   /* ---- dagtotaal-kop boven de orders van elke dag ---- */
   .dagtotaal{display:flex;align-items:center;gap:12px;flex-wrap:wrap;
@@ -1196,6 +1200,20 @@
       .formatToParts(d).forEach(function(x){ p[x.type] = x.value; });
     return p;
   }
+  // ---- backorder (batch 2602) ----
+  var BO_RE = /^[A-Z]{2}2602/i;
+  var BO_SVG = {
+    yes: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',
+    no:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8l-9-5-9 5v8l9 5 9-5z"/><path d="M8.5 12l2.5 2.5 4.5-5"/></svg>',
+    unk: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .8-1 1.5v.7"/><path d="M12 17h.01"/></svg>'
+  };
+  // bo = stuks uit batch 2602, tot = totaal stuks; tot == null -> artikelregels nog niet gesynct
+  function boIcon(bo, tot){
+    if(tot == null) return '<span class="bo unk" title="Artikelregels nog niet gesynct (komt na de ochtend-sync)">' + BO_SVG.unk + '</span>';
+    if(bo > 0) return '<span class="bo yes" title="Backorder batch 2602: ' + bo + ' van ' + tot + ' stuks">' + BO_SVG.yes + '</span>';
+    return '<span class="bo no" title="Geen backorder \u2014 alles uit voorraad">' + BO_SVG.no + '</span>';
+  }
+
   function madYMD(iso){            // 'YYYY-MM-DD' in winkeltijd (daggrens)
     var p = madParts(iso, { year:'numeric', month:'2-digit', day:'2-digit' });
     return p ? (p.year + '-' + p.month + '-' + p.day) : String(iso).slice(0,10);
@@ -1393,7 +1411,7 @@
           var fin = finNL[r.financial_status] || String(r.financial_status || '\u2014').toLowerCase();
           var ful = fulNL[r.fulfillment_status] || String(r.fulfillment_status || '\u2014').toLowerCase();
           return '<tr>'
-            + '<td><b>' + esc(r.order_name) + '</b><span class="camp">' + esc(r.customer_name || '\u2014') + '</span></td>'
+            + '<td><b>' + esc(r.order_name) + '</b><span class="bo-slot" data-o="' + esc(r.order_name) + '"></span><span class="camp">' + esc(r.customer_name || '\u2014') + '</span></td>'
             + '<td>' + when + '</td>'
             + '<td><span class="pill ' + cls + '">' + d + ' dg</span></td>'
             + '<td>' + fmt(r.line_item_count || 0) + '</td>'
@@ -1407,7 +1425,34 @@
             + '<th>Order / klant</th><th>Datum</th><th>Wachttijd</th><th>Items</th><th>Bedrag</th><th>Betaling</th><th>Verzending</th>'
             + '</tr></thead><tbody>' + roRows + '</tbody></table>'
           : '<p style="color:var(--muted)">Geen onverzonden orders \u2014 alles is verzonden. De sync draait elk uur.</p>';
+        if(ro.length){
+          // backorder-iconen: artikelregels van deze orders uit bridge_sales_lines (SKU XX2602…)
+          sb.from('bridge_sales_lines').select('order_name,sku,qty')
+            .in('order_name', ro.map(function(r){ return r.order_name; }))
+            .then(function(bl){
+              if(bl.error) return;
+              var agg = {};
+              (bl.data || []).forEach(function(l){
+                var a = agg[l.order_name] || (agg[l.order_name] = { bo: 0, tot: 0 });
+                a.tot += Number(l.qty || 0);
+                if(BO_RE.test(l.sku || '')) a.bo += Number(l.qty || 0);
+              });
+              var nBo = 0;
+              Array.prototype.forEach.call(document.querySelectorAll('#ro-table .bo-slot'), function(el){
+                var a = agg[el.getAttribute('data-o')];
+                el.innerHTML = a ? boIcon(a.bo, a.tot) : boIcon(0, null);
+                if(a && a.bo > 0) nBo++;
+              });
+              var box = document.getElementById('ro-nums');
+              if(box){
+                var old = document.getElementById('ro-bo-num'); if(old) old.remove();
+                box.insertAdjacentHTML('beforeend', '<span id="ro-bo-num" style="display:contents">'
+                  + num('met backorder 2602', fmt(nBo), '', nBo ? 'warnval' : '') + '</span>');
+              }
+            });
+        }
         $('ro-foot').textContent = 'Nieuwste eerst \u00b7 elk uur ververst \u00b7 wachttijd: groen \u22642 dg, oranje 3\u20135 dg, rood >5 dg'
+          + ' \u00b7 gele klok = bevat backorder (SKU XX2602\u2026), groen doosje = alles uit voorraad, ? = regels nog niet gesynct'
           + ' \u00b7 bron: bridge_open_orders (HDB \u00b7 Orders \u2014 Open Orders Sync)';
       }
 
@@ -2182,7 +2227,9 @@
           : 'winkel \u00B7 handmatige bon';
         var head = '<div class="camphead" data-i="' + idx + '">'
           + '<span class="cv">\u25B8</span>'
-          + '<span class="cn">' + esc(o.naam) + '</span>'
+          + '<span class="cn">' + esc(o.naam) + boIcon(
+              o.regels.reduce(function(a, l){ return a + (BO_RE.test(l.sku || '') ? Number(l.qty || 0) : 0); }, 0),
+              o.regels.reduce(function(a, l){ return a + Number(l.qty || 0); }, 0)) + '</span>'
           + '<span class="ck' + (o.klant ? '' : ' geen winkel') + '">' + esc(klantTxt) + '</span>'
           + '<span class="cd">' + dm(o.datum) + '</span>'
           + '<span class="cm">' + o.regels.length + ' regel' + (o.regels.length === 1 ? '' : 's')
@@ -2205,7 +2252,8 @@
                 : '<div class="none"></div>') + '</td>'
             + '<td>' + esc(l.title || '')
               + (l.variant_title ? ' <span class="camp">' + esc(l.variant_title) + '</span>' : '')
-              + '<span class="sku">' + esc(l.sku || '\u2014') + '</span></td>'
+              + '<span class="sku">' + esc(l.sku || '\u2014')
+              + (BO_RE.test(l.sku || '') ? boIcon(Number(l.qty || 0), Number(l.qty || 0)) : '') + '</span></td>'
             + '<td>' + fmt(l.qty) + '</td>'
             + '<td>' + eur2(l.gross) + '</td>'
             + '<td>' + (Number(l.discount) > 0 ? '<span class="lose">-' + eur2(l.discount) + '</span>'
