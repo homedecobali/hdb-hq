@@ -66,6 +66,11 @@ label{display:block;font-size:12px;letter-spacing:.06em;text-transform:uppercase
 input{width:100%;font-family:var(--hdb-font);font-size:15px;padding:9px 11px;border:1px solid var(--hdb-border);border-radius:6px;background:var(--hdb-white);color:var(--hdb-espresso)}
 input:focus{outline:2px solid var(--hdb-copper);outline-offset:0}
 .err{color:var(--hdb-brand);font-size:13px;min-height:18px;margin-top:10px}
+.pw{position:relative}
+.pw input{padding-right:44px}
+.pw .eye{position:absolute;right:4px;top:50%;transform:translateY(-50%);border:0;background:transparent;cursor:pointer;padding:6px;color:var(--hdb-copper);line-height:0;border-radius:4px}
+.pw .eye:focus-visible{outline:2px solid var(--hdb-copper)}
+.pw .eye svg{width:20px;height:20px}
 #pwbox{margin-top:0}
 </style>
 </head>
@@ -88,7 +93,7 @@ input:focus{outline:2px solid var(--hdb-copper);outline-offset:0}
     <label for="lEmail">E-mail</label>
     <input type="email" id="lEmail" autocomplete="username">
     <label for="lPass">Wachtwoord</label>
-    <input type="password" id="lPass" autocomplete="current-password">
+    <div class="pw"><input type="password" id="lPass" autocomplete="current-password"><button type="button" class="eye" data-for="lPass" aria-label="Wachtwoord tonen" aria-pressed="false"></button></div>
     <div style="margin-top:16px"><button class="btn" id="btnIn">Inloggen</button></div>
     <div class="err" id="lErr"></div>
     <p class="muted" style="margin:6px 0 0">Wachtwoord kwijt? Vraag Rick om een nieuw wachtwoord.</p>
@@ -101,9 +106,9 @@ input:focus{outline:2px solid var(--hdb-copper);outline-offset:0}
   <div class="card hidden" id="pwbox">
     <h2>Wachtwoord wijzigen</h2>
     <label for="pw1">Nieuw wachtwoord (min. 10 tekens)</label>
-    <input type="password" id="pw1" autocomplete="new-password">
+    <div class="pw"><input type="password" id="pw1" autocomplete="new-password"><button type="button" class="eye" data-for="pw1" aria-label="Wachtwoord tonen" aria-pressed="false"></button></div>
     <label for="pw2">Herhaal</label>
-    <input type="password" id="pw2" autocomplete="new-password">
+    <div class="pw"><input type="password" id="pw2" autocomplete="new-password"><button type="button" class="eye" data-for="pw2" aria-label="Wachtwoord tonen" aria-pressed="false"></button></div>
     <div style="margin-top:14px;display:flex;gap:10px">
       <button class="btn" id="pwSave">Opslaan</button>
       <button class="btn line" id="pwCancel">Annuleren</button>
@@ -196,6 +201,7 @@ input:focus{outline:2px solid var(--hdb-copper);outline-offset:0}
     var r = await sb.auth.signInWithPassword({ email: $('lEmail').value.trim(), password: $('lPass').value });
     $('btnIn').disabled = false;
     if(r.error){ $('lErr').textContent = 'Inloggen mislukt — controleer e-mail en wachtwoord.'; return; }
+    hideAllPw();
     start();
   }
   $('btnIn').onclick = signIn;
@@ -209,10 +215,28 @@ input:focus{outline:2px solid var(--hdb-copper);outline-offset:0}
     if(a !== b){ $('pwErr').textContent = 'De twee wachtwoorden zijn niet gelijk.'; return; }
     var r = await sb.auth.updateUser({ password: a });
     if(r.error){ $('pwErr').textContent = 'Opslaan mislukt: ' + r.error.message; return; }
-    $('pw1').value = $('pw2').value = '';
+    $('pw1').value = $('pw2').value = ''; hideAllPw();
     $('pwErr').textContent = 'Wachtwoord gewijzigd.';
     setTimeout(function(){ $('pwbox').classList.add('hidden'); }, 1500);
   };
+
+  /* ---------------- wachtwoord tonen/verbergen ---------------- */
+  var EYE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg>';
+  var EYE_OFF = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17.9 17.9A10.8 10.8 0 0 1 12 19C5 19 1 12 1 12a19.8 19.8 0 0 1 5.1-5.9M9.9 5.2A10 10 0 0 1 12 5c7 0 11 7 11 7a19.9 19.9 0 0 1-2.2 3.2M14.1 14.1a3 3 0 1 1-4.2-4.2"/><path d="M1 1l22 22"/></svg>';
+  Array.prototype.forEach.call(document.querySelectorAll('.pw .eye'), function(b){
+    var inp = $(b.dataset.for);
+    var set = function(show){
+      inp.type = show ? 'text' : 'password';
+      b.innerHTML = show ? EYE_OFF : EYE;
+      b.setAttribute('aria-pressed', show ? 'true' : 'false');
+      b.setAttribute('aria-label', show ? 'Wachtwoord verbergen' : 'Wachtwoord tonen');
+          };
+    set(false);
+    b.addEventListener('mousedown', function(e){ e.preventDefault(); });   // focus blijft in het veld
+    b.addEventListener('click', function(){ set(inp.type === 'password'); inp.focus(); });
+  });
+  // na inloggen/uitloggen/opslaan weer verbergen
+  function hideAllPw(){ Array.prototype.forEach.call(document.querySelectorAll('.pw .eye'), function(b){ if($(b.dataset.for).type === 'text') b.click(); }); }
 
   /* ---------------- data ---------------- */
   async function load(){
