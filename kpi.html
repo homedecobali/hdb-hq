@@ -522,6 +522,7 @@
           <div>Conversie<b id="zs-stats-cvr">&mdash;</b></div>
           <div>Mail bounce<b id="zs-stats-mailb">&mdash;</b></div>
           <div>IG volgers<b id="zs-stats-ig">&mdash;</b></div>
+          <div>Pins 7d<b id="zs-stats-pins">&mdash;</b></div>
           <div>Blended MER<b id="zs-stats-mer">&mdash;</b></div>
         </span>
         <button class="fold" data-zone="stats">&minus;</button>
@@ -557,6 +558,20 @@
             <div class="chart" id="social-chart"></div>
             <div class="legend"><span><i style="background:var(--green)"></i>IG volgers</span></div>
           </div>
+        </div>
+
+        <div class="card">
+          <h2><span class="dot" style="background:#e60023"></span>Pinterest (outreach)
+            <span class="when" id="pin-when"></span>
+            <span class="src">bron: pinterest_queue + v_utm_channels_daily</span></h2>
+          <div class="utm-tabs" id="pin-tabs">
+            <button data-days="7">7 dagen</button>
+            <button data-days="28" class="on">28 dagen</button>
+            <button data-days="90">90 dagen</button>
+          </div>
+          <div class="nums" id="pin-nums"></div>
+          <div id="pin-body"></div>
+          <p id="pin-foot" style="color:var(--muted);font-size:11px;margin:10px 0 0"></p>
         </div>
 
         <div class="card">
@@ -2332,6 +2347,7 @@
   var CHAN_DEF = [
     { key:'meta',   label:'Meta Ads',        color:'#3da5ff' },
     { key:'social', label:'Organic Social',  color:'#4fd1a1' },
+    { key:'pinterest', label:'Pinterest',    color:'#e60023' },
     { key:'google', label:'Google',          color:'#ffd400' },
     { key:'mail',   label:'E-mail',          color:'#e67e22' },
     { key:'overig', label:'Overig / direct', color:'#7d8ca3' }
@@ -2344,6 +2360,8 @@
     // hebben alleen de numerieke Meta-campagne-id in utm_campaign.
     if(t === 'facebook_ua' || t.indexOf('_ua') !== -1) return 'meta';
     if(/^\d{10,}$/.test(c) || c.indexOf('hdb-ads') === 0) return 'meta';
+    // Pinterest (outreach, 26-09): hdb-pin / hdb-pin-look (pins) + hdb-pin-ref (ongetagde Pinterest-referral)
+    if(c.indexOf('hdb-pin') === 0) return 'pinterest';
     // eigen UTM-conventie (sinds 09-2026): hdb-nb / hdb-verhaal = mail, hdb-post / hdb-reel / hdb-story = social
     if(c.indexOf('hdb-verhaal') === 0) return 'mail';
     if(c.indexOf('hdb-post') === 0 || c.indexOf('hdb-reel') === 0 || c.indexOf('hdb-story') === 0 || c.indexOf('hdb-bio') === 0) return 'social';
@@ -2514,7 +2532,7 @@
     $('chan-foot').textContent =
       'Lijnen = 7-daags voortschrijdend omzettotaal per kanaal (linkeras, \u20AC); IG-volgers = dagstand (rechteras, gestippeld). '
       + 'IG ' + (igDelta >= 0 ? '+' : '') + fmt(igDelta) + ' in deze periode. '
-      + 'Attributie is GA4 last-click: Meta Ads = Facebook_UA, Organic Social = link-in-bio. '
+      + 'Attributie is GA4 last-click: Meta Ads = Facebook_UA, Organic Social = link-in-bio, Pinterest = UTM hdb-pin*. '
       + 'Let op: organische social wordt door last-click stelselmatig onderschat \u2014 volgers zien je op IG en kopen later via Google of direct, '
       + 'dus een vlakke social-lijn betekent niet dat je following niets doet. '
       + 'Google = Google Ads-conversiewaarde (bridge_kpi_daily source=google), niet GA4 last-click. '
@@ -2556,7 +2574,7 @@
   /* ---- Kanalen (UTM): clicks, aankopen en omzet per bron (GA4 last-click) ----
      Bron: Supabase view v_utm_channels_daily (SECURITY DEFINER over ads_metrics, source=ga4,
      laatste 90 dagen). Het kanaal wordt server-side afgeleid uit de utm_campaign-prefix
-     (hdb-nb / hdb-verhaal / hdb-post / hdb-reel / hdb-story / hdb-blog / hdb-bio / hdb-ads)
+     (hdb-nb / hdb-verhaal / hdb-pin / hdb-post / hdb-reel / hdb-story / hdb-blog / hdb-bio / hdb-ads)
      of uit Facebook_UA (Meta). Meta-campagnes komen als numeriek id binnen; er is nog geen
      id->naam-mapping in Supabase, dus die tonen we ingekort. */
   var UTM_DEF = [
@@ -2566,6 +2584,7 @@
     { key:'mail_nb',       label:'Nieuwsbrief (product)',color:'#e67e22', h:'hdb-nb' },
     { key:'mail_offer',    label:'Aanbiedingsnieuwsbrief',color:'#ff9f43', h:'hdb-nb \u00b7 oferta-*' },
     { key:'mail_verhaal',  label:'Verhaal-nieuwsbrief',  color:'#ffd400', h:'hdb-verhaal' },
+    { key:'pinterest',     label:'Pinterest',            color:'#e60023', h:'hdb-pin \u00b7 pin-look \u00b7 pin-ref' },
     { key:'social_post',   label:'Social post',          color:'#ff5fa2', h:'hdb-post' },
     { key:'social_reel',   label:'Reel',                 color:'#ff8fc0', h:'hdb-reel' },
     { key:'social_story',  label:'Story',                color:'#ffb3d6', h:'hdb-story' },
@@ -2601,7 +2620,7 @@
       var cc = p.camps[ck] || (p.camps[ck] = { campaign:r.utm_campaign, content:r.utm_content, clicks:0, purchases:0, revenue:0 });
       cc.clicks += c; cc.purchases += pu; cc.revenue += rv;
     });
-    var ownedKeys = ['bio','mail_nb','mail_offer','mail_verhaal','social_post','social_reel','social_story','blog'];
+    var ownedKeys = ['bio','mail_nb','mail_offer','mail_verhaal','pinterest','social_post','social_reel','social_story','blog'];
     var owned = ownedKeys.reduce(function(a, k){ return a + ((per[k]||{}).clicks || 0); }, 0);
     var untagged = ((per.meta_untagged||{}).clicks || 0) + ((per.overig||{}).clicks || 0);
     var cvr = tot.clicks ? (tot.purchases / tot.clicks * 100) : 0;
@@ -2665,6 +2684,7 @@
     utmState.rows = r.data || [];
     utmState.err = r.error || null;
     renderUtm();
+    renderPinterest();
   }
   (function(){
     var tabs = $('utm-tabs'); if(!tabs) return;
@@ -2676,16 +2696,97 @@
     });
   })();
 
+  /* ---- Pinterest (outreach, 26-09) ----
+     Geplaatste pins uit pinterest_queue (status=posted, published_at; RLS 'authenticated read
+     pinterest_queue') + wachtrij (status=ready). Verkeer uit v_utm_channels_daily (channel=pinterest:
+     utm_campaign hdb-pin / hdb-pin-look / hdb-pin-ref), dus dezelfde rijen als 'Kanalen (UTM)'.
+     Per pin tellen we de UTM-sessies op utm_content = product-handle binnen de periode. */
+  var pinState = { days: 28, rows: null, ready: 0, err: null };
+  function pinUtmOk(link){ return /[?&]utm_campaign=hdb-pin/.test(String(link || '')); }
+  function renderPinterest(){
+    var body = $('pin-body'); if(!body) return;
+    if(pinState.err){
+      $('pin-when').textContent = ''; $('pin-nums').innerHTML = '';
+      body.innerHTML = '<div class="chan-empty">pinterest_queue niet leesbaar: ' + esc(pinState.err.message || pinState.err) + '</div>';
+      $('pin-foot').textContent = ''; return;
+    }
+    if(!pinState.rows) return;
+    var days = pinState.days, since = chanCutoff(days), since7 = chanCutoff(7);
+    var madrid = function(ts){ return new Date(ts).toLocaleDateString('en-CA', { timeZone: 'Europe/Madrid' }); };
+    var posted = pinState.rows.filter(function(r){ return r.published_at && madrid(r.published_at) >= since; });
+    var pins7 = pinState.rows.filter(function(r){ return r.published_at && madrid(r.published_at) >= since7; }).length;
+    var utm = (utmState.rows || []).filter(function(r){ return r.channel === 'pinterest' && String(r.date) >= since; });
+    var tot = { clicks:0, purchases:0, revenue:0 }, perH = {}, ref = 0;
+    utm.forEach(function(r){
+      var c = Number(r.clicks||0);
+      tot.clicks += c; tot.purchases += Number(r.purchases||0); tot.revenue += Number(r.revenue||0);
+      if(String(r.utm_campaign||'').toLowerCase().indexOf('hdb-pin-ref') === 0){ ref += c; return; }
+      var h = String(r.utm_content || '').toLowerCase(); if(h) perH[h] = (perH[h] || 0) + c;
+    });
+    var untagged = posted.filter(function(r){ return !pinUtmOk(r.link); }).length;
+    var spp = posted.length ? tot.clicks / posted.length : 0;
+
+    $('pin-when').textContent = '\u2014 laatste ' + days + ' dagen';
+    zset('zs-stats-pins', fmt(pins7), pins7 ? '' : 'warn');
+    $('pin-nums').innerHTML =
+      num('pins geplaatst', fmt(posted.length), '') +
+      num('in wachtrij', fmt(pinState.ready), '', pinState.ready ? '' : 'warnval') +
+      num('sessies (UTM)', fmt(tot.clicks), '') +
+      num('sessies / pin', posted.length ? spp.toFixed(2) : '\u2014', '') +
+      num('aankopen (GA4)', fmt(tot.purchases), '') +
+      num('omzet (GA4)', eur2(tot.revenue), '') +
+      num('pins zonder UTM', fmt(untagged), '', untagged ? 'warnval' : '');
+
+    var last = posted.slice().sort(function(a, b){ return String(b.published_at).localeCompare(String(a.published_at)); }).slice(0, 12);
+    body.innerHTML = last.length
+      ? '<table class="adt"><thead><tr><th>Pin</th><th>Type</th><th>Geplaatst</th><th>UTM</th><th>Sessies</th></tr></thead><tbody>'
+        + last.map(function(r){
+            var h = String(r.handle || '').toLowerCase(), s = perH[h] || 0;
+            return '<tr><td>' + esc(r.title_es || r.title || r.handle) + '<span class="camp">' + esc(r.handle || '') + '</span></td>'
+              + '<td>' + (r.pin_type === 'collage' ? 'shop the look' : 'enkel') + '</td>'
+              + '<td>' + dayLabel(madrid(r.published_at)) + '</td>'
+              + '<td>' + (pinUtmOk(r.link) ? '<span class="win">\u2713</span>' : '<span class="lose">ontbreekt</span>') + '</td>'
+              + '<td>' + (s ? '<span class="win">' + fmt(s) + '</span>' : '<span class="nil">\u2014</span>') + '</td></tr>';
+          }).join('') + '</tbody></table>'
+      : '<div class="chan-empty">Nog geen geplaatste pins in deze periode.</div>';
+
+    $('pin-foot').innerHTML =
+      'Pins: HDB \u00b7 PINTEREST \u00b7 Pinterest Publish (fase 1: 3/dag). Sessies = GA4 last-click op UTM hdb-pin / hdb-pin-look; '
+      + 'sessies per pin via utm_content = product-handle. Pinterest werkt traag (pins scoren weken na plaatsing) \u2014 stuur op de trend van sessies/pin, niet op een enkele week.'
+      + (ref ? ' Daarnaast ' + fmt(ref) + ' sessies via Pinterest zonder UTM (hdb-pin-ref: saves / oude pins).' : '')
+      + (untagged ? '<div class="utm-gap">Gaten: ' + fmt(untagged) + ' pin(s) geplaatst zonder hdb-pin-UTM \u2014 clicks daarvan niet toe te wijzen.</div>' : '');
+  }
+  async function loadPinterest(){
+    var r = await sb.from('pinterest_queue')
+      .select('handle,title,title_es,pin_type,link,published_at')
+      .eq('status', 'posted').gte('published_at', chanCutoff(90))
+      .order('published_at', { ascending: false }).range(0, 999);
+    var q = await sb.from('pinterest_queue').select('id', { count: 'exact', head: true }).eq('status', 'ready');
+    pinState.rows = r.data || [];
+    pinState.ready = (q && !q.error && q.count != null) ? q.count : 0;
+    pinState.err = r.error || null;
+    renderPinterest();
+  }
+  (function(){
+    var tabs = $('pin-tabs'); if(!tabs) return;
+    tabs.addEventListener('click', function(ev){
+      var b = ev.target.closest('button'); if(!b) return;
+      pinState.days = Number(b.dataset.days) || 28;
+      Array.prototype.forEach.call(tabs.querySelectorAll('button'), function(x){ x.classList.toggle('on', x === b); });
+      renderPinterest();
+    });
+  })();
+
   async function init(){
     var sess = await sb.auth.getSession();
     if(!sess.data.session){ $('login').classList.remove('hidden'); return; }
     $('top').classList.remove('hidden');
     $('work').classList.remove('hidden');
     buildPanes();
-    load(); loadSales(); loadChannels(); loadUtm();
-    setInterval(function(){ load(); loadSales(); loadChannels(); loadUtm(); }, 5 * 60 * 1000);
+    load(); loadSales(); loadChannels(); loadUtm(); loadPinterest();
+    setInterval(function(){ load(); loadSales(); loadChannels(); loadUtm(); loadPinterest(); }, 5 * 60 * 1000);
     document.addEventListener('visibilitychange', function(){
-      if(document.visibilityState === 'visible'){ load(); loadSales(); loadChannels(); loadUtm(); }
+      if(document.visibilityState === 'visible'){ load(); loadSales(); loadChannels(); loadUtm(); loadPinterest(); }
     });
   }
   init();
