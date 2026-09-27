@@ -90,6 +90,15 @@
     padding:9px 0;border-bottom:1px solid var(--line)}
   #memos .memo:last-child{border-bottom:none}
   #memos .t{font-weight:600}
+  #memos .memo-main{min-width:0;flex:1}
+  #memos .memo.has-det{cursor:pointer}
+  #memos .memo-car{display:inline-block;transition:transform .15s;color:var(--muted);margin-right:4px}
+  #memos .memo.open .memo-car{transform:rotate(90deg)}
+  #memos .memo-p{margin-right:6px}
+  #memos .memo-cat{margin-left:8px;opacity:.7;text-transform:uppercase;font-size:10px;letter-spacing:.5px}
+  #memos .memo-det{display:none;white-space:pre-wrap;font-size:12px;color:var(--text);
+    margin-top:8px;padding:8px 10px;border-left:2px solid var(--line);background:rgba(255,255,255,.03);border-radius:4px}
+  #memos .memo.open .memo-det{display:block}
   #memos .n{font-size:12px;color:var(--muted);margin-top:2px}
   .pill{font-size:11px;font-weight:800;padding:3px 9px;border-radius:99px;white-space:nowrap}
   .fun{display:flex;flex-direction:column;gap:7px;margin-top:12px}
@@ -1760,20 +1769,40 @@
           + 'Verschijnt na de eerstvolgende run van \u201cHDB \u00b7 GOOGLE ADS \u00b7 Review\u201d (ma 08:00) zodra Basic Access / leestoegang live is.';
       }
 
-      var open = memos.slice().sort(function(a,b){ return (a.days_left||0) - (b.days_left||0); });
+      var open = memos.slice().sort(function(a,b){
+        var pa = a.prio||3, pb = b.prio||3;
+        if(pa !== pb) return pa - pb;
+        return (a.days_left||0) - (b.days_left||0);
+      });
       $('memo-count').textContent = '('+open.length+' open)';
       zset('zs-dewi-todo', String(open.length),
            open.some(function(m){ return m.overdue; }) ? 'bad' : (open.length ? 'warn' : 'good'));
-      $('memos').innerHTML = open.length ? open.map(function(mm){
+      var esc = function(t){ return String(t==null?'':t).replace(/[&<>]/g, function(c){
+        return {'&':'&amp;','<':'&lt;','>':'&gt;'}[c]; }); };
+      $('memos').innerHTML = open.length ? open.map(function(mm, ix){
         var cls = mm.overdue ? 'red' : (mm.in_warning_window ? 'orange' : 'grey');
         var lbl = mm.overdue ? (Math.abs(mm.days_left)+'d over tijd')
                 : (mm.days_left === 0 ? 'vandaag' : 'nog '+mm.days_left+'d');
+        var p = mm.prio || 3;
+        var pcls = p===1 ? 'red' : (p===2 ? 'orange' : 'grey');
         var link = mm.related_url ? ' &middot; <a href="'+mm.related_url+'" target="_blank" rel="noopener">openen</a>' : '';
-        return '<div class="memo"><div><div class="t">'+mm.title+'</div>'
-          + '<div class="n">'+(mm.note||'')+link+'</div></div>'
+        var det = (mm.detail && mm.detail !== mm.note) ? mm.detail : '';
+        var cat = mm.category ? '<span class="memo-cat">'+esc(mm.category)+'</span>' : '';
+        return '<div class="memo'+(det?' has-det':'')+'" data-mi="'+ix+'">'
+          + '<div class="memo-main">'
+          + '<div class="t">'+(det?'<span class="memo-car">&#9656;</span>':'')
+          + '<span class="pill '+pcls+' memo-p">P'+p+'</span> '+esc(mm.title)+'</div>'
+          + '<div class="n">'+esc(mm.note||'')+link+cat+'</div>'
+          + (det ? '<div class="memo-det">'+esc(det)+'</div>' : '')
+          + '</div>'
           + '<div style="text-align:right"><span class="pill '+cls+'">'+lbl+'</span>'
           + '<div class="n">'+mm.due_date+'</div></div></div>';
       }).join('') : '<p style="color:var(--muted)">Geen open to-do\'s.</p>';
+      $('memos').addEventListener('click', function(ev){
+        var row = ev.target.closest && ev.target.closest('.memo.has-det');
+        if(!row || (ev.target.tagName === 'A')) return;
+        row.classList.toggle('open');
+      });
 
       // --- Funnel & rendement (28 dagen; koppelt GA4 + Shopify + Meta) ---
       // MER (Marketing Efficiency Ratio) = TOTALE online omzet / TOTALE ads-spend.
