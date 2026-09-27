@@ -329,7 +329,12 @@
   #top .zgrp a.zpinterest{border-color:#e60023;color:#ff4d6a;background:rgba(230,0,35,.12)}
   /* Pagina-knoppen togglen een rechterpaneel i.p.v. extern te openen */
   #top .zgrp a.pagebtn{cursor:pointer}
-  #top .zgrp a.pagebtn.on{box-shadow:inset 0 0 0 1px currentColor}
+  /* studio-knoppen: 'aan' = inverse (vulkleur = merkkleur, tekst donker). Alleen .pagebtn, niet de overige knoppen. */
+  #top .zgrp a.pagebtn.on{color:#04070d;font-weight:700}
+  #top .zgrp a.zsocial.pagebtn.on{background:var(--z-social)}
+  #top .zgrp a.zmeta.pagebtn.on{background:var(--z-meta)}
+  #top .zgrp a.zgoogle.pagebtn.on{background:var(--z-google);color:#fff}
+  #top .zgrp a.zpinterest.pagebtn.on{background:#e60023;color:#fff}
   #top .zgrp a.zstats{border-color:var(--z-stats);color:var(--z-stats);background:rgba(0,200,255,.10)}
   #top .zgrp a.zdewi{border-color:var(--z-dewi);color:var(--z-dewi);background:rgba(163,123,255,.10)}
 
@@ -711,7 +716,7 @@
   // Zelfde sidepane/divider/drag-machinerie als PANELS, maar ZONDER dressPanel
   // (studio's zijn schone standalone pagina's; hun eigen nav mag blijven staan).
   var PAGES = [
-    { id:'social', url:'studio.html',        title:'SOCIAL-STUDIO',  page:true },
+    { id:'social', url:'social-studio.html',        title:'SOCIAL-STUDIO',  page:true },
     { id:'meta',   url:'meta-studio.html',   title:'META-STUDIO',    page:true },
     { id:'google', url:'google-studio.html', title:'GOOGLE-STUDIO',  page:true },
     { id:'pinterest', url:'pinterest-studio.html', title:'PINTEREST-STUDIO', page:true }

@@ -162,8 +162,15 @@ a{color:inherit}
 .card .ch.collage{background:rgba(201,109,216,.9)}
 .card .vbadge{background:rgba(0,0,0,.66)}
 .pending{border-color:#4a1d25;background:linear-gradient(180deg,#1d0c10 0%,#14161d 100%)}
-.kpis{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin-bottom:24px}
-@media(max-width:860px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.kpis{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px;margin-bottom:24px}
+.vchart{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:12px 14px 8px;margin-bottom:26px}
+.vchart svg{width:100%;height:120px;display:block}
+.vchart .vleg{font-size:11px;color:var(--dim);display:flex;justify-content:space-between;margin-top:4px}
+.pstats{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.pstats div{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:7px 9px;font-size:11px;color:var(--dim)}
+.pstats b{display:block;font-size:15px;color:var(--txt)}
+@media(max-width:980px){.kpis{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:620px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .kpi{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:11px 13px}
 .kpi .kl{font-size:11px;color:var(--dim);text-transform:uppercase;letter-spacing:.05em}
 .kpi .kv{font-size:20px;font-weight:700;margin-top:4px}
@@ -234,6 +241,18 @@ function eur(n){ return '€'+Number(n||0).toLocaleString('nl-NL',{minimumFracti
 function dayKey(d){ return d.toISOString().slice(0,10); }
 function daysAgo(n){ const d=new Date(); d.setDate(d.getDate()-n); return d; }
 function typeLbl(t){ return t==='collage'?'LOOK':'PIN'; }
+function fmtK(n){ n=Number(n)||0; if(n>=1000) return (n/1000).toFixed(n>=10000?0:1).replace('.',',')+'k'; return String(n); }
+function viewsChart(days){
+  const since=dayKey(daysAgo(29)); const map={}; days.forEach(d=>{ map[String(d.metrics_until)]=d; });
+  const pts=[]; for(let i=29;i>=0;i--){ const k=dayKey(daysAgo(i)); const d=map[k]; pts.push({k, v:d?(+d.impressions||0):0, s:d?(+d.saves||0):0, has:!!d}); }
+  const head=`<div class="rowhead"><span class="cd" style="background:var(--pin)"></span><span class="lbl">Views per dag</span><span class="n">30 dagen</span><span class="fmt">Pinterest-analytics · balk = views, stip = saves</span></div>`;
+  if(!days.length) return `<div class="row">${head}<div class="vchart"><div class="empty-p">Nog geen views binnen. Agent <b>Pinterest Analytics</b> haalt ze dagelijks om 07:30 op (Pinterest heeft ~1–2 dagen vertraging).</div></div></div>`;
+  const W=900,H=110,bw=W/pts.length, max=Math.max(1,...pts.map(p=>p.v)), smax=Math.max(1,...pts.map(p=>p.s));
+  const bars=pts.map((p,i)=>{ const h=Math.round(p.v/max*(H-14)); return `<rect x="${(i*bw+2).toFixed(1)}" y="${H-h}" width="${(bw-4).toFixed(1)}" height="${h}" rx="2" fill="${p.has?'#e60023':'#2a323d'}" opacity="${p.has?0.85:0.5}"><title>${p.k}: ${p.v} views · ${p.s} saves</title></rect>`
+    + (p.s?`<circle cx="${(i*bw+bw/2).toFixed(1)}" cy="${(H-4-p.s/smax*(H-18)).toFixed(1)}" r="3" fill="#ffd9de"/>`:''); }).join('');
+  return `<div class="row">${head}<div class="vchart"><svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">${bars}</svg>
+    <div class="vleg"><span>${esc(dateTxt(pts[0].k))}</span><span>max ${fmtN(max)} views/dag</span><span>${esc(dateTxt(pts[pts.length-1].k))}</span></div></div></div>`;
+}
 
 const SLOTS = [
   ['single','Product-pins','single · 2:3','var(--single)'],
@@ -262,6 +281,10 @@ function render(rows){
   _q = rows.filter(r=>r.section==='queue').sort((a,b)=>String(a.created_at).localeCompare(String(b.created_at)));
   const posted = rows.filter(r=>r.section==='posted').sort((a,b)=>String(b.published_at).localeCompare(String(a.published_at)));
   const trends = rows.filter(r=>r.section==='trend');
+  const days = rows.filter(r=>r.section==='day').sort((a,b)=>String(a.metrics_until).localeCompare(String(b.metrics_until)));
+  const d30 = days.filter(d=>String(d.metrics_until)>=dayKey(daysAgo(30)));
+  const v30=d30.reduce((s,d)=>s+(+d.impressions||0),0), sv30=d30.reduce((s,d)=>s+(+d.saves||0),0), ob30=d30.reduce((s,d)=>s+(+d.outbound_clicks||0),0);
+  const mUntil = days.length ? days[days.length-1].metrics_until : null;
   _posted={single:[],collage:[]};
   for(const p of posted){ (_posted[p.pin_type==='collage'?'collage':'single']).push(p); }
 
@@ -273,12 +296,15 @@ function render(rows){
   countEl.textContent = `${posted.length} geplaatst · ${_q.length} in wachtrij`;
 
   let html=`<div class="kpis">
-    <div class="kpi"><div class="kl">Geplaatst 7d</div><div class="kv">${n7}</div><div class="ks">laatste ${esc(relTxt(last))}</div></div>
-    <div class="kpi"><div class="kl">Geplaatst 30d</div><div class="kv">${n30}</div><div class="ks">${_posted.single.length} pins · ${_posted.collage.length} looks totaal</div></div>
+    <div class="kpi"><div class="kl">Geplaatst 7d</div><div class="kv">${n7}</div><div class="ks">${n30} in 30d · laatste ${esc(relTxt(last))}</div></div>
     <div class="kpi"><div class="kl">In wachtrij</div><div class="kv">${_q.length}</div><div class="ks">status ready</div></div>
+    <div class="kpi"><div class="kl">Views 30d</div><div class="kv">${days.length?fmtN(v30):'—'}</div><div class="ks">${days.length?fmtN(sv30)+' saves · t/m '+esc(dateTxt(mUntil)):'Pinterest-analytics nog niet binnen'}</div></div>
+    <div class="kpi"><div class="kl">Outbound 30d</div><div class="kv">${days.length?fmtN(ob30):'—'}</div><div class="ks">klikken naar de shop (Pinterest)</div></div>
     <div class="kpi"><div class="kl">Klikken 30d</div><div class="kv">${fmtN(clicks)}</div><div class="ks">UTM hdb-pin* · GA4</div></div>
     <div class="kpi"><div class="kl">Aankopen 30d</div><div class="kv">${fmtN(buys)}</div><div class="ks">${eur(rev)} omzet (last-click)</div></div>
   </div>`;
+
+  html += viewsChart(days);
 
   // --- wachtrij ---
   if(_q.length){
@@ -323,7 +349,7 @@ function pinCard(p,g,i,queued){
     <div class="frame">
       ${media}
       <div class="ch${p.pin_type==='collage'?' collage':''}">${typeLbl(p.pin_type)}</div>
-      ${p.pin_type==='collage'&&n>1?`<div class="vbadge">🛍 ${n}</div>`:(p.pin_url?`<div class="vbadge">📌 live</div>`:'')}
+      ${p.impressions!=null?`<div class="vbadge">👁 ${fmtK(p.impressions)}</div>`:(p.pin_type==='collage'&&n>1?`<div class="vbadge">🛍 ${n}</div>`:(p.pin_url?`<div class="vbadge">📌 live</div>`:''))}
     </div>
     <div class="cap">
       <div class="t">${esc(p.title_es||p.title_pt||'')}</div>
@@ -344,6 +370,7 @@ function openPin(g,i){
     p.published_at?'geplaatst '+timeTxt(p.published_at):'in wachtrij sinds '+timeTxt(p.created_at)].filter(Boolean).join(' · ');
   inner.innerHTML=`${p.image_url?`<img src="${esc(p.image_url)}" alt="">`:''}
     <div class="lb-meta">${esc(meta)}</div>
+    ${p.impressions!=null?`<div class="pstats"><div>Views<b>${fmtN(p.impressions)}</b></div><div>Saves<b>${fmtN(p.saves)}</b></div><div>Pin-klik<b>${fmtN(p.pin_clicks)}</b></div><div>Naar shop<b>${fmtN(p.outbound_clicks)}</b></div></div><div class="lb-meta">${fmtN(p.impressions_7d||0)} views laatste 7 dagen · Pinterest-data t/m ${esc(dateTxt(p.metrics_until))}</div>`:(p.pin_url?'<div class="lb-meta">Nog geen Pinterest-statistieken (analytics draait dagelijks 07:30).</div>':'')}
     ${langs.length>1?`<div class="langtabs">${langs.map((l,k)=>`<a data-k="${k}"${k===0?' class="on"':''}>${l[0]}</a>`).join('')}</div>`:''}
     <div id="pinTxt"></div>
     ${hs.length>1?`<div class="lb-meta">Producten in deze look</div><div class="hlist">${hs.map(h=>`<a href="${SHOP+encodeURIComponent(h)}" target="_blank" rel="noopener">${esc(h)} ↗</a>`).join('')}</div>`
