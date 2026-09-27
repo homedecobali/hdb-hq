@@ -1780,8 +1780,8 @@
       $('memo-count').textContent = '('+open.length+' open)';
       zset('zs-dewi-todo', String(open.length),
            open.some(function(m){ return m.overdue; }) ? 'bad' : (open.length ? 'warn' : 'good'));
-      var esc = function(t){ return String(t==null?'':t).replace(/[&<>]/g, function(c){
-        return {'&':'&amp;','<':'&lt;','>':'&gt;'}[c]; }); };
+      // (geen lokale 'var esc' hier: die werd naar de top van load() gehoist en maakte
+      //  esc undefined in de open-orders-tabel -> heel load() faalde. Globale esc volstaat.)
       $('memos').innerHTML = open.length ? open.map(function(mm, ix){
         var cls = mm.overdue ? 'red' : (mm.in_warning_window ? 'orange' : 'grey');
         var lbl = mm.overdue ? (Math.abs(mm.days_left)+'d over tijd')
