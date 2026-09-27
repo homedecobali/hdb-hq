@@ -1067,13 +1067,16 @@ async function loadRegistryLayout(sb){
     return true;
   }catch(e){ console.warn("bridge_layout exception -> fallback:",e); return false; }
 }
+async function reloadStatus(sb){
+  const {data,error}=await (sb||sbClient).from("agent_status").select("*");
+  if(error){ console.warn("agent_status reload:",error.message); return false; }
+  (data||[]).forEach(r=>{ rows[r.agent_id]={status:r.status,last_run:r.last_run,run_count:r.run_count,last_error:r.last_error,run_token:r.run_token}; });
+  return true; }
 async function start(){
   const sb=SB; sbClient=sb;
   const fromRegistry=await loadRegistryLayout(sb);
   if(!fromRegistry) console.log("Bridge-indeling: fallback (ingebouwde DEPTS)");
-  const {data,error}=await sb.from("agent_status").select("*");
-  if(error){ setConn(false,"verbinding mislukt"); console.error(error); return; }
-  (data||[]).forEach(r=>{ rows[r.agent_id]={status:r.status,last_run:r.last_run,run_count:r.run_count,last_error:r.last_error,run_token:r.run_token}; });
+  if(!(await reloadStatus(sb))){ setConn(false,"verbinding mislukt"); return; }
   await Promise.all([load24h(),loadLastResults(),loadStats7()]);
   sortDepts();
   buildOrgOnce();
@@ -1083,8 +1086,15 @@ async function start(){
   setInterval(()=>{ fillNextRuns(); renderAlerts(); applyFilters(); },60*1000);
   refreshAgentCounts();
   setConn(true,"live · homedecobali");
-  sb.channel("agent_status_live").on("postgres_changes",{event:"*",schema:"public",table:"agent_status"},p=>{ applyRow(p.new); }).subscribe(s=>{ if(s==="SUBSCRIBED")setConn(true,"live · homedecobali"); });
-  setInterval(async()=>{ await Promise.all([load24h(),loadLastResults(),loadStats7()]); fillRuns24(); fillResults(); fillStats7(); fillNextRuns(); renderAlerts(); applyFilters(); fitLaneWidth(); refreshAgentCounts(); }, 5*60*1000);
+  sb.channel("agent_status_live").on("postgres_changes",{event:"*",schema:"public",table:"agent_status"},p=>{ applyRow(p.new); }).subscribe(s=>{
+    if(s==="SUBSCRIBED")setConn(true,"live · homedecobali");
+    else if(s==="CHANNEL_ERROR"||s==="TIMED_OUT"||s==="CLOSED")setConn(false,"live onderbroken · polling"); });
+  /* agent_status komt anders alleen via realtime binnen; valt de socket weg (mobiel op achtergrond),
+     dan veroudert last_run en toont de strip vals "gemist". Daarom elke refresh + bij terugkeer herladen. */
+  const fullRefresh=async()=>{ await Promise.all([reloadStatus(sb),load24h(),loadLastResults(),loadStats7()]); renderMetrics(); updateOrgStatus(); fillRuns24(); fillResults(); fillStats7(); fillNextRuns(); renderAlerts(); applyFilters(); fitLaneWidth(); refreshAgentCounts(); };
+  setInterval(fullRefresh, 5*60*1000);
+  let _lastVis=Date.now();
+  document.addEventListener("visibilitychange",()=>{ if(document.visibilityState==="visible"&&Date.now()-_lastVis>30e3)fullRefresh(); _lastVis=Date.now(); });
 }
 
 /* === AUTH GATE (Supabase login) ======================================= */
