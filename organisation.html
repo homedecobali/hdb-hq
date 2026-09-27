@@ -866,9 +866,13 @@ function gotoAgent(id,pushUrl){
   return true;
 }
 function handleDeeplink(){ try{ const id=new URL(location.href).searchParams.get("agent"); if(id)setTimeout(()=>gotoAgent(id,false),250); }catch(e){} }
+/* Afdelingen met vaste pijplijnvolgorde: agents blijven in registervolgorde (dewi_agents.agent_sort),
+   niet op activiteit gesorteerd. Pinterest (27-09, Rick): Scout → Builder → Publish → Analytics → Review. */
+const FIXED_ORDER_DEPTS=new Set(["pinterest"]);
 function sortDepts(){
   const actKey=a=>[runs24[a.id]||0,(rows[a.id]&&rows[a.id].run_count)||0];
   DEPTS.forEach(d=>{
+    if(FIXED_ORDER_DEPTS.has(d.id)) return;
     const groups={}, order=[];
     d.agents.forEach(a=>{ if(a.grp){ if(!groups[a.grp]){ groups[a.grp]={grp:a.grp,members:[]}; order.push(groups[a.grp]); } groups[a.grp].members.push(a); }
       else order.push({loose:a}); });
