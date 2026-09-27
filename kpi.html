@@ -1825,28 +1825,41 @@
       // ---- PAID ADS (META) ----
       var pad = pivot(kpi, 'meta_ads'); var ad28 = lastDates(pad, 28); var pl = lastTwo(pad);
       $('ads-when').textContent = pl.lastDate ? '\u2014 last 28 days, t/m ' + pl.lastDate : '';
-      var spend30 = 0, likes30 = 0;
-      Object.keys(pad).forEach(function(d){
-        spend30 += (pad[d].spend || 0); likes30 += (pad[d].page_likes || 0);
+      // 30d = laatste 30 kalenderdagen t/m lastDate (was: som over ALLE dagen sinds 12-06 -> EUR 12.906)
+      // bridge_kpi_daily meta_ads kent alleen spend/impressions/link_clicks/reach/purchases/revenue:
+      // CTR en CPC worden hier berekend; page_likes bestaat niet (tegel vervangen).
+      var d30from = pl.lastDate ? isoShift(pl.lastDate, -29) : null;
+      var ad30 = Object.keys(pad).sort().filter(function(d){ return d30from && d >= d30from && d <= pl.lastDate; });
+      var spend30 = 0, rev30 = 0, pur30 = 0;
+      ad30.forEach(function(d){
+        spend30 += (pad[d].spend || 0); rev30 += (pad[d].revenue || 0); pur30 += (pad[d].purchases || 0);
       });
+      var mer30 = spend30 ? rev30 / spend30 : 0;
+      var ctrOf = function(r){ r = r || {}; return r.impressions ? (r.link_clicks || 0) / r.impressions * 100 : 0; };
+      var cpcOf = function(r){ r = r || {}; return r.link_clicks ? (r.spend || 0) / r.link_clicks : 0; };
+      var ctrVals = ad28.map(function(d){ return ctrOf(pad[d]); });
+      var cpcVals = ad28.map(function(d){ return cpcOf(pad[d]); });
       $('ads-nums').innerHTML =
         num('spend (' + (pl.lastDate ? pl.lastDate.slice(5) : 'last day') + ')',
             '\u20AC' + (pl.last.spend || 0).toFixed(2), delta(pl.last.spend, pl.prev.spend)) +
         num('spend 30d', '\u20AC' + spend30.toFixed(2), '') +
         num('impressions', fmt(pl.last.impressions || 0), delta(pl.last.impressions, pl.prev.impressions)) +
         num('link clicks', fmt(pl.last.link_clicks || 0), '') +
-        num('CTR', (pl.last.ctr || 0).toFixed(1) + '%', '') +
-        num('CPC', '\u20AC' + (pl.last.cpc || 0).toFixed(2), '') +
-        num('page likes 30d', fmt(likes30), '');
+        num('link-CTR', ctrOf(pl.last).toFixed(2) + '%', '') +
+        num('CPC', '\u20AC' + cpcOf(pl.last).toFixed(2), '') +
+        num('aankopen 30d', fmt(pur30), '') +
+        num('MER 30d', mer30.toFixed(2) + 'x', '', mer30 >= 2 ? 'goodval' : (mer30 >= 1 ? 'warnval' : 'badval'));
       zset('zs-meta-spend', eur2(spend30), '');
+      // header-MER = account-breed 30d (Meta-attributie), niet alleen de ads die nu aan staan
+      zset('zs-meta-mer', mer30.toFixed(2) + 'x', mer30 >= 2 ? 'good' : (mer30 >= 1 ? 'warn' : 'bad'));
       if(ad28.length >= 2){
         $('ads-chart-spend').innerHTML = barChart(ad28, [
           { values: vals(pad, ad28, 'spend'), color: CLR.blue }
         ], null, 210);
         hookHover($('ads-chart-spend'), ad28, [
           { label: 'Spend', values: vals(pad, ad28, 'spend'), color: CLR.blue, format: eur2 },
-          { label: 'CPC', values: vals(pad, ad28, 'cpc'), color: CLR.muted, format: eur2 },
-          { label: 'CTR', values: vals(pad, ad28, 'ctr'), color: CLR.muted, format: pct1 }
+          { label: 'CPC', values: cpcVals, color: CLR.muted, format: eur2 },
+          { label: 'Link-CTR', values: ctrVals, color: CLR.muted, format: pct1 }
         ], true);
         $('ads-chart-reach').innerHTML = dualLineChart(ad28,
           { label: 'Impressies',  values: vals(pad, ad28, 'impressions'), color: CLR.cyan, fill: true },
@@ -1855,14 +1868,14 @@
         hookHover($('ads-chart-reach'), ad28, [
           { label: 'Impressies', values: vals(pad, ad28, 'impressions'), color: CLR.cyan },
           { label: 'Link clicks', values: vals(pad, ad28, 'link_clicks'), color: CLR.yellow },
-          { label: 'Page likes', values: vals(pad, ad28, 'page_likes'), color: CLR.green }
+          { label: 'Link-CTR', values: ctrVals, color: CLR.green, format: pct1 }
         ], false, { padL: 52, padR: 52 });
       } else {
         $('ads-chart-spend').innerHTML = '<p style="color:var(--muted);font-size:12px;margin:20px 0">Geen delivery in de laatste 28 dagen.</p>';
         $('ads-chart-reach').innerHTML = '';
       }
       $('ads-foot').textContent = ads
-        ? (fmt(ads.active_campaigns) + ' active campaigns \u00B7 ' + fmt(ads.pending_campaigns)
+        ? (fmt(ads.active_campaigns) + ' actieve campagnes \u00B7 ' + fmt(ads.pending_campaigns)
           + ' pending \u00B7 \u20AC' + Number(ads.active_daily_budget_eur).toFixed(2) + '/day budget \u00B7 '
           + fmt(ads.activated_30d) + ' activated (30d) \u00B7 last activation '
           + (ads.last_activation ? ads.last_activation.slice(0,10) : '\u2014')
@@ -2073,8 +2086,7 @@
         var tCpa   = tPur ? tSpend / tPur : 0;
         var tCtr   = tImp ? (tClk / tImp * 100) : 0;
 
-        $('live-when').textContent = '\u2014 laatste 30 dagen \u00b7 ' + live.length + ' ads live';
-        zset('zs-meta-mer', tRoas.toFixed(2) + 'x', tRoas >= 2 ? 'good' : (tRoas >= 1 ? 'warn' : 'bad'));
+        $('live-when').textContent = '\u2014 alleen ads die nu aan staan \u00b7 hun spend laatste 30 dagen \u00b7 ' + live.length + ' ads live (account-totaal: zie Paid Ads hierboven)';
         zset('zs-meta-ads', fmt(live.length), '');
         $('live-nums').innerHTML =
           num('spend', eur2(tSpend), '') +
@@ -2096,9 +2108,9 @@
           + (wDiff >= 0 ? '<span class="u">' + eur2(wDiff) + ' onderspend</span>'
                         : '<span class="o">' + eur2(-wDiff) + ' overspend</span>')
           + '<span style="opacity:.4">|</span>'
-          + '<span>Plafond <b>' + eur2(800) + '</b></span>'
-          + (wSp <= 800 ? '<span class="u">' + eur2(800 - wSp) + ' onder plafond</span>'
-                        : '<span class="o">' + eur2(wSp - 800) + ' boven plafond</span>')
+          + '<span>Plafond <b>' + eur2(900) + '</b></span>'
+          + (wSp <= 900 ? '<span class="u">' + eur2(900 - wSp) + ' onder plafond</span>'
+                        : '<span class="o">' + eur2(wSp - 900) + ' boven plafond</span>')
           + '</div>';
 
         // groepeer ads per campagne, uitklapbaar; kolommen: Adspend / Omzet / Aankopen / ROAS, dan Freq / CPA
