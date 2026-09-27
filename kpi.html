@@ -7,6 +7,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="dewi-config.js"></script>
 <script src="dewi-frame.js"></script><!-- uniforme fullscreen / cockpit-toggles -->
+<script src="dewi-nav.js"></script><!-- vaste zijbalk + Ctrl-K-palet (één bron voor alle pagina's) -->
 <script src="dewi-agents.js"></script><!-- één bron van waarheid voor agent-tellingen -->
 <style>
   :root{
@@ -319,28 +320,75 @@
   .src{display:inline-flex;align-items:center;gap:6px;font-size:9.5px;font-weight:800;
     letter-spacing:.1em;padding:3px 8px;border-radius:5px;background:rgba(255,255,255,.06);
     color:var(--muted);text-transform:uppercase}
-  #top .zgrp{display:flex;gap:6px;align-items:center}
-  #top .zgrp a{border:1px solid var(--line);border-radius:6px;padding:4px 11px;
-    font-size:12px;font-weight:700;letter-spacing:.05em;text-decoration:none}
-  #top .zgrp a.zshop{border-color:var(--z-shop);color:var(--z-shop);background:rgba(47,212,126,.10)}
-  #top .zgrp a.zmeta{border-color:var(--z-meta);color:var(--z-meta);background:rgba(255,63,154,.10)}
-  #top .zgrp a.zgoogle{border-color:var(--z-google);color:var(--z-google);background:rgba(66,133,244,.12)}
-  #top .zgrp a.zsocial{border-color:var(--z-social);color:var(--z-social);background:rgba(255,159,64,.12)}
-  #top .zgrp a.zpinterest{border-color:#e60023;color:#ff4d6a;background:rgba(230,0,35,.12)}
-  /* Pagina-knoppen togglen een rechterpaneel i.p.v. extern te openen */
-  #top .zgrp a.pagebtn{cursor:pointer}
-  /* studio-knoppen: 'aan' = inverse (vulkleur = merkkleur, tekst donker). Alleen .pagebtn, niet de overige knoppen. */
-  #top .zgrp a.pagebtn.on{color:#04070d;font-weight:700}
-  #top .zgrp a.zsocial.pagebtn.on{background:var(--z-social)}
-  #top .zgrp a.zmeta.pagebtn.on{background:var(--z-meta)}
-  #top .zgrp a.zgoogle.pagebtn.on{background:var(--z-google);color:#fff}
-  #top .zgrp a.zpinterest.pagebtn.on{background:#e60023;color:#fff}
-  #top .zgrp a.zstats{border-color:var(--z-stats);color:var(--z-stats);background:rgba(0,200,255,.10)}
-  #top .zgrp a.zdewi{border-color:var(--z-dewi);color:var(--z-dewi);background:rgba(163,123,255,.10)}
+  /* ---- kopbalk (knoppenrij is vervangen door de zijbalk uit dewi-nav.js) ---- */
+  #top .ttl{font-size:12.5px;font-weight:800;letter-spacing:.22em;text-transform:uppercase;color:var(--text)}
+  #top .ttl-s{color:var(--muted);font-size:11px;letter-spacing:.06em}
+  #top #palBtn{display:inline-flex;align-items:center;gap:8px;border-radius:11px;background:rgba(0,0,0,.32);
+    font:600 11px system-ui;letter-spacing:.3px;padding:6px 10px;color:var(--muted)}
+  #top #palBtn:hover{border-color:var(--cyan);color:var(--text);box-shadow:0 0 0 1px rgba(0,212,255,.3)}
+  #top #palBtn kbd{font:700 9.5px ui-monospace,Consolas,monospace;border:1px solid var(--line);border-radius:5px;padding:1px 5px;color:var(--muted)}
+
+  /* ---- COCKPIT: max. 6 tegels, laatste volle dag vs dag ervoor ---- */
+  #cockpit{margin-bottom:12px}
+  .ck-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 2px 9px}
+  .ck-head .ck-t{font-size:12.5px;font-weight:800;letter-spacing:.22em;text-transform:uppercase;color:var(--cyan)}
+  .ck-head .ck-s{font-size:11px;color:var(--muted)}
+  .ck-head .ck-ok{margin-left:auto;font-size:11px;color:var(--green)}
+  .ck-grid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px}
+  @media (max-width:1400px){ .ck-grid{grid-template-columns:repeat(3,minmax(0,1fr))} }
+  @media (max-width:640px){ .ck-grid{grid-template-columns:repeat(2,minmax(0,1fr))} }
+  .tile{--acc:var(--cyan);position:relative;background:#0b1119;border:1px solid var(--line);border-left:4px solid var(--acc);
+    border-radius:12px;padding:11px 13px 10px;box-shadow:0 2px 10px rgba(0,0,0,.35);min-width:0}
+  .tile.good{box-shadow:0 2px 10px rgba(0,0,0,.35),inset 0 0 0 1px rgba(79,209,161,.18)}
+  .tile.bad{box-shadow:0 2px 10px rgba(0,0,0,.35),inset 0 0 0 1px rgba(255,93,93,.28)}
+  .tile .tl{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:color-mix(in srgb,var(--acc) 55%,var(--muted));
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .tile .tv{font-size:24px;font-weight:800;line-height:1.1;margin-top:5px;font-variant-numeric:tabular-nums;white-space:nowrap}
+  .tile .td{font-size:11.5px;font-weight:700;margin-top:3px;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .tile .td.up{color:var(--green)} .tile .td.down{color:var(--red)} .tile .td.flat{color:var(--muted)} .tile .td.neu{color:var(--yellow)}
+  .tile .td span{color:var(--muted);font-weight:500}
+  .tile .tw{font-size:10px;color:var(--muted);margin-top:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .tile .tw b{color:var(--text);font-weight:600}
+  .tile.stale{filter:grayscale(1);opacity:.55}
+  .tile.stale .tw{color:var(--orange)}
+
+  /* ---- AFWIJKINGEN (handel): alleen wat afwijkt — geest van de alarm-strip in organisation.html ---- */
+  #anomStrip{display:none;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 16px;padding:8px 12px;border-radius:10px;
+    border:1px solid rgba(255,93,93,.35);background:linear-gradient(90deg,rgba(255,93,93,.14),rgba(255,212,0,.05) 60%,transparent)}
+  #anomStrip.on{display:flex}
+  #anomStrip .as-h{font:800 9.5px/1 system-ui;letter-spacing:.16em;color:var(--red);flex:0 0 auto}
+  .an-chip{display:inline-flex;align-items:center;gap:6px;max-width:420px;cursor:pointer;border:1px solid rgba(255,93,93,.45);
+    background:rgba(0,0,0,.35);border-radius:9px;padding:4px 8px;font-size:11px;color:var(--text)}
+  .an-chip .k{font-weight:800;flex:0 0 auto}
+  .an-chip .d{color:var(--muted);font-size:9px;letter-spacing:.08em;flex:0 0 auto;text-transform:uppercase}
+  .an-chip .n{font-weight:700;white-space:nowrap}
+  .an-chip .s{color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+  .an-chip.bad .k{color:var(--red)}
+  .an-chip.warn{border-color:rgba(230,126,34,.55)} .an-chip.warn .k{color:var(--orange)}
+  .an-chip.stale{border-color:rgba(125,140,163,.55);border-style:dashed} .an-chip.stale .k{color:var(--muted)}
+  .an-chip.good{border-color:rgba(79,209,161,.5)} .an-chip.good .k{color:var(--green)}
+  .an-chip:hover{border-color:var(--cyan);color:#fff}
+
+  /* ---- versheid ("data t/m") + foutbadge per zone ---- */
+  .zone-head .zmeta{display:inline-flex;gap:6px;align-items:center;flex-wrap:wrap}
+  .zst{font-size:9.5px;font-weight:700;letter-spacing:.06em;padding:3px 7px;border-radius:5px;white-space:nowrap;
+    background:rgba(0,0,0,.28);color:color-mix(in srgb,var(--acc) 60%,var(--text));border:1px solid color-mix(in srgb,var(--acc) 30%,transparent);cursor:help}
+  .zst.stale{color:var(--muted);border-color:rgba(125,140,163,.45);border-style:dashed;background:rgba(125,140,163,.08)}
+  .zst.none{color:var(--muted);border-color:var(--line)}
+  .zerr{display:none;font-size:9.5px;font-weight:800;letter-spacing:.08em;padding:3px 8px;border-radius:5px;cursor:help;
+    background:rgba(255,93,93,.16);color:var(--red);border:1px solid rgba(255,93,93,.5);white-space:nowrap}
+  .zerr.on{display:inline-block}
+  .zone .card.stale{filter:grayscale(1);opacity:.55}
+  .zone .card.stale h2::after{content:'data ouder dan verwacht';margin-left:auto;font-size:9.5px;letter-spacing:.06em;
+    color:var(--orange);text-transform:none}
+  .zone.flash{animation:zflash 1.2s ease-out}
+  @keyframes zflash{0%{box-shadow:0 0 0 2px var(--acc),0 0 30px -4px var(--acc)}100%{box-shadow:0 0 0 1px rgba(0,0,0,.4),0 10px 34px -22px var(--acc)}}
+  .card.flash{animation:cflash 1.4s ease-out}
+  @keyframes cflash{0%{box-shadow:0 0 0 2px var(--cyan)}100%{box-shadow:0 2px 10px rgba(0,0,0,.35)}}
 
   /* mobiel: alleen KPI, paneelknoppen verbergen (naast elkaar is zinloos op telefoon) */
   @media (max-width:820px){
-    #top .grp,#top .zgrp{display:none}
+    #top #palBtn kbd,#top .ttl-s{display:none}
     .zone{padding:0 8px 10px;border-left-width:4px}
     .zone-head{margin:0 -8px 10px;padding:9px 10px}
     .zone-head .zkpi{gap:12px;width:100%;margin-left:0;order:5}
@@ -360,24 +408,25 @@
 </div>
 
 <div id="top" class="hidden">
-  <span class="brand"><span class="live"></span>DEWI<span class="byrick">by Rick</span></span>
-  <span class="grp"><span class="lbl">Panels</span></span>
-  <span class="zgrp"><span class="lbl">Ga naar</span>
-    <a class="zshop"  href="#z-shop">SHOPIFY</a>
-    <a class="zmeta"  href="#z-meta">META</a>
-    <a class="zgoogle" href="#z-google">GOOGLE</a>
-    <a class="zstats" href="#z-stats">STATS</a>
-    <a class="zdewi"  href="#z-dewi">DEWI</a></span>
-   <span class="zgrp"><span class="lbl">Pagina</span>
-    <a class="zsocial pagebtn" data-page="social">Social-studio</a>
-    <a class="zmeta pagebtn" data-page="meta">Meta-studio</a>
-    <a class="zgoogle pagebtn" data-page="google">Google-studio</a>
-    <a class="zpinterest pagebtn" data-page="pinterest">Pinterest-studio</a></span>
+  <span class="ttl">KPI-cockpit</span><span class="ttl-s">Home Deco Bali</span>
+  <button type="button" id="palBtn" title="Zoek pagina, zone of agent">&#8981; Zoeken <kbd id="palKbd">Ctrl K</kbd></button>
   <span id="stamp"></span>
 </div>
 
 <div id="work" class="hidden">
   <div id="kpiScroll">
+
+    <!-- ==================== COCKPIT (bovenste schermvulling) ==================== -->
+    <section id="cockpit">
+      <div class="ck-head">
+        <span class="ck-t">Cockpit</span>
+        <span class="ck-s" id="ck-when">laatste volle dag vs dag ervoor</span>
+        <span class="zerr" id="zerr-cockpit"></span>
+        <span class="ck-ok" id="ck-ok"></span>
+      </div>
+      <div class="ck-grid" id="ck-grid"><div class="tile"><div class="tl">laden&hellip;</div><div class="tv">&mdash;</div></div></div>
+    </section>
+    <div id="anomStrip"><span class="as-h">AFWIJKINGEN</span><span id="anomChips" style="display:contents"></span></div>
 
     <!-- ==================== VOORSTELLEN (verschijnt alleen als er openstaande voorstellen zijn) ==================== -->
     <section class="zone hidden" id="z-prop" style="--acc:var(--yellow)">
@@ -406,6 +455,7 @@
         <span class="zi">S</span>
         <span class="zt">Shopify</span>
         <span class="zs">omzet &middot; winst &middot; orders</span>
+        <span class="zmeta"><span id="zst-shop"></span><span class="zerr" id="zerr-shop"></span></span>
         <span class="zkpi">
           <div>Omzet 7d<b id="zs-shop-omzet">&mdash;</b></div>
           <div>Brutowinst<b id="zs-shop-winst">&mdash;</b></div>
@@ -416,7 +466,7 @@
       </div>
       <div class="zone-body">
 
-        <div class="card">
+        <div class="card" data-src="shopify">
           <h2><span class="dot" style="background:var(--yellow)"></span>Shop (Shopify)
             <span class="when" id="shop-when"></span></h2>
           <div class="nums" id="shop-nums"></div>
@@ -451,6 +501,7 @@
         <span class="zi">M</span>
         <span class="zt">Meta</span>
         <span class="zs">ads &middot; budget &middot; rendement</span>
+        <span class="zmeta"><span id="zst-meta"></span><span class="zerr" id="zerr-meta"></span></span>
         <span class="zkpi">
           <div>Spend 30d<b id="zs-meta-spend">&mdash;</b></div>
           <div>MER<b id="zs-meta-mer">&mdash;</b></div>
@@ -461,7 +512,7 @@
       </div>
       <div class="zone-body">
 
-        <div class="card">
+        <div class="card" data-src="meta_ads">
           <h2><span class="dot" style="background:var(--blue)"></span>Paid Ads (Meta)
             <span class="when" id="ads-when"></span></h2>
           <div class="nums" id="ads-nums"></div>
@@ -496,6 +547,7 @@
         <span class="zi">G</span>
         <span class="zt">Google</span>
         <span class="zs">ads &middot; budget &middot; rendement</span>
+        <span class="zmeta"><span id="zst-google"></span><span class="zerr" id="zerr-google"></span></span>
         <span class="zkpi">
           <div>Omzet 30d<b id="zs-google-rev">&mdash;</b></div>
           <div>Spend 30d<b id="zs-google-spend">&mdash;</b></div>
@@ -506,7 +558,7 @@
       </div>
       <div class="zone-body">
 
-        <div class="card">
+        <div class="card" data-src="google">
           <h2><span class="dot" style="background:var(--z-google)"></span>Google Ads (PMax)
             <span class="when" id="gads-when"></span></h2>
           <div class="nums" id="gads-nums"></div>
@@ -533,6 +585,7 @@
         <span class="zi">&#9679;</span>
         <span class="zt">Stats &amp; Social</span>
         <span class="zs">verkeer &middot; volgers &middot; conversie</span>
+        <span class="zmeta"><span id="zst-stats"></span><span class="zerr" id="zerr-stats"></span></span>
         <span class="zkpi">
           <div>Sessies 28d<b id="zs-stats-sess">&mdash;</b></div>
           <div>Conversie<b id="zs-stats-cvr">&mdash;</b></div>
@@ -545,7 +598,7 @@
       </div>
       <div class="zone-body">
 
-        <div class="card">
+        <div class="card" data-src="ga4">
           <h2><span class="dot" style="background:var(--cyan)"></span>Website (GA4)
             <span class="when" id="web-when"></span></h2>
           <div class="nums" id="web-nums"></div>
@@ -556,7 +609,7 @@
         </div>
 
         <div class="row2">
-          <div class="card">
+          <div class="card" data-src="brevo">
             <h2><span class="dot" style="background:var(--orange)"></span>Mail (Brevo)
               <span class="when" id="mail-when"></span>
               <span class="src">bron: brevo</span></h2>
@@ -566,7 +619,7 @@
               <span><i style="background:var(--green)"></i>Delivered</span>
               <span><i style="background:var(--red)"></i>Bounces &mdash; stippellijn</span></div>
           </div>
-          <div class="card">
+          <div class="card" data-src="meta_social">
             <h2><span class="dot" style="background:var(--green)"></span>Social (Meta)
               <span class="when" id="social-when"></span>
               <span class="src">bron: meta</span></h2>
@@ -590,14 +643,14 @@
           <p id="pin-foot" style="color:var(--muted);font-size:11px;margin:10px 0 0"></p>
         </div>
 
-        <div class="card">
+        <div class="card" data-src="brevo">
           <h2><span class="dot" style="background:var(--orange)"></span>Mailings per type (Brevo Campagnes)
             <span class="when" id="mailbd-when"></span>
             <span class="src">bron: brevo campagnes</span></h2>
           <div id="mailbd-body"></div>
         </div>
 
-        <div class="card">
+        <div class="card" data-src="ga4 shopify meta_ads">
           <h2><span class="dot" style="background:var(--green)"></span>Funnel &amp; rendement
             <span class="when" id="fun-when"></span>
             <span class="src">ga4 + shopify + meta</span></h2>
@@ -606,7 +659,7 @@
           <p id="fun-foot" style="color:var(--muted);font-size:11px;margin:10px 0 0"></p>
         </div>
 
-        <div class="card">
+        <div class="card" data-src="ga4">
           <h2><span class="dot" style="background:var(--blue)"></span>Omzet per kanaal &amp; following
             <span class="when" id="chan-when"></span>
             <span class="src">bron: ga4-attributie</span></h2>
@@ -619,7 +672,7 @@
           <p id="chan-foot" style="color:var(--muted);font-size:11px;margin:12px 0 0"></p>
         </div>
 
-        <div class="card">
+        <div class="card" data-src="ga4">
           <h2><span class="dot" style="background:var(--green)"></span>Kanalen (UTM) &mdash; clicks &amp; conversie
             <span class="when" id="utm-when"></span>
             <span class="src">bron: v_utm_channels_daily</span></h2>
@@ -642,6 +695,7 @@
         <span class="zi">D</span>
         <span class="zt">DEWI</span>
         <span class="zs">to-do&rsquo;s &middot; voorstellen &middot; systeem</span>
+        <span class="zmeta"><span id="zst-dewi"></span><span class="zerr" id="zerr-dewi"></span></span>
         <span class="zkpi">
           <div>Open to-do&rsquo;s<b id="zs-dewi-todo">&mdash;</b></div>
           <div>Voorstellen<b id="zs-dewi-prop">&mdash;</b></div>
@@ -701,16 +755,9 @@
     try{ localStorage.setItem('dewi_kpi_panels', JSON.stringify(state)); }catch(e){}
   }
 
-  var work = $('work'), grp = document.querySelector('#top .grp');
-  var btns = {};
-
-  PANELS.forEach(function(p){
-    var b = document.createElement('button');
-    b.textContent = p.label;
-    b.addEventListener('click', function(){ togglePanel(p.id); });
-    grp.appendChild(b);
-    btns[p.id] = b;
-  });
+  var work = $('work');
+  // (De knoppenrij in #top is vervangen door de vaste zijbalk uit dewi-nav.js.
+  //  PANELS + PAGES blijven de bron voor het sidepane; de zijbalk roept togglePanel aan.)
 
   // ---- Pagina-studio's: openen in het rechterpaneel i.p.v. extern ----
   // Zelfde sidepane/divider/drag-machinerie als PANELS, maar ZONDER dressPanel
@@ -723,17 +770,11 @@
   ];
   var pageById = {};
   PAGES.forEach(function(p){ pageById[p.id] = p; });
-  Array.prototype.forEach.call(document.querySelectorAll('#top .zgrp a.pagebtn'), function(a){
-    var id = a.dataset.page;
-    btns[id] = a;                       // hergebruik de bestaande 'on'-toggle in buildPanes
-    a.addEventListener('click', function(e){ e.preventDefault(); togglePanel(id); });
-  });
 
   function buildPanes(){
     // verwijder bestaande sidepanes + dividers
     [].slice.call(work.querySelectorAll('.sidepane,.divider')).forEach(function(el){ el.remove(); });
     PANELS.concat(typeof PAGES !== 'undefined' ? PAGES : []).forEach(function(p){
-      if(btns[p.id]) btns[p.id].classList.toggle('on', !!state.open[p.id]);
       if(!state.open[p.id]) return;
       var div = document.createElement('div');
       div.className = 'divider';
@@ -742,7 +783,8 @@
       pane.dataset.pid = p.id;
       pane.style.flex = '0 0 ' + (state.widths[p.id] || 30) + '%';
       var f = document.createElement('iframe');
-      f.src = p.url; f.title = p.title || p.label || p.id;
+      f.src = p.urlOnce || p.url; f.title = p.title || p.label || p.id;
+      delete p.urlOnce;                 // eenmalige deeplink (agent uit het palet)
       // studio-pagina's (page:true) NIET aankleden: eigen nav mag blijven
       if(!p.page) f.addEventListener('load', function(){ dressPanel(f, p); });
       pane.appendChild(f);
@@ -750,6 +792,7 @@
       work.appendChild(pane);
       attachDrag(div, pane, p.id);
     });
+    if(window.DEWI_NAV) DEWI_NAV.refresh();   // 'aan'-staat (inverse) in de zijbalk
   }
 
   function togglePanel(id){
@@ -758,6 +801,29 @@
     saveState();
     buildPanes();
   }
+  var paneById = {};
+  PANELS.concat(PAGES).forEach(function(p){ paneById[p.id] = p; });
+  // agent uit het Ctrl-K-palet: organisation.html?agent=<id> in het ORGANISATION-paneel
+  function openAgentPane(agentId){
+    var p = paneById.org; if(!p) return false;
+    p.urlOnce = p.url + '?agent=' + encodeURIComponent(agentId);
+    state.open.org = true; if(!state.widths.org) state.widths.org = 34;
+    saveState(); buildPanes();
+    return true;
+  }
+  // Zijbalk (dewi-nav.js) meldt zich hier aan: pane-items togglen het sidepane,
+  // zone-items klappen de zone uit en scrollen ernaartoe. Op mobiel zijn er geen
+  // sidepanes -> false = de zijbalk navigeert gewoon naar de pagina.
+  if(window.DEWI_NAV) DEWI_NAV.attach({
+    onItem: function(it){
+      if(it.zone){ gotoZone(it.zone, it.anchor); return true; }
+      if(it.pane && paneById[it.pane] && window.innerWidth > 820){ togglePanel(it.pane); return true; }
+      if(it.id === 'cockpit'){ $('kpiScroll').scrollTo({ top: 0, behavior: 'smooth' }); return true; }
+      return false;
+    },
+    isOpen: function(id){ return !!state.open[id]; },
+    onAgent: function(id){ return window.innerWidth > 820 ? openAgentPane(id) : false; }
+  });
 
   // Cockpit kleedt elk paneel aan: interne navigatie weg, titel hernoemen,
   // en waar nodig de juiste weergave aanklikken (organigram/constellation).
@@ -892,20 +958,39 @@
     el.textContent = txt;
     el.className = cls || '';
   }
+  // Standaard ingeklapt, behalve Shopify en Voorstellen (27-09). Nieuwe sleutel zodat
+  // oude 'open'-standen uit dewi_kpi_zones de nieuwe standaard niet overschrijven.
+  var ZONES_LS = 'dewi_kpi_zones_v2', ZONES_OPEN_DEFAULT = { shop: true, prop: true };
+  var zoneOpen = {};
+  try{ zoneOpen = JSON.parse(localStorage.getItem(ZONES_LS) || '{}') || {}; }catch(e){}
+  function zoneIsOpen(key){ return (key in zoneOpen) ? !!zoneOpen[key] : !!ZONES_OPEN_DEFAULT[key]; }
+  function setZone(key, open, persist){
+    var b = document.querySelector('.zone .fold[data-zone="' + key + '"]'); if(!b) return;
+    var zone = b.closest('.zone');
+    zone.classList.toggle('folded', !open);
+    b.textContent = open ? '\u2212' : '+';
+    if(persist){ zoneOpen[key] = !!open; try{ localStorage.setItem(ZONES_LS, JSON.stringify(zoneOpen)); }catch(e){} }
+  }
   (function initZones(){
-    var open = {};
-    try{ open = JSON.parse(localStorage.getItem('dewi_kpi_zones') || '{}') || {}; }catch(e){}
     Array.prototype.forEach.call(document.querySelectorAll('.zone .fold'), function(b){
-      var zone = b.closest('.zone'), key = b.dataset.zone;
-      if(open[key] === false){ zone.classList.add('folded'); b.textContent = '+'; }
+      var key = b.dataset.zone;
+      setZone(key, zoneIsOpen(key), false);
       b.addEventListener('click', function(){
-        var folded = zone.classList.toggle('folded');
-        b.textContent = folded ? '+' : '\u2212';
-        open[key] = !folded;
-        try{ localStorage.setItem('dewi_kpi_zones', JSON.stringify(open)); }catch(e){}
+        setZone(key, b.closest('.zone').classList.contains('folded'), true);
       });
     });
   })();
+  // naar een zone (of kaart binnen een zone): uitklappen, scrollen, kort oplichten
+  function gotoZone(key, anchorId){
+    var zone = $('z-' + key); if(!zone) return;
+    setZone(key, true, true);
+    var target = zone, card = null;
+    if(anchorId && $(anchorId)){ card = $(anchorId).closest('.card'); if(card) target = card; }
+    var sc = $('kpiScroll');
+    var top = target.getBoundingClientRect().top - sc.getBoundingClientRect().top + sc.scrollTop - (card ? 58 : 6);
+    sc.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
+    var fl = card || zone; fl.classList.remove('flash'); void fl.offsetWidth; fl.classList.add('flash');
+  }
 
   /* ================= helpers cijfers & diagrammen ================= */
   function delta(cur, prev){
@@ -1214,6 +1299,7 @@
     el.onmouseleave = function(){ tip.style.display = 'none'; guide.style.display = 'none'; };
   }
   var eur2 = function(v){ return '\u20AC' + Number(v || 0).toFixed(2); };
+  var eur0 = function(v){ return '\u20AC' + Math.round(Number(v || 0)).toLocaleString('nl-NL'); };
   var pct1 = function(v){ return Number(v || 0).toFixed(1) + '%'; };
   var esc  = function(v){ return String(v == null ? '' : v)
     .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); };
@@ -1310,32 +1396,100 @@
   // gedeeld met de tegel in load(). Zo maakt de (parallelle) laadvolgorde niet uit.
   var nettoGisteren = null;
 
-  async function load(){
-    var errEl = $('err'); errEl.textContent = '';
-    loadProposals();   // voorstellen-blok (eigen foutafhandeling, blokkeert de rest niet)
-    try{
-      var res = await Promise.all([
-        fetchAll('bridge_kpi_daily', ['kpi_date','source','metric']),
-        sb.from('bridge_memos').select('*'),
-        sb.from('bridge_agent_silence').select('*'),
-        sb.from('bridge_ads_summary').select('*'),
-        sb.from('bridge_active_ads').select('*'),
-        sb.from('bridge_open_orders').select('*'),
-        // agent-telling uit de gedeelde bron (dewi-agents.js -> bridge_agent_index),
-        // identiek aan agents.html en organisation.html; mag falen zonder de rest te blokkeren
-        DEWI_AGENTS.load(sb).catch(function(e){ return { agents: [], counts: null, error: e }; }),
-        // Brevo-campagnes uitgesplitst per mailing-type en taal (productnieuwsbrief,
-        // verhaal-nieuwsbrief, ...). Zelfde campagnes als source='brevo' in bridge_kpi_daily,
-        // alleen fijner gesneden - dus NIET optellen. Mag falen zonder de rest te blokkeren.
-        fetchAll('bridge_brevo_campaign_daily', ['kpi_date'])
-      ]);
-      if(res[0].error) throw res[0].error;
-      var kpi = res[0].data || [], memos = res[1].data || [],
-          sil = res[2].data || [], adsArr = res[3].data || [],
-          live = res[4].data || [];
-      var oo = res[5].data || [], ooErr = res[5].error;
-      var ads = adsArr[0] || null;
+  /* ================= laden: één fetch-ronde, daarna elke zone apart =================
+     Iedere kaart/zone rendert in een eigen try/catch (guard). Een fout geeft een rode
+     badge in de kop van DIE zone; de rest van de pagina rendert gewoon door.
+     VALKUIL (27-09): nooit een globale helper (esc, fmt, num, eur2, delta …) opnieuw
+     met 'var' declareren in load() of een render-functie — hoisting maakt hem dan
+     undefined. Render-functies staan daarom los, met eigen unieke lokale namen. */
+  var ZONE_ERRS = {};                       // { zone: { label: message } }
+  var ZONE_NAME = { cockpit:'Cockpit', shop:'Shopify', meta:'Meta', google:'Google', stats:'Stats & Social', dewi:'DEWI' };
+  function paintZoneErr(zone){
+    var el = $('zerr-' + zone); if(!el) return;
+    var m = ZONE_ERRS[zone] || {}, keys = Object.keys(m);
+    el.classList.toggle('on', keys.length > 0);
+    el.textContent = keys.length ? '\u26A0 ' + (keys.length === 1 ? 'fout: ' + keys[0] : keys.length + ' fouten') : '';
+    el.title = keys.map(function(k){ return k + ' \u2014 ' + m[k]; }).join('\n');
+    var all = [];
+    Object.keys(ZONE_ERRS).forEach(function(z){
+      Object.keys(ZONE_ERRS[z]).forEach(function(k){ all.push((ZONE_NAME[z] || z) + ' \u00b7 ' + k + ': ' + ZONE_ERRS[z][k]); });
+    });
+    $('err').textContent = all.length ? 'Fouten bij laden:\n' + all.join('\n') : '';
+  }
+  function zoneErr(zone, label, e){
+    (ZONE_ERRS[zone] = ZONE_ERRS[zone] || {})[label] = String((e && (e.message || e.details)) || e || 'onbekende fout');
+    console.error('[kpi] ' + zone + ' / ' + label + ':', e);
+    paintZoneErr(zone);
+  }
+  function zoneOk(zone, label){
+    if(ZONE_ERRS[zone] && (label in ZONE_ERRS[zone])){ delete ZONE_ERRS[zone][label]; paintZoneErr(zone); }
+  }
+  function guard(zone, label, fn, c){
+    try{ fn(c); zoneOk(zone, label); }catch(e){ zoneErr(zone, label, e); }
+  }
+  // voor losse async-loaders (loadSales, loadChannels …): exceptions -> badge i.p.v. unhandled rejection
+  function guardAsync(zone, label, fn){
+    return Promise.resolve().then(fn).then(function(){ zoneOk(zone, label); }, function(e){ zoneErr(zone, label, e); });
+  }
+  function need(r, name){
+    if(!r) throw new Error(name + ': geen antwoord');
+    if(r.error) throw new Error(name + ': ' + (r.error.message || r.error));
+  }
+  function settle(p){
+    return Promise.resolve(p).then(function(r){ return r || { data: null, error: null }; },
+                                   function(e){ return { data: null, error: e }; });
+  }
 
+  async function load(){
+    loadProposals();   // voorstellen-blok (eigen foutafhandeling, blokkeert de rest niet)
+    var res = await Promise.all([
+      settle(fetchAll('bridge_kpi_daily', ['kpi_date','source','metric'])),
+      settle(sb.from('bridge_memos').select('*')),
+      settle(sb.from('bridge_agent_silence').select('*')),
+      settle(sb.from('bridge_ads_summary').select('*')),
+      settle(sb.from('bridge_active_ads').select('*')),
+      settle(sb.from('bridge_open_orders').select('*')),
+      // agent-telling uit de gedeelde bron (dewi-agents.js -> bridge_agent_index)
+      DEWI_AGENTS.load(sb).catch(function(e){ return { agents: [], counts: null, error: e }; }),
+      // Brevo-campagnes per mailing-type en taal (fijner gesneden dan source='brevo' - NIET optellen)
+      settle(fetchAll('bridge_brevo_campaign_daily', ['kpi_date'])),
+      // versheid Pinterest (pin-analytics, ~1-2 dagen vertraging)
+      settle(sb.from('dewi_pinterest_pin_metrics').select('metric_date').order('metric_date', { ascending: false }).limit(1))
+    ]);
+    var c = {
+      kpiRes: res[0], memosRes: res[1], silRes: res[2], adsRes: res[3], liveRes: res[4],
+      oo: res[5], agIdx: res[6], camp: res[7], pinRes: res[8]
+    };
+    c.kpi  = (res[0] && res[0].data) || [];
+    c.ads  = ((res[3] && res[3].data) || [])[0] || null;
+    c.web  = pivot(c.kpi, 'ga4');
+    c.shop = pivot(c.kpi, 'shopify');
+    c.pad  = pivot(c.kpi, 'meta_ads');
+    c.gpv  = pivot(c.kpi, 'google');
+    c.fresh = freshness(c);
+
+    guard('cockpit', 'Versheid',          renderFreshness, c);
+    guard('cockpit', 'Tegels',            renderCockpit, c);
+    guard('cockpit', 'Afwijkingen',       renderAnomalies, c);
+    guard('shop',    'Shop (Shopify)',    renderShop, c);
+    guard('shop',    'Onverzonden',       renderOpenOrders, c);
+    guard('meta',    'Paid Ads (Meta)',   renderMetaAds, c);
+    guard('meta',    'Actieve advertenties', renderLive, c);
+    guard('google',  'Google Ads',        renderGoogle, c);
+    guard('stats',   'Website (GA4)',     renderWeb, c);
+    guard('stats',   'Social (Meta)',     renderSocial, c);
+    guard('stats',   'Mail (Brevo)',      renderMail, c);
+    guard('stats',   'Mailings per type', renderMailTypes, c);
+    guard('stats',   'Funnel & rendement', renderFunnel, c);
+    guard('dewi',    'To-do\u2019s',      renderMemos, c);
+    guard('dewi',    'Systeem',           renderSystem, c);
+
+    $('stamp').textContent = 'bijgewerkt ' + madClockNow() + ' Madrid';
+  }
+
+  function renderWeb(c){
+      need(c.kpiRes, 'bridge_kpi_daily');
+      var kpi = c.kpi;
       var web = pivot(kpi, 'ga4'); var wd = lastDates(web, 28); var wl = lastTwo(web);
       $('web-when').textContent = wl.lastDate ? '\u2014 laatste 28 dagen, t/m ' + wl.lastDate : '';
       $('web-nums').innerHTML =
@@ -1353,7 +1507,11 @@
         { label: 'Gebruikers', values: vals(web, wd, 'users'), color: CLR.violet },
         { label: 'Weergaven', values: vals(web, wd, 'pageviews'), color: CLR.blue }
       ], true, { padL: 52, padR: 56 });
+  }
 
+  function renderShop(c){
+      need(c.kpiRes, 'bridge_kpi_daily');
+      var kpi = c.kpi;
       var shop = pivot(kpi, 'shopify'); var shd = lastDates(shop, 14); var shl = lastTwo(shop);
       $('shop-when').textContent = shl.lastDate ? '\u2014 14 dagen, t/m ' + shl.lastDate : '';
       // "Omzet gisteren" = de laatste VOLLEDIGE dag in winkeltijd (Europe/Madrid),
@@ -1402,7 +1560,10 @@
         { label: 'Orders', values: vals(shop, shd, 'orders'), color: CLR.yellow },
         { label: 'AOV', values: vals(shop, shd, 'aov'), color: CLR.muted, format: eur2 }
       ], true, { padL: 52, padR: 52 });
+  }
 
+  function renderOpenOrders(c){
+      var oo = (c.oo && c.oo.data) || [], ooErr = c.oo ? c.oo.error : null;
       // --- Onverzonden bestellingen (bridge_open_orders, hourly Open Orders Sync) ---
       // De sync bewaart alleen open & onverzonden orders; verzonden orders worden verwijderd.
       // We filteren hier defensief nogmaals op fulfillment_status en tonen nieuwste eerst.
@@ -1487,7 +1648,11 @@
           + ' \u00b7 gele klok = bevat backorder (SKU XX2602\u2026), groen doosje = alles uit voorraad, ? = regels nog niet gesynct'
           + ' \u00b7 bron: bridge_open_orders (HDB \u00b7 Orders \u2014 Open Orders Sync)';
       }
+  }
 
+  function renderSocial(c){
+      need(c.kpiRes, 'bridge_kpi_daily');
+      var kpi = c.kpi;
       var soc = pivot(kpi, 'meta_social'); var sd = lastDates(soc, 28); var sl = lastTwo(soc);
       var igNow = sl.last.ig_followers||0, igPrev = sl.prev.ig_followers;
       var igD = (igPrev !== undefined) ? igNow - igPrev : null;
@@ -1514,7 +1679,11 @@
           + 'Groeigrafiek verschijnt zodra er meerdere dagen historie is &mdash; volger-aantallen zijn '
           + 'alleen als dagelijkse snapshot beschikbaar (opbouw gestart 10 juli).</p>';
       }
+  }
 
+  function renderMail(c){
+      need(c.kpiRes, 'bridge_kpi_daily');
+      var kpi = c.kpi;
       // ---- MAIL (BREVO) ----
       // De metric-namen kunnen per sync-versie verschillen; we pakken de eerste die bestaat.
       var MAILK = {
@@ -1573,12 +1742,14 @@
           + 'Nog geen Brevo-data in bridge_kpi_daily (source = <b>brevo</b>). '
           + 'Zodra de mail-sync draait verschijnt hier de grafiek.</p>';
       }
+  }
 
+  function renderMailTypes(c){
       // ---- MAILINGS PER TYPE (BREVO CAMPAGNES) ----
       // Zelfde campagnes als hierboven, alleen uitgesplitst per mailing-type en taal.
       // Bewust NIET optellen bij de Mail-kaart: dat zou dubbeltellen.
-      var camp = (res[7] && !res[7].error) ? (res[7].data || []) : [];
-      var campErr = res[7] ? res[7].error : null;
+      var camp = (c.camp && !c.camp.error) ? (c.camp.data || []) : [];
+      var campErr = c.camp ? c.camp.error : null;
       var LANG_LBL = { es: 'ES', pt: 'PT', en: 'EN', xx: '?' };
       var TYPE_CLR = { product_news: CLR.yellow, offer_news: '#e67e22', story_news: CLR.cyan, other: CLR.muted };
 
@@ -1646,7 +1817,11 @@
                 + 'run van <b>HDB \u00b7 OFFICE \u00b7 Metrics Mail (Brevo)</b> (dagelijks 07:45).')
           + '</div>';
       }
+  }
 
+  function renderMetaAds(c){
+      need(c.kpiRes, 'bridge_kpi_daily');
+      var kpi = c.kpi, ads = c.ads;
       // ---- PAID ADS (META) ----
       var pad = pivot(kpi, 'meta_ads'); var ad28 = lastDates(pad, 28); var pl = lastTwo(pad);
       $('ads-when').textContent = pl.lastDate ? '\u2014 last 28 days, t/m ' + pl.lastDate : '';
@@ -1693,7 +1868,11 @@
           + (ads.last_activation ? ads.last_activation.slice(0,10) : '\u2014')
           + ' \u00B7 per-campagne resultaten via ads_weekly_metrics')
         : '';
+  }
 
+  function renderGoogle(c){
+      need(c.kpiRes, 'bridge_kpi_daily');
+      var kpi = c.kpi;
       // ---- GOOGLE ADS (eigen zone; bron: bridge_kpi_daily source=google — Google Ads-attributie, niet GA4) ----
       var GBRK = 1.58; // break-even ROAS (AOV ~130, marge 70%) — zelfde lijn als de Google Review
       var gpv = pivot(kpi, 'google'); var g28 = lastDates(gpv, 28); var gl = lastTwo(gpv);
@@ -1776,7 +1955,11 @@
         $('gads-foot').innerHTML = 'Nog geen Google Ads-data in bridge_kpi_daily (source = <b>google</b>). '
           + 'Verschijnt na de eerstvolgende run van \u201cHDB \u00b7 GOOGLE ADS \u00b7 Review\u201d (ma 08:00) zodra Basic Access / leestoegang live is.';
       }
+  }
 
+  function renderMemos(c){
+      need(c.memosRes, 'bridge_memos');
+      var memos = c.memosRes.data || [];
       var open = memos.slice().sort(function(a,b){
         var pa = a.prio||3, pb = b.prio||3;
         if(pa !== pb) return pa - pb;
@@ -1806,12 +1989,12 @@
           + '<div style="text-align:right"><span class="pill '+cls+'">'+lbl+'</span>'
           + '<div class="n">'+mm.due_date+'</div></div></div>';
       }).join('') : '<p style="color:var(--muted)">Geen open to-do\'s.</p>';
-      $('memos').addEventListener('click', function(ev){
-        var row = ev.target.closest && ev.target.closest('.memo.has-det');
-        if(!row || (ev.target.tagName === 'A')) return;
-        row.classList.toggle('open');
-      });
+      // (klik-handler voor uitklappen staat eenmalig buiten load(); stapelde voorheen per refresh)
+  }
 
+  function renderFunnel(c){
+      need(c.kpiRes, 'bridge_kpi_daily');
+      var web = c.web, shop = c.shop, pad = c.pad;
       // --- Funnel & rendement (28 dagen; koppelt GA4 + Shopify + Meta) ---
       // MER (Marketing Efficiency Ratio) = TOTALE online omzet / TOTALE ads-spend.
       // Anders dan Meta-ROAS, die alleen de omzet telt die Meta zichzelf toerekent.
@@ -1874,7 +2057,11 @@
         + (gap > 1.2
             ? 'Let op: Meta claimt ' + eur2(fMetaRev) + ' omzet (' + gap.toFixed(1) + 'x je hele webshop-omzet) \u2014 dat is dubbeltelling; stuur op MER, niet op Meta-ROAS.'
             : 'MER = online omzet \u00f7 ads-spend.');
+  }
 
+  function renderLive(c){
+      need(c.liveRes, 'bridge_active_ads');
+      var live = c.liveRes.data || [], pad = c.pad, ads = c.ads;
       // --- Actieve advertenties (laatste 30 dagen, per ad) ---
       if(live.length){
         var tSpend = live.reduce(function(a,r){ return a + Number(r.spend||0); }, 0);
@@ -1898,9 +2085,9 @@
           num('CTR', tCtr.toFixed(2) + '%', '');
 
         // weekly budget / spend / variance (budget = dagbudget x 7 uit bridge_ads_summary; spend = laatste 7d meta-spend)
-        var _pad = (typeof pad !== 'undefined' && pad) ? pad : {};
+        var _pad = pad || {};
         var wSp = 0; lastDates(_pad, 7).forEach(function(d){ wSp += Number((_pad[d]||{}).spend || 0); });
-        var wBud = Number((typeof ads !== 'undefined' && ads && ads.active_daily_budget_eur) || 0) * 7;
+        var wBud = Number((ads && ads.active_daily_budget_eur) || 0) * 7;
         var wDiff = wBud - wSp;
         zset('zs-meta-budget', eur2(wSp) + ' / ' + eur2(wBud), wDiff >= 0 ? 'good' : 'warn');
         var wbudHtml = '<div class="wbud">'
@@ -1973,7 +2160,11 @@
         $('live-table').innerHTML = '<p style="color:var(--muted)">Nog geen data \u2014 Active Ads Pull draait dagelijks 07:30.</p>';
         zset('zs-meta-ads', '0', 'warn');
       }
+  }
 
+  function renderSystem(c){
+      need(c.silRes, 'bridge_agent_silence');
+      var sil = c.silRes.data || [];
       // bewaakt = agent met vast schema; event-driven (webhook/on approve) is niet te bewaken
       var mon    = sil.filter(function(a){ return a.monitored; });
       var events = sil.filter(function(a){ return !a.monitored; });
@@ -1983,7 +2174,7 @@
       // Kopregel: de gedeelde agent-telling (zelfde bron + formule als agents.html
       // en de header van organisation.html). De stilte-detectie eronder is een
       // aanvullende, andere invalshoek (bewaakt vs. event-driven) en telt NIET anders.
-      var agIdx = res[6];
+      var agIdx = c.agIdx;
       var sysHtml = '';
       if(agIdx && agIdx.counts){
         sysHtml += '<div class="kv" style="border-bottom:1px solid var(--line);padding-bottom:7px;margin-bottom:7px">'
@@ -2022,12 +2213,220 @@
       }
       $('system').innerHTML = sysHtml;
       zset('zs-dewi-silent', String(silent.length), silent.length ? 'bad' : 'good');
-
-      $('stamp').textContent = 'bijgewerkt ' + madClockNow() + ' Madrid';
-    }catch(e){
-      errEl.textContent = 'Fout bij laden: ' + (e.message || e);
-    }
   }
+
+
+  /* ================= COCKPIT · AFWIJKINGEN · VERSHEID ================= */
+  // Madrid-kalenderdag met verschuiving (0 = vandaag, -1 = gisteren) als 'YYYY-MM-DD'
+  function madDayIso(shift){
+    var iso = new Date().toLocaleDateString('en-CA', { timeZone: MAD_TZ });
+    var d = new Date(iso + 'T12:00:00Z'); d.setUTCDate(d.getUTCDate() + (shift || 0));
+    return d.toISOString().slice(0, 10);
+  }
+  function isoShift(iso, n){ var d = new Date(iso + 'T12:00:00Z'); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); }
+  function isoDiff(a, b){ return Math.round((new Date(a + 'T12:00:00Z') - new Date(b + 'T12:00:00Z')) / 86400000); }
+  var WD_NL = ['zo','ma','di','wo','do','vr','za'];
+  function wdDM(iso){ return WD_NL[new Date(iso + 'T12:00:00Z').getUTCDay()] + ' ' + dayLabel(iso); }
+
+  // Verwachte vertraging per bron (dagen): ~1 dag voor GA4/Shopify/Meta/Brevo, 1-2 voor Pinterest.
+  var FRESH_SRC = {
+    shopify:     { lbl: 'Shopify',   lag: 1, zone: 'shop' },
+    meta_ads:    { lbl: 'Meta Ads',  lag: 1, zone: 'meta' },
+    google:      { lbl: 'Google Ads', lag: 1, zone: 'google' },
+    ga4:         { lbl: 'GA4',       lag: 1, zone: 'stats' },
+    brevo:       { lbl: 'Brevo',     lag: 1, zone: 'stats' },
+    meta_social: { lbl: 'IG/FB',     lag: 1, zone: 'stats' },
+    pinterest:   { lbl: 'Pinterest', lag: 2, zone: 'stats' }
+  };
+  // laatste kpi-datum per bron + oordeel (ok / stale / none)
+  function freshness(c){
+    var last = {};
+    (c.kpi || []).forEach(function(r){ if(!last[r.source] || r.kpi_date > last[r.source]) last[r.source] = r.kpi_date; });
+    var pin = c.pinRes && !c.pinRes.error && c.pinRes.data && c.pinRes.data[0];
+    last.pinterest = pin ? String(pin.metric_date).slice(0, 10) : null;
+    var today = madDayIso(0), out = {};
+    Object.keys(FRESH_SRC).forEach(function(k){
+      var f = FRESH_SRC[k], d = last[k] || null;
+      var behind = d ? isoDiff(today, d) : null;
+      out[k] = { src: k, lbl: f.lbl, lag: f.lag, zone: f.zone, last: d, behind: behind,
+                 state: (c.kpiRes && c.kpiRes.error && k !== 'pinterest') ? 'none' : (!d ? 'none' : (behind > f.lag ? 'stale' : 'ok')),
+                 expect: isoShift(today, -f.lag) };
+    });
+    return out;
+  }
+  function renderFreshness(c){
+    var F = c.fresh, byZone = {};
+    Object.keys(F).forEach(function(k){ (byZone[F[k].zone] = byZone[F[k].zone] || []).push(F[k]); });
+    Object.keys(byZone).forEach(function(z){
+      var el = $('zst-' + z); if(!el) return;
+      el.innerHTML = byZone[z].map(function(f){
+        var tip = f.lbl + ': ' + (f.last ? 'laatste kpi-datum ' + f.last : 'nog geen data')
+          + ' \u00b7 verwacht t/m ' + f.expect + ' (vertraging ~' + f.lag + ' dag' + (f.lag > 1 ? 'en' : '') + ')'
+          + (f.state === 'stale' ? ' \u2014 OUDER DAN VERWACHT' : '');
+        var txt = (byZone[z].length > 1 ? f.lbl + ' ' : 'data ') + (f.last ? 't/m ' + dayLabel(f.last) : '\u2014');
+        return '<span class="zst ' + f.state + '" title="' + esc(tip) + '">' + (f.state === 'stale' ? '\u23F1 ' : '') + esc(txt) + '</span>';
+      }).join(' ');
+    });
+    var dz = $('zst-dewi');
+    if(dz) dz.innerHTML = '<span class="zst ok" title="to-do\u2019s en agentstatus worden live gelezen">live</span>';
+    // kaarten met een verouderde bron grijs
+    Array.prototype.forEach.call(document.querySelectorAll('.card[data-src]'), function(card){
+      var st = card.getAttribute('data-src').split(/\s+/).some(function(k){ return F[k] && F[k].state === 'stale'; });
+      card.classList.toggle('stale', st);
+    });
+  }
+
+  // Cockpit: max. 6 tegels. bridge_kpi_daily is een dagtabel met ~1 dag vertraging, dus
+  // "vandaag" bestaat nog niet als volle dag: iedere tegel vergelijkt de laatste VOLLE
+  // dag (<= gisteren, Madrid) met de kalenderdag ervoor en zegt welke dagen dat zijn.
+  function lastFullDay(pv){
+    var y = madDayIso(-1), ds = Object.keys(pv).filter(function(d){ return d <= y; }).sort();
+    return ds[ds.length - 1] || null;
+  }
+  function ckDelta(cur, prev, mode, dir){
+    // mode: 'pct' (relatief) of 'pp' (procentpunt); dir: 1 = hoger is beter, -1 = lager beter, 0 = neutraal
+    if(cur == null || prev == null) return { cls: 'flat', txt: '\u2014', sign: 0 };
+    var d = mode === 'pp' ? (cur - prev) : (prev === 0 ? (cur === 0 ? 0 : null) : (cur - prev) / Math.abs(prev) * 100);
+    if(d === null) return { cls: dir === 0 ? 'neu' : (dir > 0 ? 'up' : 'down'), txt: 'nieuw', sign: 1 };
+    var eps = mode === 'pp' ? 0.05 : 0.5;
+    var sign = d > eps ? 1 : (d < -eps ? -1 : 0);
+    var arr = sign > 0 ? '\u25B2' : (sign < 0 ? '\u25BC' : '\u25CF');
+    var txt = arr + ' ' + (mode === 'pp' ? Math.abs(d).toFixed(2).replace('.', ',') + ' pp' : Math.abs(d).toFixed(0) + '%');
+    var cls = sign === 0 ? 'flat' : (dir === 0 ? 'neu' : ((sign * dir) > 0 ? 'up' : 'down'));
+    return { cls: cls, txt: txt, sign: sign * (dir || 0) };
+  }
+  function renderCockpit(c){
+    need(c.kpiRes, 'bridge_kpi_daily');
+    var shop = c.shop, web = c.web, pad = c.pad, gpv = c.gpv, F = c.fresh;
+    var dS = lastFullDay(shop), dW = lastFullDay(web);
+    var dA = [lastFullDay(pad), lastFullDay(gpv)].filter(Boolean).sort().pop() || null;
+    var dC = (dS && dW) ? (dS < dW ? dS : dW) : null;   // conversie: zelfde dag in beide bronnen
+    var g = function(pv, d, m){ return d ? Number((pv[d] || {})[m] || 0) : null; };
+    var spendOn = function(d){ return d ? g(pad, d, 'spend') + g(gpv, d, 'spend') : null; };
+    var cvrOn = function(d){ var s0 = g(web, d, 'sessions'); return (d && s0) ? g(shop, d, 'online_orders') / s0 * 100 : null; };
+    var merOn = function(d){ var sp = spendOn(d); return (d && sp) ? g(shop, d, 'online_revenue') / sp : null; };
+    var today = madDayIso(0), tRow = shop[today];
+    var tiles = [
+      { l: 'Online omzet', acc: 'var(--z-shop)', d: dS, src: ['shopify'], dir: 1,
+        cur: g(shop, dS, 'online_revenue'), prev: dS ? g(shop, isoShift(dS, -1), 'online_revenue') : null, f: eur0,
+        extra: tRow ? 'vandaag lopend <b>' + eur0(tRow.online_revenue || 0) + '</b>' : '' },
+      { l: 'Online orders', acc: 'var(--z-shop)', d: dS, src: ['shopify'], dir: 1,
+        cur: g(shop, dS, 'online_orders'), prev: dS ? g(shop, isoShift(dS, -1), 'online_orders') : null, f: fmt,
+        extra: tRow ? 'vandaag lopend <b>' + fmt(tRow.online_orders || 0) + '</b>' : '' },
+      { l: 'Sessies (GA4)', acc: 'var(--z-stats)', d: dW, src: ['ga4'], dir: 1,
+        cur: g(web, dW, 'sessions'), prev: dW ? g(web, isoShift(dW, -1), 'sessions') : null, f: fmt },
+      { l: 'Conversie online', acc: 'var(--z-stats)', d: dC, src: ['ga4','shopify'], dir: 1, mode: 'pp',
+        cur: cvrOn(dC), prev: dC ? cvrOn(isoShift(dC, -1)) : null,
+        f: function(v){ return v == null ? '\u2014' : v.toFixed(2).replace('.', ',') + '%'; } },
+      { l: 'Ads-spend (Meta + Google)', acc: 'var(--z-meta)', d: dA, src: ['meta_ads','google'], dir: 0,
+        cur: spendOn(dA), prev: dA ? spendOn(isoShift(dA, -1)) : null, f: eur0 },
+      { l: 'Blended MER', acc: 'var(--z-dewi)', d: (dS && dA) ? (dS < dA ? dS : dA) : null, src: ['shopify','meta_ads','google'], dir: 1 }
+    ];
+    var tm = tiles[5]; tm.cur = merOn(tm.d); tm.prev = tm.d ? merOn(isoShift(tm.d, -1)) : null;
+    tm.f = function(v){ return v == null ? '\u2014' : v.toFixed(2).replace('.', ',') + '\u00d7'; };
+
+    $('ck-grid').innerHTML = tiles.map(function(t){
+      var dl = ckDelta(t.cur, t.prev, t.mode || 'pct', t.dir);
+      var stale = t.src.some(function(k){ return F[k] && F[k].state === 'stale'; });
+      var cls = stale ? 'stale' : (dl.sign > 0 ? 'good' : (dl.sign < 0 ? 'bad' : ''));
+      var prevTxt = t.prev == null ? '' : ' <span>vs ' + t.f(t.prev) + '</span>';
+      var when = t.d ? '<b>' + wdDM(t.d) + '</b> vs ' + wdDM(isoShift(t.d, -1)) : 'nog geen data';
+      if(stale) when = '\u23F1 verouderd \u00b7 t/m ' + (t.d ? dayLabel(t.d) : '\u2014');
+      return '<div class="tile ' + cls + '" style="--acc:' + t.acc + '">'
+        + '<div class="tl">' + esc(t.l) + '</div>'
+        + '<div class="tv">' + (t.cur == null ? '\u2014' : t.f(t.cur)) + '</div>'
+        + '<div class="td ' + dl.cls + '">' + dl.txt + prevTxt + '</div>'
+        + '<div class="tw">' + when + (t.extra ? ' \u00b7 ' + t.extra : '') + '</div>'
+        + '</div>';
+    }).join('');
+    $('ck-when').textContent = 'laatste volle dag vs dag ervoor \u00b7 dagcijfers lopen ~1 dag achter';
+  }
+
+  // Afwijkingen (handel): alleen tonen wat afwijkt. Geen chips = strip verborgen.
+  function median(a){ var b = a.slice().sort(function(x, y){ return x - y; }), n = b.length; return n ? (n % 2 ? b[(n - 1) / 2] : (b[n / 2 - 1] + b[n / 2]) / 2) : 0; }
+  function renderAnomalies(c){
+    var items = [], shop = c.shop, web = c.web, pad = c.pad, gpv = c.gpv;
+    var add = function(kind, zone, dom, name, sub, anchor){ items.push({ kind: kind, zone: zone, dom: dom, name: name, sub: sub, anchor: anchor }); };
+    var prior = function(pv, d, m, n){
+      var out = []; for(var i = 1; i <= n; i++){ var k = isoShift(d, -i); if(pv[k]) out.push(Number(pv[k][m] || 0)); } return out;
+    };
+    if(!(c.kpiRes && c.kpiRes.error)){
+      var dS = lastFullDay(shop);
+      if(dS){
+        var rev = Number((shop[dS] || {}).online_revenue || 0), ord = Number((shop[dS] || {}).online_orders || 0);
+        var mRev = median(prior(shop, dS, 'online_revenue', 14)), mOrd = median(prior(shop, dS, 'online_orders', 14));
+        if(mOrd >= 1 && ord === 0) add('bad', 'shop', 'Shopify', '0 online orders', wdDM(dS) + ' \u00b7 14d-mediaan ' + fmt(mOrd) + '/dag');
+        else if(mRev >= 50 && rev < mRev * 0.5) add('warn', 'shop', 'Shopify', 'Online omzet laag', wdDM(dS) + ' ' + eur0(rev) + ' \u00b7 <50% van mediaan ' + eur0(mRev));
+        else if(mRev > 0 && rev > mRev * 2) add('good', 'shop', 'Shopify', 'Online omzet piek', wdDM(dS) + ' ' + eur0(rev) + ' \u00b7 >2\u00d7 mediaan ' + eur0(mRev));
+      }
+      var dW = lastFullDay(web);
+      if(dW){
+        var ses = Number((web[dW] || {}).sessions || 0), pS = prior(web, dW, 'sessions', 14);
+        var avg = pS.length ? pS.reduce(function(a, b){ return a + b; }, 0) / pS.length : 0;
+        if(avg >= 20 && ses < avg * 0.65) add('warn', 'stats', 'GA4', 'Sessies laag', wdDM(dW) + ' ' + fmt(ses) + ' vs gem. ' + fmt(Math.round(avg)));
+        else if(avg >= 20 && ses > avg * 1.6) add('good', 'stats', 'GA4', 'Sessies piek', wdDM(dW) + ' ' + fmt(ses) + ' vs gem. ' + fmt(Math.round(avg)));
+      }
+      // 7-daagse conversie en blended MER (webshop only)
+      var d7 = dS ? [0,1,2,3,4,5,6].map(function(i){ return isoShift(dS, -i); }) : [];
+      var sum = function(pv, m){ return d7.reduce(function(a, d){ return a + Number((pv[d] || {})[m] || 0); }, 0); };
+      var s7 = sum(web, 'sessions'), o7 = sum(shop, 'online_orders'), r7 = sum(shop, 'online_revenue');
+      var sp7 = sum(pad, 'spend') + sum(gpv, 'spend');
+      if(s7 >= 200){
+        var cvr7 = o7 / s7 * 100;
+        if(cvr7 < 0.5) add('warn', 'stats', 'Funnel', 'Conversie 7d ' + cvr7.toFixed(2).replace('.', ',') + '%', 'onder 0,5% \u00b7 ' + fmt(o7) + ' orders / ' + fmt(s7) + ' sessies', 'fun-steps');
+      }
+      if(sp7 >= 50){
+        var mer7 = r7 / sp7;
+        if(mer7 < 1.5) add(mer7 < 1 ? 'bad' : 'warn', 'stats', 'Rendement', 'Blended MER 7d ' + mer7.toFixed(2).replace('.', ',') + '\u00d7',
+          eur0(r7) + ' online omzet / ' + eur0(sp7) + ' ads-spend', 'fun-steps');
+      }
+      var dA = lastFullDay(pad);
+      if(dA){
+        var ms = Number((pad[dA] || {}).spend || 0);
+        if(ms > 110) add('warn', 'meta', 'Meta', 'Spend boven dagplafond', wdDM(dA) + ' ' + eur0(ms) + ' > \u20AC110/dag', 'ads-nums');
+      }
+    }
+    // onverzonden > 5 dagen
+    var oo = (c.oo && !c.oo.error && c.oo.data) || [];
+    var old5 = oo.filter(function(r){ return r.fulfillment_status !== 'FULFILLED' && (Date.now() - new Date(r.order_created_at)) > 5 * 86400000; });
+    if(old5.length) add('bad', 'shop', 'Shopify', old5.length + ' order' + (old5.length > 1 ? 's' : '') + ' > 5 dagen onverzonden',
+      old5.slice(0, 4).map(function(r){ return r.order_name; }).join(' \u00b7 '), 'ro-table');
+    // verouderde bronnen
+    Object.keys(c.fresh).forEach(function(k){
+      var f = c.fresh[k];
+      if(f.state === 'stale') add('stale', f.zone, 'Versheid', f.lbl + ' verouderd', 't/m ' + dayLabel(f.last) + ' \u00b7 verwacht t/m ' + dayLabel(f.expect));
+    });
+
+    var ORD = { bad: 0, warn: 1, stale: 2, good: 3 };
+    items.sort(function(a, b){ return ORD[a.kind] - ORD[b.kind]; });
+    var G = { bad: '\u2715', warn: '!', stale: '\u23F1', good: '\u25B2' };
+    $('anomChips').innerHTML = items.map(function(it, i){
+      return '<span class="an-chip ' + it.kind + '" data-i="' + i + '" title="' + esc(it.name + ' \u2014 ' + it.sub) + '">'
+        + '<span class="k">' + G[it.kind] + '</span><span class="d">' + esc(it.dom) + '</span>'
+        + '<span class="n">' + esc(it.name) + '</span><span class="s">' + esc(it.sub) + '</span></span>';
+    }).join('');
+    anomItems = items;
+    $('anomStrip').classList.toggle('on', items.length > 0);
+    var bad = items.filter(function(x){ return x.kind !== 'good'; }).length;
+    $('ck-ok').textContent = bad ? '' : '\u2713 geen afwijkingen';
+  }
+  var anomItems = [];
+  (function(){
+    var box = $('anomChips'); if(!box) return;
+    box.addEventListener('click', function(ev){
+      var ch = ev.target.closest && ev.target.closest('.an-chip'); if(!ch) return;
+      var it = anomItems[Number(ch.getAttribute('data-i'))]; if(it) gotoZone(it.zone, it.anchor);
+    });
+  })();
+  // to-do's uitklappen: één handler (stond eerder in load() en stapelde per refresh)
+  (function(){
+    var m = $('memos'); if(!m) return;
+    m.addEventListener('click', function(ev){
+      var row = ev.target.closest && ev.target.closest('.memo.has-det');
+      if(!row || (ev.target.tagName === 'A')) return;
+      row.classList.toggle('open');
+    });
+  })();
 
   /* ================= Voorstellen (goedkeuren/afwijzen, verplaatst uit organisation.html)
      Bron: Supabase view 'proposals_pending' (token-vrij).
@@ -2368,6 +2767,7 @@
     }catch(e){
       $('sale-table').innerHTML = '<p style="color:var(--muted)">bridge_sales_lines niet leesbaar: '
         + esc(e.message || e) + '</p>';
+      throw e;   // -> guardAsync zet de foutbadge in de Shopify-zone
     }
   }
 
@@ -2594,6 +2994,7 @@
     chanState.goog = (resG && !resG.error) ? (resG.data || []) : [];
     chanState.err = resA.error || null;
     renderChannels();
+    if(chanState.err) throw chanState.err;
   }
   // periodeknoppen: één keer koppelen
   (function(){
@@ -2721,6 +3122,7 @@
     utmState.rows = r.data || [];
     utmState.err = r.error || null;
     renderUtm();
+    if(utmState.err) throw utmState.err;
     renderPinterest();
   }
   (function(){
@@ -2803,6 +3205,7 @@
     pinState.ready = (q && !q.error && q.count != null) ? q.count : 0;
     pinState.err = r.error || null;
     renderPinterest();
+    if(pinState.err) throw pinState.err;
   }
   (function(){
     var tabs = $('pin-tabs'); if(!tabs) return;
@@ -2820,10 +3223,25 @@
     $('top').classList.remove('hidden');
     $('work').classList.remove('hidden');
     buildPanes();
-    load(); loadSales(); loadChannels(); loadUtm(); loadPinterest();
-    setInterval(function(){ load(); loadSales(); loadChannels(); loadUtm(); loadPinterest(); }, 5 * 60 * 1000);
+    var pb = $('palBtn');
+    if(pb){
+      if(/Mac|iPhone|iPad/.test(navigator.platform || '')) $('palKbd').textContent = '\u2318K';
+      pb.addEventListener('click', function(){ if(window.DEWI_NAV) DEWI_NAV.openPalette(); });
+    }
+    function loadAll(){
+      guardAsync('cockpit', 'Laden', load);
+      guardAsync('shop',  'Omzet & winst',   loadSales);
+      guardAsync('stats', 'Omzet per kanaal', loadChannels);
+      guardAsync('stats', 'Kanalen (UTM)',    loadUtm);
+      guardAsync('stats', 'Pinterest',        loadPinterest);
+    }
+    loadAll();
+    // deeplink vanaf een andere pagina: kpi.html#z-<zone>[~<element-id>]
+    var hm = /^#z-([a-z]+)(?:~([\w-]+))?$/.exec(location.hash || '');
+    if(hm) setTimeout(function(){ gotoZone(hm[1], hm[2]); }, 350);
+    setInterval(loadAll, 5 * 60 * 1000);
     document.addEventListener('visibilitychange', function(){
-      if(document.visibilityState === 'visible'){ load(); loadSales(); loadChannels(); loadUtm(); loadPinterest(); }
+      if(document.visibilityState === 'visible') loadAll();
     });
   }
   init();

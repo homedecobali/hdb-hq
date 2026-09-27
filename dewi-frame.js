@@ -12,6 +12,8 @@
 
    Op de cockpit zelf (kpi.html) verschijnt er niets: daar ben je al.
 
+   Laadt daarnaast dewi-nav.js (vaste zijbalk + Ctrl-K-palet) op elke pagina.
+
    Gebruik: één regel in elke pagina, ná dewi-config.js:
        <script src="dewi-frame.js"></script>
 
@@ -37,6 +39,19 @@
       if(!link){ link = document.createElement("link"); link.rel = "icon"; document.head.appendChild(link); }
       link.type = "image/png";
       link.href = HREF;
+    }catch(e){}
+  })();
+
+  /* --- Zijbalk + commandopalet (dewi-nav.js, 27-09) — één include voor alle pagina's.
+     dewi-frame.js staat al op elke cockpit-pagina, dus hier laden = overal aanwezig
+     zonder per-pagina kopie. kpi.html laadt hem zelf synchroon (host-registratie). */
+  (function loadNav(){
+    try{
+      if (global.DEWI_NAV || document.querySelector('script[src*="dewi-nav.js"]')) return;
+      var me = document.currentScript && document.currentScript.src;
+      var s = document.createElement("script");
+      s.src = me ? me.replace(/dewi-frame\.js(\?.*)?$/, "dewi-nav.js") : "dewi-nav.js";
+      (document.head || document.documentElement).appendChild(s);
     }catch(e){}
   })();
 
