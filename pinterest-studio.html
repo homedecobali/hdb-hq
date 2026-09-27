@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pinterest Studio · pins naslagwerk · DEWI</title>
+<script src="dewi-frame.js"></script><!-- uniforme volledig-scherm / cockpit-toggle -->
+<style>
+:root{
+  --bg:#0e1116; --panel:#161b22; --panel-2:#1c232d; --line:#2a323d;
+  --txt:#e6edf3; --muted:#9aa7b4; --dim:#6b7684;
+  --ok:#2ea043; --ok-bg:#12261a; --no:#e5484d; --no-bg:#2a1416;
+  --accent:#e60023; --amber:#e0a13a; --radius:14px;
+  --pin:#e60023; --pin-soft:#ff4d6a; --single:#e60023; --collage:#c96dd8; --trend:#3fb6a8; --traffic:#4c8dff;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--txt);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+a{color:inherit}
+.wrap{max-width:1280px;margin:0 auto;padding:22px 18px 60px}
+.top{display:flex;align-items:center;margin-bottom:22px;gap:12px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:10px;font-size:15px;font-weight:600;letter-spacing:.2px;margin-right:auto}
+.brand .dot{width:9px;height:9px;border-radius:50%;background:var(--accent)}
+.count{font-size:13px;color:var(--muted);background:var(--panel);border:1px solid var(--line);
+  padding:6px 12px;border-radius:999px;white-space:nowrap}
+.nav{font-size:13px;color:var(--dim);text-decoration:none}
+.nav:hover{color:var(--muted)}
+
+/* ---- section header ---- */
+.row{margin-bottom:26px}
+.rowhead{display:flex;align-items:center;gap:9px;margin:0 2px 10px}
+.rowhead .cd{width:9px;height:9px;border-radius:50%}
+.rowhead .lbl{font-size:14px;font-weight:600;letter-spacing:.2px}
+.rowhead .n{font-size:12px;color:var(--dim)}
+.rowhead .fmt{font-size:11px;color:var(--dim);margin-left:auto}
+.strip{display:flex;gap:12px;overflow-x:auto;padding:2px 2px 10px;scroll-snap-type:x proximity}
+.strip::-webkit-scrollbar{height:8px}
+.strip::-webkit-scrollbar-thumb{background:var(--line);border-radius:8px}
+.strip::-webkit-scrollbar-track{background:transparent}
+.strip .empty{color:var(--dim);font-size:12.5px;padding:22px 6px}
+
+/* ---- feed card ---- */
+.card{flex:0 0 auto;width:158px;scroll-snap-align:start;cursor:zoom-in}
+.card .frame{position:relative;background:#000;border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.card .frame img,.card .frame video{width:100%;display:block;object-fit:cover;background:#000}
+.card.r-social .frame img{aspect-ratio:1/1}
+.card.r-reels .frame img,.card.r-stories .frame img,.card.r-stills .frame img{aspect-ratio:9/16}
+.card .noimg{display:flex;align-items:center;justify-content:center;color:var(--dim);font-size:28px;aspect-ratio:9/16}
+.card.r-social .noimg{aspect-ratio:1/1}
+.card .play{position:absolute;left:8px;bottom:8px;width:26px;height:26px;border-radius:50%;
+  background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;font-size:12px;color:#fff}
+.card .ch{position:absolute;top:7px;right:7px;font-size:9.5px;font-weight:600;padding:2px 7px;border-radius:999px;
+  background:rgba(0,0,0,.6);color:#fff;letter-spacing:.03em}
+.card .vbadge{position:absolute;right:7px;bottom:7px;font-size:10px;font-weight:700;padding:2px 7px;border-radius:999px;
+  background:rgba(0,0,0,.66);color:#fff;display:inline-flex;gap:4px;align-items:center}
+.card .cap{padding:7px 2px 0}
+.card .t{font-size:12px;line-height:1.28;color:var(--txt);
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.card .d{font-size:11px;color:var(--dim);margin-top:3px}
+
+/* ---- pending (goedkeuring) section ---- */
+.pending{border:1px solid #3a3320;background:linear-gradient(180deg,#191509 0%,#14161d 100%);
+  border-radius:var(--radius);padding:14px 14px 6px;margin-bottom:28px}
+.pending .rowhead{margin-bottom:12px}
+.pcard{flex:0 0 auto;width:172px;scroll-snap-align:start;
+  background:var(--panel);border:1px solid var(--line);border-radius:12px;overflow:hidden;display:flex;flex-direction:column}
+.pcard .frame{position:relative;background:#000;cursor:zoom-in}
+.pcard .frame img,.pcard .frame video{width:100%;display:block;object-fit:cover;background:#000;aspect-ratio:4/5}
+.pcard .noimg{aspect-ratio:4/5;display:flex;align-items:center;justify-content:center;color:var(--dim);font-size:26px}
+.pcard .play{position:absolute;left:8px;bottom:8px;width:24px;height:24px;border-radius:50%;
+  background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;font-size:11px;color:#fff}
+.pcard .kchip{position:absolute;top:7px;left:7px;font-size:9.5px;font-weight:700;padding:2px 8px;border-radius:999px;
+  background:rgba(224,161,58,.9);color:#1a1204;letter-spacing:.03em}
+.pcard .pcap{padding:8px 9px 4px}
+.pcard .pt{font-size:12px;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.pcard .psub{font-size:11px;color:var(--dim);margin-top:3px}
+.pacts{display:flex;gap:7px;padding:6px 9px 10px;margin-top:auto}
+.mini{flex:1;border:1px solid var(--line);border-radius:9px;background:var(--panel-2);color:var(--muted);
+  padding:7px 0;font-size:15px;cursor:pointer;transition:.12s}
+.mini.up:hover{background:var(--ok-bg);border-color:var(--ok);color:var(--ok)}
+.mini.down:hover{background:var(--no-bg);border-color:var(--no);color:var(--no)}
+.mini:disabled{opacity:.4;cursor:default}
+
+/* ---- output panels (mailings / blog / lifecycle) ---- */
+.outs{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:6px}
+@media(max-width:720px){.outs{grid-template-columns:1fr}}
+.opanel{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:14px 16px}
+.opanel h3{margin:0 0 8px;font-size:13px;font-weight:600;display:flex;align-items:center;gap:8px}
+.opanel h3 .cd{width:9px;height:9px;border-radius:50%}
+.orow{display:flex;align-items:center;gap:11px;padding:11px 0;border-bottom:1px solid var(--line)}
+.orow:last-child{border-bottom:none}
+.orow .oic{width:32px;height:32px;flex:none;border-radius:9px;background:var(--panel-2);border:1px solid var(--line);
+  display:flex;align-items:center;justify-content:center;font-size:15px}
+.orow .om{min-width:0;flex:1}
+.orow .oname{font-size:13px;font-weight:600}
+.orow .odet{font-size:11px;color:var(--dim);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.orow .oright{text-align:right;flex:none;display:flex;flex-direction:column;align-items:flex-end;gap:2px}
+.orow .owhen{font-size:12.5px;font-weight:600;color:var(--txt)}
+.orow .odate{font-size:10.5px;color:var(--dim)}
+.orow .oamt{margin-top:2px;font-size:10.5px;font-weight:700;padding:2px 9px;border-radius:999px;
+  background:var(--panel-2);border:1px solid var(--line);color:var(--muted)}
+
+/* ---- states ---- */
+.state{text-align:center;padding:80px 20px;color:var(--muted)}
+.state .ico{font-size:46px;color:var(--dim);margin-bottom:14px}
+.state h2{font-size:18px;font-weight:600;color:var(--txt);margin:0 0 6px}
+.state p{font-size:13.5px;margin:0}
+.spinner{width:30px;height:30px;border:3px solid var(--line);border-top-color:var(--accent);
+  border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 16px}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ---- approval mode (?id=) ---- */
+.review{max-width:460px;margin:10px auto 0}
+.review .frame{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;position:relative}
+.review .frame img,.review .frame video{width:100%;display:block;background:#000}
+.review .noimg{aspect-ratio:9/16;display:flex;align-items:center;justify-content:center;color:var(--dim);font-size:34px}
+.review .ctitle{font-size:15px;font-weight:600;margin:12px 2px 2px}
+.review .cmeta{font-size:12px;color:var(--dim);margin:0 2px}
+.thumbs{display:flex;gap:14px;justify-content:center;margin-top:16px}
+.tbtn{width:64px;height:52px;border:1px solid var(--line);border-radius:12px;background:var(--panel-2);
+  display:flex;align-items:center;justify-content:center;font-size:22px;cursor:pointer;transition:.12s}
+.tbtn.up{color:var(--ok)} .tbtn.up:hover{background:var(--ok-bg);border-color:var(--ok)}
+.tbtn.down{color:var(--no)} .tbtn.down:hover{background:var(--no-bg);border-color:var(--no)}
+.tbtn:disabled{opacity:.4;cursor:default}
+
+/* ---- toast ---- */
+.toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(20px);
+  background:var(--panel-2);border:1px solid var(--line);color:var(--txt);padding:11px 18px;
+  border-radius:12px;font-size:13px;opacity:0;transition:.25s;pointer-events:none;z-index:60}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.toast.err{border-color:var(--no);color:#ffb4b7}
+
+/* ---- lightbox ---- */
+.lb{position:fixed;inset:0;background:rgba(0,0,0,.92);display:none;align-items:center;justify-content:center;
+  z-index:80;cursor:zoom-out;padding:24px}
+.lb.open{display:flex}
+.lb-inner{max-width:min(92vw,460px);max-height:92vh;display:flex;flex-direction:column;gap:12px;cursor:default}
+.lb img,.lb video{max-width:100%;max-height:74vh;border-radius:12px;display:block;margin:0 auto;background:#000}
+.lb-cap{color:#cfd8e3;font-size:13px;line-height:1.5;white-space:pre-wrap}
+.lb-meta{color:var(--dim);font-size:12px}
+.lb-links{display:flex;gap:10px;flex-wrap:wrap;margin-top:2px}
+.lb-links a{font-size:12.5px;color:#bcd3ff;text-decoration:none;border:1px solid var(--line);
+  padding:6px 11px;border-radius:999px}
+.lb-links a:hover{border-color:var(--accent)}
+.lb-close{position:absolute;top:18px;right:22px;color:#fff;font-size:26px;cursor:pointer;
+  width:40px;height:40px;display:flex;align-items:center;justify-content:center;border-radius:50%;
+  background:rgba(255,255,255,.1)}
+
+.mailframe{width:100%;height:72vh;max-height:78vh;border:1px solid var(--line);border-radius:12px;background:#fff}
+.lb-links a.on{border-color:var(--accent);color:#fff}
+.orow.clk{cursor:zoom-in} .orow.clk:hover{background:var(--panel-2)}
+.orow.smclk{cursor:zoom-in} .orow.smclk:hover{background:var(--panel-2)}
+.orow .ochev{color:var(--dim);font-size:13px;flex:none;margin-left:2px}
+
+/* ---- pinterest-specifiek ---- */
+.brand .dot{background:var(--pin)}
+.spinner{border-top-color:var(--pin)}
+.card{width:170px}
+.card .frame img{aspect-ratio:2/3;background:#f3eee4}
+.card .noimg{aspect-ratio:2/3}
+.card .ch{background:rgba(230,0,35,.88)}
+.card .ch.collage{background:rgba(201,109,216,.9)}
+.card .vbadge{background:rgba(0,0,0,.66)}
+.pending{border-color:#4a1d25;background:linear-gradient(180deg,#1d0c10 0%,#14161d 100%)}
+.kpis{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin-bottom:24px}
+@media(max-width:860px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.kpi{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:11px 13px}
+.kpi .kl{font-size:11px;color:var(--dim);text-transform:uppercase;letter-spacing:.05em}
+.kpi .kv{font-size:20px;font-weight:700;margin-top:4px}
+.kpi .ks{font-size:11px;color:var(--muted);margin-top:2px}
+.tr-week{font-size:11px;color:var(--dim);text-transform:uppercase;letter-spacing:.05em;padding:10px 0 2px}
+.trow{padding:8px 0;border-bottom:1px solid var(--line)}
+.trow:last-child{border-bottom:none}
+.trow .ta{font-size:13px;font-weight:600;display:flex;gap:8px;align-items:center}
+.trow .tk{font-size:11.5px;color:#bcd3ff;margin-top:2px}
+.trow .tn{font-size:11.5px;color:var(--dim);margin-top:3px;line-height:1.4}
+.tchip{font-size:10px;font-weight:700;padding:1px 7px;border-radius:999px;border:1px solid var(--line);color:var(--muted)}
+.opanel .scroll{max-height:520px;overflow-y:auto;padding-right:4px}
+.lb-inner{max-width:min(92vw,520px)}
+.lb-inner.scroll{overflow-y:auto}
+.lb img{background:#f3eee4}
+.langtabs{display:flex;gap:8px}
+.langtabs a{font-size:12px;text-decoration:none;border:1px solid var(--line);padding:4px 11px;border-radius:999px;color:var(--muted);cursor:pointer}
+.langtabs a.on{border-color:var(--pin);color:#fff}
+.hlist{display:flex;flex-direction:column;gap:5px}
+.hlist a{font-size:12px;color:#bcd3ff;text-decoration:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hlist a:hover{text-decoration:underline}
+.urow{display:grid;grid-template-columns:1fr auto auto auto;gap:4px 14px;font-size:12.5px;padding:8px 0;border-bottom:1px solid var(--line)}
+.urow:last-child{border-bottom:none}
+.urow.h{color:var(--dim);font-size:11px;text-transform:uppercase;letter-spacing:.05em}
+.urow .num{text-align:right;font-variant-numeric:tabular-nums}
+.empty-p{color:var(--dim);font-size:12.5px;padding:10px 0}
+@media(max-width:620px){ .card{width:140px} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="brand"><span class="dot"></span> Pinterest Studio · pins naslagwerk</div>
+    <div style="display:flex;align-items:center;gap:14px">
+      <span class="count" id="count">—</span>
+      <a class="nav" href="kpi.html">← dashboard</a>
+    </div>
+  </header>
+  <div id="stage">
+    <div class="state"><div class="spinner"></div><p>Laden…</p></div>
+  </div>
+</div>
+
+<div class="lb" id="lb">
+  <div class="lb-close" id="lbClose">✕</div>
+  <div class="lb-inner" id="lbInner"></div>
+</div>
+
+<script>
+const SUPA = "https://jucubuoftjehwancegma.supabase.co";
+const ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp1Y3VidW9mdGplaHdhbmNlZ21hIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI2OTYwMDIsImV4cCI6MjA5ODI3MjAwMn0.gKYBE76kVv5XdMb-GuFAELdSp5R7OjCIiUzw7hW2Jus";
+const HDR = {apikey:ANON, Authorization:`Bearer ${ANON}`};
+const SHOP = "https://homedecobali.es/products/";
+
+const stage = document.getElementById('stage');
+const countEl = document.getElementById('count');
+
+const esc = s => (s==null?'':String(s)).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function dateTxt(iso){ if(!iso) return ''; return new Date(iso).toLocaleDateString('nl-NL',{day:'numeric',month:'short'}); }
+function timeTxt(iso){ if(!iso) return ''; const d=new Date(iso);
+  return d.toLocaleDateString('nl-NL',{day:'numeric',month:'short'})+' · '+d.toLocaleTimeString('nl-NL',{hour:'2-digit',minute:'2-digit'}); }
+function relTxt(iso){ if(!iso) return 'nog niet'; const d=new Date(iso), now=new Date();
+  const days=Math.floor((now-d)/86400000);
+  if(days<=0) return 'vandaag'; if(days===1) return 'gisteren';
+  if(days<7) return days+' dgn geleden'; return dateTxt(iso); }
+function fmtN(n){ return Number(n||0).toLocaleString('nl-NL'); }
+function eur(n){ return '€'+Number(n||0).toLocaleString('nl-NL',{minimumFractionDigits:0,maximumFractionDigits:0}); }
+function dayKey(d){ return d.toISOString().slice(0,10); }
+function daysAgo(n){ const d=new Date(); d.setDate(d.getDate()-n); return d; }
+function typeLbl(t){ return t==='collage'?'LOOK':'PIN'; }
+
+const SLOTS = [
+  ['single','Product-pins','single · 2:3','var(--single)'],
+  ['collage','Shop the look','collage · 2:3','var(--collage)']
+];
+let _q=[], _posted={single:[],collage:[]}, _utm=[];
+
+async function load(){
+  try{
+    const since=dayKey(daysAgo(90));
+    const [rs,ru]=await Promise.all([
+      fetch(`${SUPA}/rest/v1/v_pinterest_studio?select=*&order=created_at.desc`,{headers:HDR}),
+      fetch(`${SUPA}/rest/v1/v_utm_channels_daily?select=date,utm_campaign,utm_content,clicks,purchases,revenue&channel=eq.pinterest&date=gte.${since}`,{headers:HDR})
+    ]);
+    if(!rs.ok) throw new Error('v_pinterest_studio HTTP '+rs.status);
+    const rows=await rs.json();
+    _utm = ru.ok ? await ru.json() : [];
+    render(rows);
+  }catch(e){
+    stage.innerHTML=`<div class="state"><div class="ico">⚠</div><h2>Kon Pinterest Studio niet laden</h2>
+      <p>${esc(e.message)} — probeer te verversen.</p></div>`;
+  }
+}
+
+function render(rows){
+  _q = rows.filter(r=>r.section==='queue').sort((a,b)=>String(a.created_at).localeCompare(String(b.created_at)));
+  const posted = rows.filter(r=>r.section==='posted').sort((a,b)=>String(b.published_at).localeCompare(String(a.published_at)));
+  const trends = rows.filter(r=>r.section==='trend');
+  _posted={single:[],collage:[]};
+  for(const p of posted){ (_posted[p.pin_type==='collage'?'collage':'single']).push(p); }
+
+  const n7 = posted.filter(p=>p.published_at && new Date(p.published_at)>=daysAgo(7)).length;
+  const n30 = posted.filter(p=>p.published_at && new Date(p.published_at)>=daysAgo(30)).length;
+  const u30 = _utm.filter(r=>String(r.date)>=dayKey(daysAgo(30)));
+  const clicks=u30.reduce((s,r)=>s+(+r.clicks||0),0), buys=u30.reduce((s,r)=>s+(+r.purchases||0),0), rev=u30.reduce((s,r)=>s+(+r.revenue||0),0);
+  const last = posted[0] ? posted[0].published_at : null;
+  countEl.textContent = `${posted.length} geplaatst · ${_q.length} in wachtrij`;
+
+  let html=`<div class="kpis">
+    <div class="kpi"><div class="kl">Geplaatst 7d</div><div class="kv">${n7}</div><div class="ks">laatste ${esc(relTxt(last))}</div></div>
+    <div class="kpi"><div class="kl">Geplaatst 30d</div><div class="kv">${n30}</div><div class="ks">${_posted.single.length} pins · ${_posted.collage.length} looks totaal</div></div>
+    <div class="kpi"><div class="kl">In wachtrij</div><div class="kv">${_q.length}</div><div class="ks">status ready</div></div>
+    <div class="kpi"><div class="kl">Klikken 30d</div><div class="kv">${fmtN(clicks)}</div><div class="ks">UTM hdb-pin* · GA4</div></div>
+    <div class="kpi"><div class="kl">Aankopen 30d</div><div class="kv">${fmtN(buys)}</div><div class="ks">${eur(rev)} omzet (last-click)</div></div>
+  </div>`;
+
+  // --- wachtrij ---
+  if(_q.length){
+    html+=`<div class="pending">
+      <div class="rowhead">
+        <span class="cd" style="background:var(--pin)"></span>
+        <span class="lbl">In wachtrij</span>
+        <span class="n">${_q.length}</span>
+        <span class="fmt">wordt automatisch geplaatst · oudste eerst</span>
+      </div>
+      <div class="strip">${_q.map((p,i)=>pinCard(p,'q',i,true)).join('')}</div>
+    </div>`;
+  }
+  // --- naslagwerk geplaatst ---
+  for(const [k,label,fmt,color] of SLOTS){
+    const items=_posted[k];
+    const cards=items.length? items.map((p,i)=>pinCard(p,k,i,false)).join('')
+      : `<div class="empty">Nog niets geplaatst in deze categorie.</div>`;
+    html+=`<div class="row">
+      <div class="rowhead">
+        <span class="cd" style="background:${color}"></span>
+        <span class="lbl">${label}</span>
+        <span class="n">${items.length}</span>
+        <span class="fmt">${fmt}</span>
+      </div>
+      <div class="strip">${cards}</div>
+    </div>`;
+  }
+  // --- trends + verkeer ---
+  html+=`<div class="outs">${renderTrends(trends)}${renderTraffic(_utm)}</div>`;
+  stage.innerHTML=html;
+  stage.querySelectorAll('.card').forEach(el=>{ el.onclick=()=>openPin(el.dataset.g, +el.dataset.i); });
+}
+
+function pinCard(p,g,i,queued){
+  const media = p.image_url
+    ? `<img loading="lazy" src="${esc(p.image_url)}" alt="" onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'noimg',textContent:'📌'}))">`
+    : `<div class="noimg">📌</div>`;
+  const n=(Array.isArray(p.handles)?p.handles.length:0);
+  const when = queued ? 'klaar sinds '+dateTxt(p.created_at) : dateTxt(p.published_at);
+  return `<div class="card" data-g="${g}" data-i="${i}">
+    <div class="frame">
+      ${media}
+      <div class="ch${p.pin_type==='collage'?' collage':''}">${typeLbl(p.pin_type)}</div>
+      ${p.pin_type==='collage'&&n>1?`<div class="vbadge">🛍 ${n}</div>`:(p.pin_url?`<div class="vbadge">📌 live</div>`:'')}
+    </div>
+    <div class="cap">
+      <div class="t">${esc(p.title_es||p.title_pt||'')}</div>
+      <div class="d">${esc(when)}</div>
+    </div>
+  </div>`;
+}
+
+function openPin(g,i){
+  const p = g==='q' ? _q[i] : (_posted[g]||[])[i]; if(!p) return;
+  const langs=[['ES',p.title_es,p.description_es],['PT',p.title_pt,p.description_pt]].filter(x=>x[1]||x[2]);
+  const inner=document.getElementById('lbInner');
+  const hs=(Array.isArray(p.handles)&&p.handles.length?p.handles:(p.handle?[p.handle]:[]));
+  const links=[];
+  if(p.pin_url) links.push(`<a href="${esc(p.pin_url)}" target="_blank" rel="noopener">Bekijk op Pinterest ↗</a>`);
+  if(p.link) links.push(`<a href="${esc(p.link)}" target="_blank" rel="noopener">Bestemming ↗</a>`);
+  const meta=[typeLbl(p.pin_type)==='LOOK'?'Shop the look':'Product-pin', p.board,
+    p.published_at?'geplaatst '+timeTxt(p.published_at):'in wachtrij sinds '+timeTxt(p.created_at)].filter(Boolean).join(' · ');
+  inner.innerHTML=`${p.image_url?`<img src="${esc(p.image_url)}" alt="">`:''}
+    <div class="lb-meta">${esc(meta)}</div>
+    ${langs.length>1?`<div class="langtabs">${langs.map((l,k)=>`<a data-k="${k}"${k===0?' class="on"':''}>${l[0]}</a>`).join('')}</div>`:''}
+    <div id="pinTxt"></div>
+    ${hs.length>1?`<div class="lb-meta">Producten in deze look</div><div class="hlist">${hs.map(h=>`<a href="${SHOP+encodeURIComponent(h)}" target="_blank" rel="noopener">${esc(h)} ↗</a>`).join('')}</div>`
+      :(hs.length?`<div class="hlist"><a href="${SHOP+encodeURIComponent(hs[0])}" target="_blank" rel="noopener">Product: ${esc(hs[0])} ↗</a></div>`:'')}
+    ${links.length?`<div class="lb-links">${links.join('')}</div>`:''}`;
+  const showLang=k=>{ const l=langs[k]||['',p.title_es,p.description_es];
+    document.getElementById('pinTxt').innerHTML=`${l[1]?`<div class="lb-cap" style="font-weight:600">${esc(l[1])}</div>`:''}${l[2]?`<div class="lb-cap" style="margin-top:6px">${esc(l[2])}</div>`:''}`;
+    inner.querySelectorAll('.langtabs a').forEach(a=>a.classList.toggle('on',+a.dataset.k===k)); };
+  inner.querySelectorAll('.langtabs a').forEach(a=>a.onclick=e=>{e.preventDefault();showLang(+a.dataset.k);});
+  showLang(0);
+  inner.classList.add('scroll');
+  document.getElementById('lb').classList.add('open');
+}
+
+function renderTrends(trends){
+  let body='';
+  if(!trends.length) body='<div class="empty-p">Nog geen trends van de Scout.</div>';
+  else{
+    const by={};
+    for(const t of trends){ const k=dayKey(new Date(t.created_at)); (by[k]=by[k]||[]).push(t); }
+    body=Object.keys(by).sort().reverse().map(k=>`<div class="tr-week">Scout · ${esc(dateTxt(k))}</div>`+
+      by[k].map(t=>`<div class="trow">
+        <div class="ta">${esc(t.aesthetic||'—')}${t.market?`<span class="tchip">${esc(t.market)}</span>`:''}</div>
+        ${t.keyword?`<div class="tk">🔎 ${esc(t.keyword)}</div>`:''}
+        ${t.note?`<div class="tn">${esc(t.note)}</div>`:''}
+      </div>`).join('')).join('');
+  }
+  return `<div class="opanel"><h3><span class="cd" style="background:var(--trend)"></span>Trends (Pinterest Scout · 60 dagen)</h3><div class="scroll">${body}</div></div>`;
+}
+
+function renderTraffic(utm){
+  const agg={};
+  for(const r of utm){ const k=(r.utm_campaign||'—')+'|'+(r.utm_content||'');
+    const a=agg[k]=agg[k]||{c:r.utm_campaign,ct:r.utm_content,clicks:0,buys:0,rev:0,last:''};
+    a.clicks+=+r.clicks||0; a.buys+=+r.purchases||0; a.rev+=+r.revenue||0; if(String(r.date)>a.last) a.last=String(r.date); }
+  const list=Object.values(agg).sort((a,b)=>b.clicks-a.clicks).slice(0,25);
+  const body=list.length? `<div class="urow h"><span>Campagne · content</span><span class="num">Klik</span><span class="num">Koop</span><span class="num">Omzet</span></div>`+
+    list.map(a=>`<div class="urow"><span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(a.c+' · '+(a.ct||''))}">${esc(a.c)}${a.ct?` <span style="color:var(--dim)">· ${esc(a.ct)}</span>`:''}</span>
+      <span class="num">${fmtN(a.clicks)}</span><span class="num">${fmtN(a.buys)}</span><span class="num">${eur(a.rev)}</span></div>`).join('')
+    : `<div class="empty-p">Nog geen Pinterest-verkeer gemeten (UTM <b>hdb-pin*</b> in GA4, ~1 dag vertraging). Verschijnt vanzelf zodra de eerste klikken binnenkomen.</div>`;
+  return `<div class="opanel"><h3><span class="cd" style="background:var(--traffic)"></span>Verkeer via pins (UTM · 90 dagen)</h3><div class="scroll">${body}</div></div>`;
+}
+
+/* ============ lightbox ============ */
+function closeLightbox(){ document.getElementById('lb').classList.remove('open'); const el=document.getElementById('lbInner'); el.innerHTML=''; el.classList.remove('scroll'); }
+document.getElementById('lb').onclick=closeLightbox;
+document.getElementById('lbClose').onclick=e=>{e.stopPropagation();closeLightbox();};
+document.getElementById('lbInner').onclick=e=>e.stopPropagation();
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeLightbox();});
+
+load();
+</script>
+</body>
+</html>
