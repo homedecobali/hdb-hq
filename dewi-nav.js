@@ -1,23 +1,28 @@
 /* =====================================================================
-   DEWI · dewi-nav.js — VASTE ZIJBALK + COMMANDOPALET (Ctrl/⌘-K)
+   DEWI · dewi-nav.js — MENU-LADE (☰) + COMMANDOPALET (Ctrl/⌘-K)
    =====================================================================
    Eén bron voor de navigatie op alle dash-pagina's. Wordt geladen door
    dewi-frame.js (dat elke cockpit-pagina al laadt); kpi.html laadt hem
    daarnaast synchroon in <head> zodat de cockpit zich direct als host kan
    aanmelden. Niet per pagina kopiëren — nieuwe pagina = één regel in NAV.
 
+   28-09: geen vaste zijbalk meer. Op elk scherm (desktop én mobiel) is het
+   menu een lade achter de ☰-knop linksonder; hij neemt geen ruimte in en
+   sluit na een keuze, met Esc of een klik ernaast. Elk item doet hetzelfde:
+   het opent dat scherm (pagina = navigeren; zone = op kpi.html uitklappen en
+   ernaartoe scrollen). Er gaan vanuit het menu geen zijpanelen meer open.
+
    Groepen: HANDEL · MARKETING · STUDIO'S · SYSTEEM.
    Item-soorten:
      url   — gewone pagina (elders: navigeren)
-     pane  — id uit PANELS/PAGES in kpi.html → op de cockpit opent hij in
-             het rechter-sidepane (open-state blijft kpi's localStorage
-             'dewi_kpi_panels'); elders navigeren naar url
+     pane  — (historisch veld) wordt genegeerd; het item navigeert naar url
      zone  — zone in kpi.html → op de cockpit: uitklappen + scrollen;
              elders: kpi.html#z-<zone>
 
    Host-API (alleen kpi.html):
-     DEWI_NAV.attach({ onItem(it)→bool, isOpen(paneId)→bool, onAgent(id)→bool })
-     DEWI_NAV.refresh()        — 'aan'-staat van pane-items bijwerken
+     DEWI_NAV.attach({ onItem(it)→bool })   — alleen nog voor zone-items (uitklappen + scrollen)
+     DEWI_NAV.refresh()        — huidige-pagina-markering bijwerken
+     DEWI_NAV.toggle()         — lade open/dicht
      DEWI_NAV.openPalette()
 
    Niet getoond: binnen een iframe (sidepane) — daar stuurt Ctrl-K door naar
@@ -29,7 +34,6 @@
   if (global.DEWI_NAV) return;
 
   var doc = document;
-  var LS_NAV = "dewi_nav";            // { collapsed: bool }
   var KEY_ANON_FALLBACK =             // publishable anon-key; gelijk houden met dewi-config.js
     "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp1Y3VidW9mdGplaHdhbmNlZ21hIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI2OTYwMDIsImV4cCI6MjA5ODI3MjAwMn0.gKYBE76kVv5XdMb-GuFAELdSp5R7OjCIiUzw7hW2Jus";
   var URL_FALLBACK = "https://jucubuoftjehwancegma.supabase.co";
@@ -104,6 +108,7 @@
     attach: function (h) { host = h || null; refresh(); },
     refresh: function () { refresh(); },
     openPalette: function () { openPalette(); },
+    toggle: function () { toggleDrawer(); },
     go: function (it) { activate(it); }
   };
   global.DEWI_NAV = API;
@@ -124,14 +129,16 @@
     if (doc.getElementById("dewi-nav-css")) return;
     var s = doc.createElement("style"); s.id = "dewi-nav-css";
     s.textContent = [
-      ":root{--dn-w:208px;--dn-bg:#04070d;--dn-panel:#0d1420;--dn-line:#1c2940;--dn-cyan:#00d4ff;--dn-muted:#7d8ca3;--dn-text:#dfe8f5;--dn-yellow:#ffd400;--dn-green:#4fd1a1}",
-      "html.dn-on.dn-mini{--dn-w:54px}",
-      "html.dn-on body{margin-left:var(--dn-w)!important;transition:margin-left .18s}",
+      ":root{--dn-w:236px;--dn-bg:#04070d;--dn-panel:#0d1420;--dn-line:#1c2940;--dn-cyan:#00d4ff;--dn-muted:#7d8ca3;--dn-text:#dfe8f5;--dn-yellow:#ffd400;--dn-green:#4fd1a1}",
       "#dewi-nav{position:fixed;top:0;left:0;bottom:0;width:var(--dn-w);z-index:60;display:flex;flex-direction:column;",
       "  background:linear-gradient(180deg,#0a111c,var(--dn-bg));border-right:1px solid var(--dn-line);",
-      "  font:13px/1.35 'Segoe UI',system-ui,-apple-system,sans-serif;color:var(--dn-text);transition:width .18s;overflow:hidden}",
+      "  font:13px/1.35 'Segoe UI',system-ui,-apple-system,sans-serif;color:var(--dn-text);overflow:hidden;",
+      "  transform:translateX(-102%);transition:transform .2s ease;box-shadow:14px 0 34px rgba(0,0,0,.6);visibility:hidden}",
+      "html.dn-open #dewi-nav{transform:none;visibility:visible}",
+      "#dn-scrim{position:fixed;inset:0;z-index:59;background:rgba(2,4,8,.45);opacity:0;pointer-events:none;transition:opacity .2s}",
+      "html.dn-open #dn-scrim{opacity:1;pointer-events:auto}",
       "#dewi-nav *{box-sizing:border-box}",
-      "#dewi-nav .dn-brand{display:flex;align-items:center;gap:9px;padding:14px 16px 12px;white-space:nowrap;text-decoration:none}",
+      "#dewi-nav .dn-brand{display:flex;align-items:center;gap:9px;padding:13px 16px 10px;white-space:nowrap;text-decoration:none}",
       "#dewi-nav .dn-live{width:9px;height:9px;border-radius:50%;background:var(--dn-green);box-shadow:0 0 8px var(--dn-green);flex:none;animation:dnpulse 1.6s ease-in-out infinite}",
       "@keyframes dnpulse{0%,100%{opacity:1}50%{opacity:.25}}",
       "#dewi-nav .dn-name{font-weight:900;letter-spacing:.28em;color:var(--dn-cyan);font-size:14px}",
@@ -142,11 +149,12 @@
       "#dewi-nav .dn-search:hover{border-color:var(--dn-cyan);color:var(--dn-text);box-shadow:0 0 0 1px rgba(0,212,255,.3)}",
       "#dewi-nav .dn-search .tx{flex:1}",
       "#dewi-nav kbd{font:700 9.5px ui-monospace,Consolas,monospace;color:var(--dn-muted);border:1px solid var(--dn-line);border-radius:5px;padding:1px 5px;background:rgba(255,255,255,.03)}",
-      "#dewi-nav .dn-groups{flex:1;overflow-y:auto;overflow-x:hidden;padding:2px 0 10px}",
-      "#dewi-nav .dn-gl{font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--dn-muted);padding:12px 16px 5px;white-space:nowrap}",
-      "#dewi-nav .dn-it{display:flex;align-items:center;gap:10px;margin:1px 8px;padding:6px 8px;border-radius:8px;cursor:pointer;",
+      "#dewi-nav .dn-groups{flex:1;overflow-y:auto;overflow-x:hidden;padding:0 0 10px;scrollbar-width:none}",
+      "#dewi-nav .dn-groups::-webkit-scrollbar{display:none}",
+      "#dewi-nav .dn-gl{font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--dn-muted);padding:9px 16px 3px;white-space:nowrap}",
+      "#dewi-nav .dn-it{display:flex;align-items:center;gap:10px;margin:1px 8px;padding:4px 8px;border-radius:8px;cursor:pointer;",
       "  color:var(--dn-text);text-decoration:none;white-space:nowrap;border:1px solid transparent;position:relative}",
-      "#dewi-nav .dn-it:hover{background:rgba(255,255,255,.04);border-color:var(--dn-line)}",
+      "#dewi-nav .dn-it:hover,#dewi-nav .dn-it:focus-visible{background:rgba(255,255,255,.04);border-color:var(--dn-line);outline:none}",
       "#dewi-nav .dn-ic{width:22px;height:22px;border-radius:6px;flex:none;display:flex;align-items:center;justify-content:center;",
       "  font-size:11px;font-weight:900;color:var(--c);background:color-mix(in srgb,var(--c) 14%,transparent);border:1px solid color-mix(in srgb,var(--c) 45%,transparent)}",
       "#dewi-nav .dn-lb{flex:1;overflow:hidden;text-overflow:ellipsis}",
@@ -159,28 +167,12 @@
       "#dewi-nav .dn-it.on .dn-ic{color:#04070d;background:rgba(0,0,0,.14);border-color:rgba(0,0,0,.25)}",
       "#dewi-nav .dn-it.on.light{color:#fff}",
       "#dewi-nav .dn-it.on .dn-kind{color:inherit}",
-      "#dewi-nav .dn-foot{border-top:1px solid var(--dn-line);padding:8px}",
-      "#dewi-nav .dn-mini{width:100%;appearance:none;border:1px solid var(--dn-line);background:none;color:var(--dn-muted);border-radius:8px;padding:5px 0;cursor:pointer;font:700 12px system-ui}",
-      "#dewi-nav .dn-mini:hover{color:var(--dn-text);border-color:var(--dn-cyan)}",
-      /* mini-rail */
-      "html.dn-mini #dewi-nav .dn-by,html.dn-mini #dewi-nav .dn-name,html.dn-mini #dewi-nav .dn-lb,html.dn-mini #dewi-nav .dn-kind,",
-      "html.dn-mini #dewi-nav .dn-search .tx,html.dn-mini #dewi-nav .dn-search kbd{display:none}",
-      "html.dn-mini #dewi-nav .dn-gl{font-size:0;padding:8px 0 2px;margin:0 14px;border-top:1px solid var(--dn-line)}",
-      "html.dn-mini #dewi-nav .dn-brand{padding:16px 0 14px 22px}",
-      "html.dn-mini #dewi-nav .dn-search{justify-content:center;margin:0 8px 6px;padding:7px 0}",
-      "html.dn-mini #dewi-nav .dn-it{justify-content:center;padding:6px 0}",
-      /* mobiel: lade */
-      "#dn-burger{display:none}",
-      "@media (max-width:820px){",
-      "  html.dn-on body{margin-left:0!important}",
-      "  #dewi-nav{width:232px;transform:translateX(-100%);transition:transform .2s;box-shadow:12px 0 30px rgba(0,0,0,.6)}",
-      "  html.dn-open #dewi-nav{transform:none}",
-      "  html.dn-mini #dewi-nav .dn-lb,html.dn-mini #dewi-nav .dn-name,html.dn-mini #dewi-nav .dn-by{display:initial}",
-      "  #dewi-nav .dn-foot{display:none}",
-      "  #dn-burger{display:flex;position:fixed;left:10px;bottom:14px;z-index:61;width:42px;height:42px;border-radius:50%;align-items:center;justify-content:center;",
-      "    background:rgba(7,11,18,.92);border:1px solid rgba(0,212,255,.45);color:var(--dn-cyan);font:700 18px system-ui;cursor:pointer}",
-      "}",
-      "@media print{#dewi-nav,#dn-burger{display:none}html.dn-on body{margin-left:0!important}}",
+      "#dn-burger{display:flex;position:fixed;left:12px;bottom:14px;z-index:61;width:42px;height:42px;border-radius:50%;align-items:center;justify-content:center;",
+      "  background:rgba(7,11,18,.92);border:1px solid rgba(0,212,255,.45);color:var(--dn-cyan);font:700 18px system-ui;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.5)}",
+      "#dn-burger:hover,#dn-burger:focus-visible{border-color:var(--dn-cyan);box-shadow:0 0 0 2px rgba(0,212,255,.25);outline:none}",
+      "html.dn-open #dn-burger{opacity:0;pointer-events:none}",
+      "@media (prefers-reduced-motion:reduce){#dewi-nav,#dn-scrim{transition:none}#dewi-nav .dn-live{animation:none}}",
+      "@media print{#dewi-nav,#dn-burger,#dn-scrim{display:none}}",
       /* ---- commandopalet (stijl = zoekveld organisation.html) ---- */
       "#dn-pal{position:fixed;inset:0;z-index:2147483100;display:none;align-items:flex-start;justify-content:center;padding-top:12vh;",
       "  background:rgba(2,4,8,.66);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);font:13px/1.35 'Segoe UI',system-ui,sans-serif;color:#dfe8f5}",
@@ -213,24 +205,27 @@
     return it.url || "#";
   }
   function activate(it) {
-    if (host && host.onItem) { try { if (host.onItem(it) === true) { closeDrawer(); refresh(); return; } } catch (e) { console.warn("dewi-nav host:", e); } }
+    closeDrawer();
+    if (it && it.zone && host && host.onItem) { try { if (host.onItem(it) === true) { closeDrawer(); refresh(); return; } } catch (e) { console.warn("dewi-nav host:", e); } }
     location.href = hrefOf(it);
   }
   function openAgent(a) {
-    if (host && host.onAgent) { try { if (host.onAgent(a.agent_id) === true) return; } catch (e) {} }
+    closeDrawer();
     location.href = "organisation.html?agent=" + encodeURIComponent(a.agent_id);
   }
   function closeDrawer() { doc.documentElement.classList.remove("dn-open"); }
+  function toggleDrawer() {
+    var open = doc.documentElement.classList.toggle("dn-open");
+    if (open && navEl) { var f = navEl.querySelector(".dn-it.cur") || navEl.querySelector(".dn-it"); if (f) setTimeout(function () { f.focus(); }, 60); }
+  }
 
   /* --------------------------------------------------------------- opbouw */
   var navEl = null;
   function build() {
     if (doc.getElementById("dewi-nav")) return;
     css();
-    var st = lsGet(LS_NAV, {});
     var root = doc.documentElement;
     root.classList.add("dn-on");
-    if (st.collapsed) root.classList.add("dn-mini");
 
     navEl = doc.createElement("aside");
     navEl.id = "dewi-nav"; navEl.setAttribute("aria-label", "DEWI-navigatie");
@@ -243,18 +238,22 @@
         var light = /^#(4285f4|e60023)$/i.test(it.c) ? " light" : "";
         h += '<a class="dn-it' + light + '" data-id="' + it.id + '" href="' + escH(hrefOf(it)) + '" style="--c:' + it.c + '" title="' + escH(it.label) + '">'
           + '<span class="dn-ic">' + it.ic + '</span><span class="dn-lb">' + escH(it.label) + '</span>'
-          + (it.zone ? '<span class="dn-kind">ZONE</span>' : "") + '</a>';
+          + '</a>';
       });
       h += '</div>';
     });
-    h += '</nav><div class="dn-foot"><button type="button" class="dn-mini" title="Zijbalk in-/uitklappen">' + (st.collapsed ? "\u00BB" : "\u00AB") + '</button></div>';
+    h += '</nav>';
     navEl.innerHTML = h;
     doc.body.appendChild(navEl);
 
+    var scrim = doc.createElement("div"); scrim.id = "dn-scrim";
+    scrim.addEventListener("click", closeDrawer);
+    doc.body.appendChild(scrim);
     var burger = doc.createElement("button");
-    burger.id = "dn-burger"; burger.type = "button"; burger.setAttribute("aria-label", "Menu"); burger.textContent = "\u2630";
-    burger.addEventListener("click", function () { root.classList.toggle("dn-open"); });
+    burger.id = "dn-burger"; burger.type = "button"; burger.setAttribute("aria-label", "Menu openen"); burger.title = "Menu"; burger.textContent = "\u2630";
+    burger.addEventListener("click", function (e) { e.stopPropagation(); toggleDrawer(); });
     doc.body.appendChild(burger);
+    doc.addEventListener("keydown", function (e) { if (e.key === "Escape" && root.classList.contains("dn-open")) closeDrawer(); });
 
     var byId = {}; allItems().forEach(function (it) { byId[it.id] = it; });
     navEl.addEventListener("click", function (e) {
@@ -263,17 +262,7 @@
         if (e.ctrlKey || e.metaKey || e.shiftKey || e.button === 1) return;   // nieuw tabblad mag
         e.preventDefault(); activate(byId[a.getAttribute("data-id")]); return;
       }
-      if (e.target.closest(".dn-search")) { openPalette(); return; }
-      var m = e.target.closest(".dn-mini");
-      if (m) {
-        var mini = root.classList.toggle("dn-mini");
-        m.textContent = mini ? "\u00BB" : "\u00AB";
-        lsSet(LS_NAV, { collapsed: mini });
-      }
-    });
-    doc.addEventListener("click", function (e) {
-      if (!root.classList.contains("dn-open")) return;
-      if (!navEl.contains(e.target) && e.target !== burger) closeDrawer();
+      if (e.target.closest(".dn-search")) { closeDrawer(); openPalette(); return; }
     });
     refresh();
   }
@@ -284,9 +273,8 @@
       var it = null; allItems().some(function (x) { if (x.id === a.getAttribute("data-id")) { it = x; return true; } return false; });
       if (!it) return;
       var cur = !it.zone && it.url && base(it.url) === PAGE;
-      var on = !!(host && host.isOpen && it.pane && host.isOpen(it.pane));
-      a.classList.toggle("cur", !!cur && !on);
-      a.classList.toggle("on", on);
+      a.classList.toggle("cur", !!cur);
+      a.classList.remove("on");
     });
   }
 

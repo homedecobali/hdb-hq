@@ -7,7 +7,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="dewi-config.js"></script>
 <script src="dewi-frame.js"></script><!-- uniforme fullscreen / cockpit-toggles -->
-<script src="dewi-nav.js"></script><!-- vaste zijbalk + Ctrl-K-palet (één bron voor alle pagina's) -->
+<script src="dewi-nav.js"></script><!-- menu-lade (☰) + Ctrl-K-palet (één bron voor alle pagina's) -->
 <script src="dewi-agents.js"></script><!-- één bron van waarheid voor agent-tellingen -->
 <style>
   :root{
@@ -397,6 +397,90 @@
     #kpiScroll{min-width:0;padding:10px}
     .nums{gap:18px} .num .v{font-size:22px}
   }
+  /* ==================== ACTIELIJST (28-09) ==================== */
+  #actions{margin:0 0 14px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 14px 10px}
+  #actions .al-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px}
+  #actions .al-t{font-size:12.5px;font-weight:800;letter-spacing:.22em;text-transform:uppercase;color:var(--yellow)}
+  #actions .al-s{font-size:11px;color:var(--muted)}
+  #actions .al-f{margin-left:auto;display:flex;gap:4px}
+  #actions .al-f button{appearance:none;background:none;border:1px solid var(--line);color:var(--muted);font:600 11px system-ui;border-radius:8px;padding:3px 9px;cursor:pointer}
+  #actions .al-f button.on{border-color:var(--yellow);color:var(--yellow)}
+  #actions .al-f button:focus-visible{outline:2px solid var(--cyan);outline-offset:1px}
+  #actions #anomStrip{margin:0 0 8px}
+  .al-list{display:flex;flex-direction:column}
+  .al-row{display:grid;grid-template-columns:4px minmax(0,1fr) auto;gap:10px;align-items:center;padding:7px 0;border-top:1px solid rgba(28,41,64,.6)}
+  .al-row:first-child{border-top:0}
+  .al-bar{align-self:stretch;border-radius:2px;background:var(--muted);opacity:.5}
+  .al-row.p-high .al-bar{background:var(--red);opacity:1}
+  .al-row.p-med .al-bar{background:var(--yellow);opacity:.8}
+  .al-main{min-width:0}
+  .al-title{font-size:13px;line-height:1.35;color:var(--text);overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+  .al-meta{display:flex;gap:8px;flex-wrap:wrap;margin-top:2px;font-size:11px;color:var(--muted)}
+  .al-meta .k-b{color:var(--yellow);font-weight:700}
+  .al-meta .late{color:var(--red);font-weight:700}
+  .al-meta .soon{color:var(--orange);font-weight:700}
+  .al-meta .why{color:var(--orange)}
+  .al-btns{display:flex;gap:4px}
+  .al-btns button{appearance:none;background:rgba(0,0,0,.25);border:1px solid var(--line);color:var(--muted);border-radius:7px;min-width:30px;height:28px;padding:0 7px;cursor:pointer;font:600 11.5px system-ui}
+  .al-btns button:hover,.al-btns button:focus-visible{color:var(--text);border-color:var(--cyan);outline:none}
+  .al-btns button.ok:hover{border-color:var(--green);color:var(--green)}
+  .al-btns button:disabled{opacity:.4;cursor:default}
+  .al-more{appearance:none;background:none;border:0;color:var(--cyan);font:600 12px system-ui;padding:8px 0 2px;cursor:pointer}
+  .al-stale{margin-top:6px;border-top:1px dashed var(--line);padding-top:6px}
+  .al-stale summary{cursor:pointer;color:var(--muted);font-size:12px;list-style:none}
+  .al-stale summary::-webkit-details-marker{display:none}
+  .al-stale summary b{color:var(--text)}
+  .al-stale .al-ask{appearance:none;background:none;border:1px solid var(--line);color:var(--cyan);border-radius:8px;font:600 11px system-ui;padding:3px 9px;margin-left:8px;cursor:pointer}
+  .al-empty{color:var(--muted);font-size:12.5px;padding:6px 0}
+  @media (max-width:820px){ .al-row{grid-template-columns:4px minmax(0,1fr)} .al-btns{grid-column:2;justify-content:flex-start} }
+
+  /* ==================== AI COMMAND (28-09) ==================== */
+  #top #aicBtn{display:inline-flex;align-items:center;gap:7px;border-radius:11px;border-color:rgba(163,123,255,.55);color:#cbb8ff;background:rgba(163,123,255,.08)}
+  #top #aicBtn:hover{border-color:#a37bff;color:#fff}
+  #top #aicBtn kbd{font:700 9.5px ui-monospace,Consolas,monospace;border:1px solid var(--line);border-radius:5px;padding:1px 5px;color:var(--muted)}
+  #aic{position:fixed;top:0;right:0;bottom:0;width:min(460px,100vw);z-index:70;display:flex;flex-direction:column;
+    background:#0a0f18;border-left:1px solid var(--line);box-shadow:-18px 0 40px rgba(0,0,0,.6);
+    transform:translateX(102%);visibility:hidden;transition:transform .2s ease}
+  #aic.open{transform:none;visibility:visible}
+  #aic .ah{display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid var(--line)}
+  #aic .ah .t{font-weight:800;letter-spacing:.2em;text-transform:uppercase;font-size:12.5px;color:#cbb8ff}
+  #aic .ah .s{font-size:11px;color:var(--muted)}
+  #aic .ah .sp{flex:1}
+  #aic .ah button{appearance:none;background:none;border:1px solid var(--line);color:var(--muted);border-radius:8px;font:600 11px system-ui;padding:4px 9px;cursor:pointer}
+  #aic .ah button:hover,#aic .ah button:focus-visible{color:var(--text);border-color:#a37bff;outline:none}
+  #aic .am{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:12px}
+  #aic .msg{max-width:92%;font-size:13.5px;line-height:1.5;word-wrap:break-word}
+  #aic .msg.u{align-self:flex-end;background:rgba(0,212,255,.09);border:1px solid rgba(0,212,255,.28);border-radius:12px 12px 3px 12px;padding:8px 11px;white-space:pre-wrap}
+  #aic .msg.a{align-self:flex-start;color:var(--text)}
+  #aic .msg.a p{margin:0 0 7px}
+  #aic .msg.a ul,#aic .msg.a ol{margin:0 0 7px;padding-left:18px}
+  #aic .msg.a code{font:12px ui-monospace,Consolas,monospace;background:rgba(255,255,255,.06);border-radius:4px;padding:0 4px}
+  #aic .msg.a table{border-collapse:collapse;font-size:12px;margin:0 0 7px}
+  #aic .msg.a td,#aic .msg.a th{border:1px solid var(--line);padding:3px 7px;text-align:left}
+  #aic .msg.a h4{margin:6px 0 4px;font-size:13px}
+  #aic .msg.err{color:var(--red);font-size:12.5px}
+  #aic .thinking{color:var(--muted);font-size:12px}
+  #aic .act{border:1px solid rgba(255,212,0,.45);background:rgba(255,212,0,.06);border-radius:10px;padding:9px 11px;margin-top:6px}
+  #aic .act .ad{font-size:12.5px;margin-bottom:7px}
+  #aic .act .ak{font-size:10.5px;color:var(--muted);margin-bottom:3px}
+  #aic .act button{appearance:none;border-radius:8px;font:700 12px system-ui;padding:5px 12px;cursor:pointer;margin-right:6px}
+  #aic .act .go{background:var(--yellow);border:1px solid var(--yellow);color:#04070d}
+  #aic .act .no{background:none;border:1px solid var(--line);color:var(--muted)}
+  #aic .act .st{font-size:12px;font-weight:700}
+  #aic .act.done{border-color:rgba(79,209,161,.5);background:rgba(79,209,161,.06)}
+  #aic .act.failed{border-color:rgba(255,93,93,.5)}
+  #aic .act.cancelled{opacity:.55}
+  #aic .empty{color:var(--muted);font-size:12.5px;line-height:1.55}
+  #aic .empty button{display:block;width:100%;text-align:left;appearance:none;background:rgba(0,0,0,.25);border:1px solid var(--line);color:var(--text);border-radius:9px;padding:7px 10px;margin-top:6px;cursor:pointer;font:13px system-ui}
+  #aic .empty button:hover{border-color:#a37bff}
+  #aic .ac{border-top:1px solid var(--line);padding:10px 12px 12px;display:flex;gap:8px;align-items:flex-end}
+  #aic textarea{flex:1;resize:none;min-height:40px;max-height:160px;appearance:none;border:1px solid var(--line);background:rgba(0,0,0,.32);color:var(--text);
+    font:13.5px/1.4 "Segoe UI",system-ui,sans-serif;padding:9px 11px;border-radius:11px;outline:none}
+  #aic textarea:focus{border-color:#a37bff;box-shadow:0 0 0 1px rgba(163,123,255,.35)}
+  #aic .send{appearance:none;background:#a37bff;border:0;color:#04070d;font:800 13px system-ui;border-radius:11px;height:40px;padding:0 14px;cursor:pointer}
+  #aic .send:disabled{opacity:.45;cursor:default}
+  @media (max-width:820px){ #top #aicBtn kbd{display:none} }
+  @media (prefers-reduced-motion:reduce){ #aic{transition:none} }
 </style>
 </head>
 <body>
@@ -410,6 +494,7 @@
 <div id="top" class="hidden">
   <span class="ttl">KPI-cockpit</span><span class="ttl-s">Home Deco Bali</span>
   <button type="button" id="palBtn" title="Zoek pagina, zone of agent">&#8981; Zoeken <kbd id="palKbd">Ctrl K</kbd></button>
+  <button type="button" id="aicBtn" title="Praat met DEWI (AI command)">AI command <kbd id="aicKbd">Ctrl J</kbd></button>
   <span id="stamp"></span>
 </div>
 
@@ -426,7 +511,20 @@
       </div>
       <div class="ck-grid" id="ck-grid"><div class="tile"><div class="tl">laden&hellip;</div><div class="tv">&mdash;</div></div></div>
     </section>
-    <div id="anomStrip"><span class="as-h">AFWIJKINGEN</span><span id="anomChips" style="display:contents"></span></div>
+    <!-- ==================== ACTIELIJST (28-09): beslissingen + taken die Rick vragen ==================== -->
+    <section id="actions" aria-label="Actielijst">
+      <div class="al-head">
+        <span class="al-t">Actielijst</span>
+        <span class="al-s" id="al-sum"></span>
+        <span class="al-f" role="group" aria-label="Filter">
+          <button type="button" data-f="all" class="on">Alles</button>
+          <button type="button" data-f="b">Beslissingen</button>
+          <button type="button" data-f="t">Taken</button>
+        </span>
+      </div>
+      <div id="anomStrip"><span class="as-h">AFWIJKINGEN</span><span id="anomChips" style="display:contents"></span></div>
+      <div id="al-body"><div class="al-empty">laden&hellip;</div></div>
+    </section>
 
     <!-- ==================== VOORSTELLEN (verschijnt alleen als er openstaande voorstellen zijn) ==================== -->
     <section class="zone hidden" id="z-prop" style="--acc:var(--yellow)">
@@ -708,11 +806,8 @@
           <h2><span class="dot" style="background:var(--red)"></span>Systeem &mdash; stilte-detectie</h2>
           <div id="system"></div>
         </div>
-        <div class="card">
-          <h2><span class="dot" style="background:var(--orange)"></span>To-do&rsquo;s (DEWI)
-            <span class="when" id="memo-count"></span></h2>
-          <div id="memos"></div>
-        </div>
+        <!-- To-do's staan sinds 28-09 in de Actielijst bovenaan; stubs houden renderMemos() heel -->
+        <div hidden><span id="memo-count"></span><div id="memos"></div></div>
       </div>
     </section>
 
@@ -749,7 +844,7 @@
   var state = { open:{}, widths:{} };   // widths in % van het werkvlak
   try{
     var s = JSON.parse(localStorage.getItem('dewi_kpi_panels')||'{}');
-    if(s && typeof s === 'object'){ state.open = s.open||{}; state.widths = s.widths||{}; }
+    if(s && typeof s === 'object'){ state.open = {}; state.widths = s.widths||{}; }   // 28-09: menu opent geen zijpanelen meer
   }catch(e){}
   function saveState(){
     try{ localStorage.setItem('dewi_kpi_panels', JSON.stringify(state)); }catch(e){}
@@ -811,19 +906,16 @@
     saveState(); buildPanes();
     return true;
   }
-  // Zijbalk (dewi-nav.js) meldt zich hier aan: pane-items togglen het sidepane,
-  // zone-items klappen de zone uit en scrollen ernaartoe. Op mobiel zijn er geen
-  // sidepanes -> false = de zijbalk navigeert gewoon naar de pagina.
+  // Menu (dewi-nav.js, 28-09): alleen zone-items worden hier afgehandeld
+  // (uitklappen + scrollen). Pagina's en agents navigeren altijd naar hun eigen
+  // scherm - geen zijpanelen meer vanuit het menu.
   if(window.DEWI_NAV) DEWI_NAV.attach({
     onItem: function(it){
       if(it.zone){ gotoZone(it.zone, it.anchor); return true; }
-      if(it.pane && paneById[it.pane] && window.innerWidth > 820){ togglePanel(it.pane); return true; }
-      if(it.id === 'cockpit'){ $('kpiScroll').scrollTo({ top: 0, behavior: 'smooth' }); return true; }
       return false;
-    },
-    isOpen: function(id){ return !!state.open[id]; },
-    onAgent: function(id){ return window.innerWidth > 820 ? openAgentPane(id) : false; }
+    }
   });
+  window.DEWI_KPI = { sb: sb, gotoZone: gotoZone };
 
   // Cockpit kleedt elk paneel aan: interne navigatie weg, titel hernoemen,
   // en waar nodig de juiste weergave aanklikken (organigram/constellation).
@@ -3259,5 +3351,243 @@
   init();
 })();
 </script>
+<script>
+/* =====================================================================
+   ACTIELIJST + AI COMMAND (28-09)
+   - Actielijst: RPC dewi_actielijst() (alleen admin-sessie) — beslissingen en
+     taken die Ricks handeling vragen; afronden/snoozen/verbergen via
+     RPC dewi_action_update(). Loops >14d niet aangeraakt = "achterhaald?".
+   - AI command: n8n "HDB · DEWI · AI Command" (FbPCO4Ah4c5y9uWQ), POST
+     /webhook/dewi-command met de Supabase-sessie als Bearer. Acties met
+     effect buiten de database komen terug als kaart met Uitvoeren/Annuleren
+     (mode execute/cancel). Gesprek lokaal in localStorage 'dewi_aic'.
+   ===================================================================== */
+(function(){
+  'use strict';
+  var AIC_URL = 'https://homedecobali.app.n8n.cloud/webhook/dewi-command';
+  var K = window.DEWI_KPI || {};
+  var sb = K.sb; if(!sb) return;
+  function $(id){ return document.getElementById(id); }
+  function esc(s){ return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+  /* ------------------------------------------------------------ Actielijst */
+  var AL = { rows: [], filter: 'all', showAll: false };
+  var LIMIT = 8;
+
+  function dueTxt(r){
+    if(r.days_left == null) return '';
+    var d = r.days_left;
+    if(d < 0) return '<span class="late">' + (-d) + ' d te laat</span>';
+    if(d === 0) return '<span class="soon">vandaag</span>';
+    if(d <= 3) return '<span class="soon">over ' + d + ' d</span>';
+    return 'deadline ' + String(r.deadline).slice(8,10) + '/' + String(r.deadline).slice(5,7);
+  }
+  function rowHtml(r){
+    var isProp = r.src === 'proposal';
+    var meta = [];
+    if(r.kind === 'beslissing') meta.push('<span class="k-b">Beslissing</span>');
+    if(isProp) meta.push('voorstel ' + esc(r.category || ''));
+    else if(r.category) meta.push(esc(r.category));
+    var due = dueTxt(r); if(due) meta.push(due);
+    if(r.reason && !isProp) meta.push('<span class="why">' + esc(r.reason) + '</span>');
+    var btns = isProp
+      ? '<button type="button" data-op="view" title="Bekijk en keur goed in Voorstellen">Bekijk</button>'
+      : '<button type="button" class="ok" data-op="done" title="Afgerond" aria-label="Afgerond">&#10003;</button>'
+      + '<button type="button" data-op="snooze" title="7 dagen wegleggen" aria-label="7 dagen wegleggen">7d</button>'
+      + '<button type="button" data-op="hide" title="Niet meer tonen" aria-label="Niet meer tonen">&#10005;</button>';
+    btns += '<button type="button" data-op="ask" title="Vraag DEWI hiernaar" aria-label="Vraag DEWI">AI</button>';
+    return '<div class="al-row p-' + esc(r.priority || 'low') + '" data-id="' + esc(r.id) + '" data-src="' + esc(r.src) + '">'
+      + '<span class="al-bar"></span>'
+      + '<div class="al-main"><div class="al-title">' + esc(r.title) + '</div><div class="al-meta">' + meta.join('<span>&middot;</span>') + '</div></div>'
+      + '<div class="al-btns">' + btns + '</div></div>';
+  }
+  function renderAL(){
+    var box = $('al-body'); if(!box) return;
+    var cur = AL.rows.filter(function(r){ return !r.stale; });
+    var stale = AL.rows.filter(function(r){ return r.stale; });
+    var nB = cur.filter(function(r){ return r.kind === 'beslissing'; }).length;
+    $('al-sum').textContent = cur.length ? (nB + ' beslissing' + (nB === 1 ? '' : 'en') + ', ' + (cur.length - nB) + ' ta' + (cur.length - nB === 1 ? 'ak' : 'ken')) : '';
+    var list = cur.filter(function(r){ return AL.filter === 'all' || (AL.filter === 'b' ? r.kind === 'beslissing' : r.kind !== 'beslissing'); });
+    var shown = AL.showAll ? list : list.slice(0, LIMIT);
+    var h = shown.length ? '<div class="al-list">' + shown.map(rowHtml).join('') + '</div>'
+      : '<div class="al-empty">' + (AL.filter === 'b' ? 'Geen beslissingen die op je wachten.' : 'Niets dat nu je aandacht vraagt.') + '</div>';
+    if(list.length > LIMIT) h += '<button type="button" class="al-more" data-op="more">' + (AL.showAll ? 'Toon minder' : 'Toon alle ' + list.length) + '</button>';
+    if(stale.length){
+      h += '<details class="al-stale"' + (AL.staleOpen ? ' open' : '') + '><summary><b>' + stale.length + '</b> punten al 14+ dagen niet aangeraakt &mdash; mogelijk achterhaald'
+        + '<button type="button" class="al-ask" data-op="askstale">Laat DEWI opschonen</button></summary>'
+        + '<div class="al-list">' + stale.map(rowHtml).join('') + '</div></details>';
+    }
+    box.innerHTML = h;
+    var st = box.querySelector('.al-stale'); if(st) st.addEventListener('toggle', function(){ AL.staleOpen = st.open; });
+    Array.prototype.forEach.call(document.querySelectorAll('#actions .al-f button'), function(b){ b.classList.toggle('on', b.getAttribute('data-f') === AL.filter); });
+  }
+  function loadAL(){
+    return sb.rpc('dewi_actielijst').then(function(res){
+      if(res.error) throw res.error;
+      AL.rows = Array.isArray(res.data) ? res.data : [];
+      renderAL();
+    }).catch(function(e){
+      var box = $('al-body'); if(box) box.innerHTML = '<div class="al-empty">Actielijst niet geladen: ' + esc(e.message || e) + '</div>';
+    });
+  }
+  function onALClick(e){
+    var f = e.target.closest('.al-f button');
+    if(f){ AL.filter = f.getAttribute('data-f'); AL.showAll = false; renderAL(); return; }
+    var b = e.target.closest('button[data-op]'); if(!b) return;
+    var op = b.getAttribute('data-op');
+    if(op === 'more'){ AL.showAll = !AL.showAll; renderAL(); return; }
+    if(op === 'askstale'){ e.preventDefault(); openAic('Loop de punten in mijn actielijst na die 14+ dagen niet zijn aangeraakt. Check per punt in de database of het al gedaan of achterhaald is en stel per punt voor: afronden, snoozen of houden. Zet de afrondingen klaar als acties.', true); return; }
+    var row = b.closest('.al-row'); if(!row) return;
+    var id = row.getAttribute('data-id');
+    var r = AL.rows.filter(function(x){ return String(x.id) === id; })[0];
+    if(op === 'view'){ if(K.gotoZone) K.gotoZone('prop'); return; }
+    if(op === 'ask'){ openAic((r && r.src === 'proposal' ? 'Voorstel ' : 'Punt ') + '"' + (r ? r.title : id) + '"' + (r && r.src === 'loop' ? ' (slug ' + id + ')' : '') + ': wat is de stand en wat moet ik doen?', true); return; }
+    b.disabled = true;
+    sb.rpc('dewi_action_update', { p_slug: id, p_op: op, p_days: 7 }).then(function(res){
+      if(res.error) throw res.error;
+      AL.rows = AL.rows.filter(function(x){ return String(x.id) !== id; });
+      renderAL();
+    }).catch(function(err){ b.disabled = false; alert('Niet gelukt: ' + (err.message || err)); });
+  }
+
+  /* ------------------------------------------------------------ AI command */
+  var LS = 'dewi_aic';
+  var chat = (function(){ try{ return JSON.parse(localStorage.getItem(LS) || 'null'); }catch(e){ return null; } })()
+    || { session: newSession(), msgs: [] };
+  var busy = false;
+  function newSession(){ return 'aic-' + Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+  function save(){ try{ chat.msgs = chat.msgs.slice(-40); localStorage.setItem(LS, JSON.stringify(chat)); }catch(e){} }
+
+  function md(t){
+    var lines = esc(t).split('\n'), out = [], list = null, table = null;
+    function inline(s){ return s.replace(/`([^`]+)`/g,'<code>$1</code>').replace(/\*\*([^*]+)\*\*/g,'<b>$1</b>').replace(/(^|[^*])\*([^*\s][^*]*)\*/g,'$1<i>$2</i>'); }
+    function flush(){ if(list){ out.push('<' + list.t + '>' + list.items.map(function(i){ return '<li>' + inline(i) + '</li>'; }).join('') + '</' + list.t + '>'); list = null; }
+      if(table){ out.push('<table>' + table.map(function(r, i){ return '<tr>' + r.map(function(c){ return (i ? '<td>' : '<th>') + inline(c.trim()) + (i ? '</td>' : '</th>'); }).join('') + '</tr>'; }).join('') + '</table>'); table = null; } }
+    lines.forEach(function(l){
+      var m;
+      if(/^\s*\|.*\|\s*$/.test(l)){ if(/^\s*\|[\s:|-]+\|\s*$/.test(l)) return; if(list) flush(); table = table || []; table.push(l.trim().replace(/^\||\|$/g,'').split('|')); return; }
+      if((m = l.match(/^\s*[-*]\s+(.*)$/))){ if(table || (list && list.t !== 'ul')) flush(); list = list || { t:'ul', items:[] }; list.items.push(m[1]); return; }
+      if((m = l.match(/^\s*\d+[.)]\s+(.*)$/))){ if(table || (list && list.t !== 'ol')) flush(); list = list || { t:'ol', items:[] }; list.items.push(m[1]); return; }
+      flush();
+      if((m = l.match(/^#{1,4}\s+(.*)$/))){ out.push('<h4>' + inline(m[1]) + '</h4>'); return; }
+      if(l.trim()) out.push('<p>' + inline(l) + '</p>');
+    });
+    flush();
+    return out.join('');
+  }
+  var KIND = { proposal_approve:'Voorstel goedkeuren', proposal_skip:'Voorstel afwijzen', meta_pause:'Meta pauzeren', meta_activate:'Meta activeren', loop_done:'Taak afronden', loop_snooze:'Taak snoozen' };
+  function actHtml(a){
+    var st = a.state || 'pending';
+    var foot = st === 'pending'
+      ? '<button type="button" class="go" data-act="execute" data-aid="' + esc(a.id) + '">Uitvoeren</button><button type="button" class="no" data-act="cancel" data-aid="' + esc(a.id) + '">Annuleren</button>'
+      : '<span class="st">' + (st === 'done' ? '&#10003; Uitgevoerd' : st === 'cancelled' ? 'Geannuleerd' : st === 'running' ? 'Bezig&hellip;' : '&#10005; Mislukt' + (a.detail ? ': ' + esc(String(a.detail).slice(0, 160)) : '')) + '</span>';
+    return '<div class="act ' + esc(st) + '"><div class="ak">' + esc(KIND[a.kind] || a.kind) + ' &middot; ' + esc(a.target || '') + '</div><div class="ad">' + esc(a.summary) + '</div>' + foot + '</div>';
+  }
+  function renderAic(){
+    var box = $('aic-msgs'); if(!box) return;
+    if(!chat.msgs.length && !busy){
+      box.innerHTML = '<div class="empty">Vraag iets over cijfers, taken, agents of ads. DEWI leest live in Supabase, legt taken en besluiten vast en zet acties klaar die jij met Uitvoeren bevestigt.'
+        + ['Wat vraagt vandaag mijn aandacht?', 'Hoe deed online het gisteren tegenover vorige week?', 'Welke agents zijn stil of gefaald in de laatste 24 uur?', 'Hoe staat de Meta-spend deze week tegenover het plafond van EUR 900?']
+          .map(function(q){ return '<button type="button" data-q="' + esc(q) + '">' + esc(q) + '</button>'; }).join('') + '</div>';
+      return;
+    }
+    var h = chat.msgs.map(function(m){
+      if(m.role === 'user') return '<div class="msg u">' + esc(m.text) + '</div>';
+      if(m.role === 'error') return '<div class="msg err">' + esc(m.text) + '</div>';
+      return '<div class="msg a">' + md(m.text) + (m.actions || []).map(actHtml).join('') + '</div>';
+    }).join('');
+    if(busy) h += '<div class="thinking" id="aic-think">DEWI zoekt het uit&hellip;</div>';
+    box.innerHTML = h;
+    box.scrollTop = box.scrollHeight;
+  }
+  function token(){
+    return sb.auth.getSession().then(function(r){ var s = r.data && r.data.session; if(!s) throw new Error('Geen sessie — log opnieuw in.'); return s.access_token; });
+  }
+  function call(body){
+    return token().then(function(t){
+      return fetch(AIC_URL, { method:'POST', headers:{ 'Content-Type':'application/json', 'Authorization':'Bearer ' + t }, body: JSON.stringify(body) });
+    }).then(function(r){
+      if(r.status === 401) throw new Error('Geen toegang: je sessie is verlopen of dit account mag het AI-paneel niet gebruiken. Log opnieuw in.');
+      if(!r.ok) throw new Error('De AI-agent gaf HTTP ' + r.status + '. Staat workflow "HDB · DEWI · AI Command" gepubliceerd?');
+      return r.json();
+    });
+  }
+  function send(text){
+    text = String(text || '').trim(); if(!text || busy) return;
+    var hist = chat.msgs.filter(function(m){ return m.role === 'user' || m.role === 'assistant'; }).slice(-12).map(function(m){ return { role:m.role, text:m.text }; });
+    chat.msgs.push({ role:'user', text:text }); busy = true; save(); renderAic(); setBusy();
+    var t0 = Date.now(), tick = setInterval(function(){ var el = $('aic-think'); if(el) el.textContent = 'DEWI zoekt het uit\u2026 ' + Math.round((Date.now() - t0) / 1000) + ' s'; }, 1000);
+    call({ mode:'chat', message:text, history:hist, session_id:chat.session }).then(function(res){
+      chat.msgs.push({ role:'assistant', text: res.answer || '(leeg antwoord)', actions: (res.actions || []).map(function(a){ a.state = 'pending'; return a; }) });
+      loadAL();
+    }).catch(function(e){
+      chat.msgs.push({ role:'error', text: e.message || String(e) });
+    }).then(function(){ clearInterval(tick); busy = false; save(); renderAic(); setBusy(); });
+  }
+  function findAct(id){ var f = null; chat.msgs.forEach(function(m){ (m.actions || []).forEach(function(a){ if(a.id === id) f = a; }); }); return f; }
+  function doAct(id, mode){
+    var a = findAct(id); if(!a || a.state !== 'pending') return;
+    a.state = 'running'; renderAic();
+    call({ mode:mode, action_id:id, session_id:chat.session }).then(function(res){
+      if(mode === 'cancel') a.state = 'cancelled';
+      else { a.state = res.ok ? 'done' : 'failed'; a.detail = res.detail; }
+      loadAL();
+    }).catch(function(e){ a.state = 'failed'; a.detail = e.message || String(e); })
+      .then(function(){ save(); renderAic(); });
+  }
+  function setBusy(){ var s = $('aic-send'); if(s) s.disabled = busy; }
+  function openAic(prefill, autosend){
+    var p = $('aic'); if(!p) return;
+    p.classList.add('open'); p.setAttribute('aria-hidden', 'false');
+    renderAic();
+    var ta = $('aic-in');
+    if(prefill){ if(autosend){ send(prefill); } else { ta.value = prefill; } }
+    setTimeout(function(){ ta.focus(); }, 60);
+  }
+  function closeAic(){ var p = $('aic'); if(p){ p.classList.remove('open'); p.setAttribute('aria-hidden', 'true'); } }
+
+  function buildAic(){
+    var p = document.createElement('aside');
+    p.id = 'aic'; p.setAttribute('aria-label', 'AI command'); p.setAttribute('aria-hidden', 'true');
+    p.innerHTML = '<div class="ah"><span class="t">AI command</span><span class="s">DEWI &middot; Claude</span><span class="sp"></span>'
+      + '<button type="button" id="aic-new" title="Nieuw gesprek">Nieuw</button><button type="button" id="aic-x" title="Sluiten (Esc)">Sluiten</button></div>'
+      + '<div class="am" id="aic-msgs" aria-live="polite"></div>'
+      + '<div class="ac"><textarea id="aic-in" rows="1" placeholder="Vraag of opdracht voor DEWI&hellip;"></textarea><button type="button" class="send" id="aic-send">Stuur</button></div>';
+    document.body.appendChild(p);
+    var ta = $('aic-in');
+    ta.addEventListener('input', function(){ ta.style.height = 'auto'; ta.style.height = Math.min(160, ta.scrollHeight) + 'px'; });
+    ta.addEventListener('keydown', function(e){ if(e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); var v = ta.value; ta.value = ''; ta.style.height = 'auto'; send(v); } });
+    $('aic-send').addEventListener('click', function(){ var v = ta.value; ta.value = ''; ta.style.height = 'auto'; send(v); });
+    $('aic-x').addEventListener('click', closeAic);
+    $('aic-new').addEventListener('click', function(){ if(busy) return; chat = { session:newSession(), msgs:[] }; save(); renderAic(); ta.focus(); });
+    $('aic-msgs').addEventListener('click', function(e){
+      var q = e.target.closest('button[data-q]'); if(q){ send(q.getAttribute('data-q')); return; }
+      var b = e.target.closest('button[data-act]'); if(b) doAct(b.getAttribute('data-aid'), b.getAttribute('data-act'));
+    });
+    document.addEventListener('keydown', function(e){
+      if((e.ctrlKey || e.metaKey) && !e.altKey && (e.key === 'j' || e.key === 'J')){ e.preventDefault(); if(p.classList.contains('open')) closeAic(); else openAic(); }
+      else if(e.key === 'Escape' && p.classList.contains('open')) closeAic();
+    });
+  }
+
+  function start(){
+    buildAic();
+    var btn = $('aicBtn');
+    if(btn){
+      if(/Mac|iPhone|iPad/.test(navigator.platform || '')) $('aicKbd').textContent = '\u2318J';
+      btn.addEventListener('click', function(){ if($('aic').classList.contains('open')) closeAic(); else openAic(); });
+    }
+    var act = $('actions'); if(act) act.addEventListener('click', onALClick);
+    sb.auth.getSession().then(function(r){
+      if(!r.data || !r.data.session) return;
+      loadAL();
+      setInterval(loadAL, 5 * 60 * 1000);
+    });
+  }
+  window.DEWI_ACTIONS = { reload: loadAL, ask: openAic };
+  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else start();
+})();
+</script>
+
 </body>
 </html>
