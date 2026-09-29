@@ -130,8 +130,55 @@ a{color:inherit}
 
 .subline{font-size:10px;color:var(--dim);display:flex;gap:10px;flex-wrap:wrap}
 
+/* ---- generieke sectie (IS / mix / zoektermen / ads) ---- */
+.sec{margin:22px 0 0;border:1px solid var(--line);border-radius:var(--radius);
+  background:linear-gradient(180deg,#141922 0%,#12151c 100%);overflow:hidden}
+.sechead{display:flex;align-items:center;gap:9px;padding:12px 16px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.sechead .st-i{width:8px;height:8px;border-radius:50%;background:var(--google);flex:none}
+.sechead h3{margin:0;font-size:13px;font-weight:600;letter-spacing:.2px;color:var(--txt)}
+.sechead .st-sub{font-size:11px;color:var(--dim);margin-left:auto}
+.secbody{padding:14px 16px}
+.sec-empty{padding:16px;font-size:12px;color:var(--dim);line-height:1.55}
+
+/* ---- impression share ---- */
+.iscamp{margin-bottom:16px} .iscamp:last-child{margin-bottom:0}
+.iscamp .isc-name{font-size:12px;font-weight:600;color:var(--muted);display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.iscamp .isc-name .cd{width:7px;height:7px;border-radius:50%;background:var(--google);flex:none}
+.iscamp .isc-name .cvt{font-size:10.5px;color:var(--dim);font-weight:500;margin-left:auto}
+.isrow{display:grid;grid-template-columns:160px 1fr 58px;align-items:center;gap:12px;margin:7px 0}
+.isrow .isl{font-size:11px;color:var(--dim)}
+.isrow .track{height:8px;border-radius:999px;background:var(--panel-2);overflow:hidden;border:1px solid var(--line)}
+.isrow .fill{height:100%;border-radius:999px}
+.isrow .fill.good{background:var(--google)} .isrow .fill.warn{background:var(--amber)} .isrow .fill.bad{background:var(--no)}
+.isrow .isv{font-size:12px;font-weight:700;color:var(--txt);text-align:right;font-variant-numeric:tabular-nums}
+.ishint{font-size:10.5px;color:var(--dim);margin-top:12px;line-height:1.55;border-top:1px solid var(--line);padding-top:10px}
+
+/* ---- mix (netwerk / apparaat / land) ---- */
+.mixgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:20px}
+.mixcol h5{margin:0 0 10px;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;
+  display:flex;align-items:center;gap:6px}
+.mixrow{margin:9px 0}
+.mixrow .mx-top{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
+.mixrow .mx-n{font-size:11.5px;color:var(--txt);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mixrow .mx-p{font-size:12px;font-weight:700;color:var(--txt);flex:none;font-variant-numeric:tabular-nums}
+.mixrow .mx-p.above{color:var(--ok)} .mixrow .mx-p.below{color:var(--no)} .mixrow .mx-p.idle{color:var(--dim)}
+.mixrow .track{height:6px;border-radius:999px;background:var(--panel-2);overflow:hidden;margin-top:4px}
+.mixrow .fill{height:100%;border-radius:999px;background:var(--google)}
+.mixrow .mx-c{font-size:10px;color:var(--dim);margin-top:4px}
+
+/* ---- zoektermen ---- */
+.stwrap{max-height:380px;overflow:auto;border:1px solid var(--line);border-radius:10px}
+.stbl{width:100%;border-collapse:collapse;font-size:11.5px}
+.stbl th{text-align:left;color:var(--dim);font-weight:500;font-size:9.5px;text-transform:uppercase;letter-spacing:.04em;
+  padding:7px 9px;border-bottom:1px solid var(--line);position:sticky;top:0;background:#12151c;z-index:1}
+.stbl td{padding:7px 9px;border-bottom:1px solid rgba(255,255,255,.04);color:var(--txt)}
+.stbl td.num,.stbl th.num{text-align:right;font-variant-numeric:tabular-nums}
+.stbl td.term{max-width:340px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.stbl tr:hover td{background:rgba(255,255,255,.02)}
+.stmore{font-size:10.5px;color:var(--dim);margin-top:9px}
+
 /* ---- gaps ---- */
-.gaps{margin-top:12px;border:1px dashed var(--line);border-radius:12px;padding:13px 16px;
+.gaps{margin-top:22px;border:1px dashed var(--line);border-radius:12px;padding:13px 16px;
   background:var(--panel);color:var(--muted);font-size:12px;line-height:1.55}
 .gaps h4{margin:0 0 6px;font-size:12px;font-weight:600;color:var(--txt);display:flex;align-items:center;gap:7px}
 .gaps h4 .cd{width:8px;height:8px;border-radius:50%;background:var(--amber)}
@@ -158,14 +205,16 @@ a{color:inherit}
 .lb table{width:100%;border-collapse:collapse;font-size:12px;margin-top:4px}
 .lb th{text-align:left;color:var(--dim);font-weight:500;font-size:10px;text-transform:uppercase;letter-spacing:.05em;
   padding:6px 8px;border-bottom:1px solid var(--line)}
-.lb td{padding:6px 8px;border-bottom:1px solid rgba(255,255,255,.04);color:var(--txt)}
+.lb td{padding:6px 8px;border-bottom:1px solid rgba(255,255,255,.04);color:var(--txt);vertical-align:top}
 .lb td .pl{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;vertical-align:middle}
+.lb td .rsn{display:block;color:var(--dim);font-size:10px;margin-top:2px}
 .lb-close{position:absolute;top:18px;right:22px;color:#fff;font-size:26px;cursor:pointer;
   width:40px;height:40px;display:flex;align-items:center;justify-content:center;border-radius:50%;
   background:rgba(255,255,255,.1)}
 
 @media(max-width:820px){ .kpibar{grid-template-columns:repeat(3,1fr)} }
-@media(max-width:560px){ .kpibar{grid-template-columns:repeat(2,1fr)} .ads{grid-template-columns:1fr} .legend{width:100%;margin-left:0} }
+@media(max-width:560px){ .kpibar{grid-template-columns:repeat(2,1fr)} .ads{grid-template-columns:1fr}
+  .legend{width:100%;margin-left:0} .isrow{grid-template-columns:106px 1fr 50px;gap:9px} }
 </style>
 </head>
 <body>
@@ -222,6 +271,7 @@ const roasTxt=n=>(Number(n)||0).toLocaleString('nl-NL',{minimumFractionDigits:2,
 const cpaTxt=n=>(n==null||n==='')?'—':'€'+Math.round(Number(n)).toLocaleString('nl-NL');
 const num=n=>(Number(n)||0).toLocaleString('nl-NL');
 const conv1=n=>(Number(n)||0).toLocaleString('nl-NL',{minimumFractionDigits:0,maximumFractionDigits:1});
+const pct1=n=>((Number(n)||0)*100).toLocaleString('nl-NL',{minimumFractionDigits:1,maximumFractionDigits:1})+'%';
 function fmtK(n){n=Number(n)||0; if(n>=1000) return (n/1000).toFixed(n>=10000?0:1).replace('.',',')+'k'; return String(n);}
 function relTxt(iso){ if(!iso) return '—'; const d=new Date(iso), now=new Date();
   const h=Math.floor((now-d)/3600000);
@@ -255,14 +305,28 @@ function typeKey(t){
 }
 function typeLabel(t){ return TYPE_LABEL[String(t||'').toUpperCase()] || (t? String(t).replace(/_/g,' ') : 'Campagne'); }
 
-/* ---- asset performance labels (PMax) ---- */
-const PL={ BEST:['best','Beste'], GOOD:['good','Goed'], LOW:['low','Laag'],
-  LEARNING:['learning','Leert'], PENDING:['learning','In review'], UNRATED:['none','—'], UNKNOWN:['none','—'], UNSPECIFIED:['none','—'] };
-function plMeta(s){ return PL[String(s||'').toUpperCase()] || ['none', (s? String(s).toLowerCase():'—')]; }
+/* ---- asset primary-status (v25: performance_label is vervallen) ---- */
+const PS={ ELIGIBLE:['best','Actief'], ENABLED:['best','Actief'], LIMITED:['learning','Beperkt'],
+  PENDING:['learning','In review'], PENDING_REVIEW:['learning','In review'], UNDER_REVIEW:['learning','In review'],
+  PAUSED:['none','Gepauzeerd'], REMOVED:['low','Verwijderd'], NOT_ELIGIBLE:['low','Niet in aanmerking'],
+  DISAPPROVED:['low','Afgekeurd'], UNKNOWN:['none','—'], UNSPECIFIED:['none','—'], UNAVAILABLE:['none','—'] };
+function psMeta(s){ return PS[String(s||'').toUpperCase()] || ['none', (s? String(s).replace(/_/g,' ').toLowerCase():'—')]; }
+function psReasons(a){ const r=a&&a.primary_status_reasons; if(r==null) return '';
+  if(Array.isArray(r)) return r.map(x=>String(x).replace(/_/g,' ').toLowerCase()).join(', ');
+  return String(r).replace(/_/g,' ').toLowerCase(); }
 const FIELD_LABEL={HEADLINE:'Kop',LONG_HEADLINE:'Lange kop',DESCRIPTION:'Tekst',MARKETING_IMAGE:'Beeld',
   SQUARE_MARKETING_IMAGE:'Beeld (vierkant)',PORTRAIT_MARKETING_IMAGE:'Beeld (portret)',LOGO:'Logo',
   LANDSCAPE_LOGO:'Logo (liggend)',YOUTUBE_VIDEO:'Video',BUSINESS_NAME:'Bedrijfsnaam',CALL_TO_ACTION_SELECTION:'CTA'};
 function fieldLabel(f){ return FIELD_LABEL[String(f||'').toUpperCase()] || (f? String(f).replace(/_/g,' ').toLowerCase():'asset'); }
+
+/* ---- dimensie-labels (netwerk / apparaat / land) ---- */
+const GEO={'2724':['ES','Spanje','🇪🇸'],'2620':['PT','Portugal','🇵🇹']};
+function geoLabel(id){const g=GEO[String(id)];return g?(g[2]+' '+g[1]):('land '+id);}
+const DEV={MOBILE:'Mobiel',DESKTOP:'Desktop',TABLET:'Tablet',CONNECTED_TV:'Smart-tv',OTHER:'Overig'};
+function devLabel(d){return DEV[String(d||'').toUpperCase()]||(d?String(d).replace(/_/g,' '):'—');}
+const NET={SEARCH:'Zoeknetwerk',SEARCH_PARTNERS:'Zoekpartners',CONTENT:'Display',YOUTUBE:'YouTube',
+  DISCOVER:'Discover',MIXED:'Gemengd',DISPLAY:'Display'};
+function netLabel(n){return NET[String(n||'').toUpperCase()]||(n?String(n).replace(/_/g,' '):'—');}
 
 async function load(){
   try{
@@ -279,157 +343,285 @@ async function load(){
 function beClass(rev,spend){ if(!(Number(spend)>0)) return 'idle'; return (Number(rev)/Number(spend))>=BE_ROAS?'above':'below'; }
 
 function render(){
-  const rows=ROWS.filter(r=>r.period===PERIOD);
   let maxPull=null;
   for(const r of ROWS){ if(r.pulled_at && (!maxPull || r.pulled_at>maxPull)) maxPull=r.pulled_at; }
   freshEl.textContent = maxPull ? 'data van '+relTxt(maxPull) : '';
 
-  if(!rows.length){
-    countEl.textContent='0 asset-groepen · '+PERIOD;
+  // ---- rijen per rol splitsen (level bepaalt de sectie, niet één grote kaartenbak) ----
+  const grid   = ROWS.filter(r=>r.period===PERIOD && (r.level==='asset_group'||r.level==='campaign'));
+  const isRows = ROWS.filter(r=>r.level==='campaign_is' && r.period===PERIOD)
+                     .sort((a,b)=>(Number(b.cost)||0)-(Number(a.cost)||0));
+  // segmentaties (netwerk/apparaat/land/zoektermen/ads) worden voorlopig alleen 7d geleverd → val terug op 7d
+  const dimPick=(lvl)=>{ let rs=ROWS.filter(r=>r.level===lvl && r.period===PERIOD); let p=PERIOD;
+    if(!rs.length){ rs=ROWS.filter(r=>r.level===lvl && r.period==='7d'); p='7d'; }
+    return {rows:rs, period:p}; };
+  const net=dimPick('network'), dev=dimPick('device'), geo=dimPick('geo'),
+        term=dimPick('search_term'), adL=dimPick('ad');
+
+  const anyData = grid.length||isRows.length||net.rows.length||dev.rows.length||geo.rows.length||term.rows.length||adL.rows.length;
+  if(!anyData){
+    countEl.textContent='0 · '+PERIOD;
     stage.innerHTML=`<div class="state"><div class="ico">📭</div><h2>Nog geen Google-data</h2>
       <p>De spine-pull heeft nog niet gedraaid voor deze periode, of Google Ads-leestoegang (Basic Access) is nog niet live.
-      Draai <b>Google Studio Pull</b> in n8n of wacht op 08:20.</p></div>`;
+      Draai <b>Google Studio Insights</b> in n8n of wacht op 08:20.</p></div>`;
     return;
   }
 
-  // account-totaal + groepeer campagne -> asset-groep(kaarten)
-  let totSpend=0,totRev=0,totConv=0;
-  const camps={};
-  for(const r of rows){
-    const sp=Number(r.cost)||0, rv=Number(r.conv_value)||0, cv=Number(r.conversions)||0;
-    totSpend+=sp; totRev+=rv; totConv+=cv;
-    const cid=r.campaign_id||('name:'+r.campaign_name);
-    if(!camps[cid]) camps[cid]={id:cid,name:r.campaign_name,type:r.channel_type,spend:0,rev:0,conv:0,cards:[]};
-    const c=camps[cid]; c.spend+=sp; c.rev+=rv; c.conv+=cv;
-    if(!c.type && r.channel_type) c.type=r.channel_type;
-    c.cards.push(r);
-  }
-  const campList=Object.values(camps).sort((x,y)=>y.spend-x.spend);
-  const accRoas=totSpend>0?totRev/totSpend:0;
-  const accCpa=totConv>0?totSpend/totConv:null;
-  const accCls=beClass(totRev,totSpend);
-
-  // ---- account KPI-strip ----
-  let head=`<div class="kpibar">
-    <div class="st"><span class="k">Spend</span><span class="v">${eur0(totSpend)}</span></div>
-    <div class="st"><span class="k">ROAS</span><span class="v ${accCls}">${roasTxt(accRoas)} <span class="pill ${accCls}">be 1,58</span></span></div>
-    <div class="st"><span class="k">Omzet</span><span class="v">${eur0(totRev)}</span></div>
-    <div class="st"><span class="k">Conversies</span><span class="v">${conv1(totConv)}</span></div>
-    <div class="st"><span class="k">CPA</span><span class="v ${accCpa!=null&&accCpa<=82?'above':(totConv>0?'below':'idle')}">${cpaTxt(accCpa)}</span></div>
-    <div class="st"><span class="k">Campagnes · groepen</span><span class="v">${campList.length} <small>· ${rows.length} groepen</small></span></div>
-  </div>
-  <div class="caphint"><span>Maandbudget PMax: <b>&lt; €500/mnd (~€16/dag)</b></span><span>·</span><span>break-even <b>ROAS 1,58 / CPA €82</b> (Google Ads-conversieattributie)</span></div>`;
-
-  // ---- campagnes ----
+  // ==== 1) KAART-GRID: account-totaal + campagne → asset-groepen (alleen asset_group/campaign) ====
   let cardCount=0, staleCount=0, pmaxCount=0;
-  let body='';
-  for(const c of campList){
-    const cCls=beClass(c.rev,c.spend);
-    const cRoas=c.spend>0?c.rev/c.spend:0;
-    const share=totSpend>0?Math.round(c.spend/totSpend*100):0;
-    const tk=typeKey(c.type);
-    if(tk==='pmax') pmaxCount++;
-    // sorteer kaarten op spend
-    const cards=c.cards.sort((x,y)=>(Number(y.cost)||0)-(Number(x.cost)||0)).map(r=>{
-      cardCount++; if(r.stale) staleCount++;
-      const be=r.be_status||beClass(r.conv_value,r.cost);   // above | below | idle
-      const rtk=typeKey(r.channel_type);
-      const [slabel,scol]=statusMeta(r.status);
-      const roas=Number(r.roas)||0;
-      const tickPos=Math.min(BE_ROAS/BEV_SCALE,1)*100;
-      const fillW=be==='idle'?0:Math.min(roas/BEV_SCALE,1)*100;
-      const assets=Array.isArray(r.assets)?r.assets:[];
-      // asset-labels samengevat (max 4 chips), rest in lightbox
-      const chips=assets.slice(0,4).map(a=>{
-        const [pcls,ptxt]=plMeta(a.performance_label);
-        return `<span class="a"><span class="pl ${pcls}"></span>${esc(fieldLabel(a.field_type))}: ${esc(ptxt)}</span>`;
-      }).join('');
-      const moreAssets=assets.length>4?`<span class="a">+${assets.length-4}</span>`:'';
-      const media=`<div class="thumb" data-name="${esc(r.entity_name||'')}" data-type="${esc(typeLabel(r.channel_type))}"
-           data-strength="${esc(r.strength||'')}" data-meta="${esc((slabel||'')+' · '+PERIOD)}"
-           data-assets='${esc(JSON.stringify(assets))}'>
-        <span class="fmt"><span class="ic">${ICONS[rtk]||ICONS.channel}</span><span class="fl">${esc((TYPE_LABEL[String(r.channel_type||'').toUpperCase()]||typeLabel(r.channel_type)).split(' ')[0])}</span></span>
-        <span class="statusdot" style="background:${scol}" title="${esc(slabel)}"></span>
-        ${r.stale?'<span class="stale">oud</span>':''}
-        ${r.strength?`<span class="astr" title="Ad strength">${esc(String(r.strength).replace(/_/g,' ').toLowerCase())}</span>`:''}
-      </div>`;
-      return `<div class="adcard ${be}">
-        ${media}
-        <div class="info">
-          <div class="row1">
-            <div class="adname">${esc(r.entity_name||r.entity_id)}</div>
-            <span class="chip">${ICONS[rtk]||ICONS.channel}${esc((TYPE_LABEL[String(r.channel_type||'').toUpperCase()]||typeLabel(r.channel_type)))}</span>
-          </div>
-          <div class="mrow">
-            <div class="m"><span class="k">Spend</span><span class="v">${eur0(r.cost)}</span></div>
-            <div class="m"><span class="k">ROAS</span><span class="v ${be}">${roasTxt(r.roas)}</span></div>
-            <div class="m"><span class="k">Conversies</span><span class="v">${conv1(r.conversions)}</span></div>
-            <div class="m"><span class="k">CPA</span><span class="v ${r.cpa_ok?'above':(Number(r.conversions)>0?'below':'idle')}">${cpaTxt(r.cpa)}</span></div>
-          </div>
-          <div class="bev">
-            <div class="track">
-              ${be!=='idle'?`<div class="fill ${be}" style="width:${fillW.toFixed(1)}%"></div>`:''}
-              <div class="tick" style="left:${tickPos.toFixed(1)}%"></div>
+  let gridHtml='';
+  if(grid.length){
+    let totSpend=0,totRev=0,totConv=0;
+    const camps={};
+    for(const r of grid){
+      const sp=Number(r.cost)||0, rv=Number(r.conv_value)||0, cv=Number(r.conversions)||0;
+      totSpend+=sp; totRev+=rv; totConv+=cv;
+      const cid=r.campaign_id||('name:'+r.campaign_name);
+      if(!camps[cid]) camps[cid]={id:cid,name:r.campaign_name,type:r.channel_type,spend:0,rev:0,conv:0,cards:[]};
+      const c=camps[cid]; c.spend+=sp; c.rev+=rv; c.conv+=cv;
+      if(!c.type && r.channel_type) c.type=r.channel_type;
+      c.cards.push(r);
+    }
+    const campList=Object.values(camps).sort((x,y)=>y.spend-x.spend);
+    const accRoas=totSpend>0?totRev/totSpend:0;
+    const accCpa=totConv>0?totSpend/totConv:null;
+    const accCls=beClass(totRev,totSpend);
+
+    let head=`<div class="kpibar">
+      <div class="st"><span class="k">Spend</span><span class="v">${eur0(totSpend)}</span></div>
+      <div class="st"><span class="k">ROAS</span><span class="v ${accCls}">${roasTxt(accRoas)} <span class="pill ${accCls}">be 1,58</span></span></div>
+      <div class="st"><span class="k">Omzet</span><span class="v">${eur0(totRev)}</span></div>
+      <div class="st"><span class="k">Conversies</span><span class="v">${conv1(totConv)}</span></div>
+      <div class="st"><span class="k">CPA</span><span class="v ${accCpa!=null&&accCpa<=82?'above':(totConv>0?'below':'idle')}">${cpaTxt(accCpa)}</span></div>
+      <div class="st"><span class="k">Campagnes · groepen</span><span class="v">${campList.length} <small>· ${grid.length} groepen</small></span></div>
+    </div>
+    <div class="caphint"><span>Maandbudget PMax: <b>&lt; €500/mnd (~€16/dag)</b></span><span>·</span><span>break-even <b>ROAS 1,58 / CPA €82</b> (Google Ads-conversieattributie)</span></div>`;
+
+    let body='';
+    for(const c of campList){
+      const cCls=beClass(c.rev,c.spend);
+      const cRoas=c.spend>0?c.rev/c.spend:0;
+      const share=totSpend>0?Math.round(c.spend/totSpend*100):0;
+      const tk=typeKey(c.type);
+      if(tk==='pmax') pmaxCount++;
+      const cards=c.cards.sort((x,y)=>(Number(y.cost)||0)-(Number(x.cost)||0)).map(r=>{
+        cardCount++; if(r.stale) staleCount++;
+        const be=r.be_status||beClass(r.conv_value,r.cost);   // above | below | idle
+        const rtk=typeKey(r.channel_type);
+        const [slabel,scol]=statusMeta(r.status);
+        const roas=Number(r.roas)||0;
+        const tickPos=Math.min(BE_ROAS/BEV_SCALE,1)*100;
+        const fillW=be==='idle'?0:Math.min(roas/BEV_SCALE,1)*100;
+        const assets=Array.isArray(r.assets)?r.assets:[];
+        // asset-labels samengevat (max 4 chips) op primary_status; rest in lightbox
+        const chips=assets.slice(0,4).map(a=>{
+          const [pcls,ptxt]=psMeta(a.primary_status);
+          return `<span class="a"><span class="pl ${pcls}"></span>${esc(fieldLabel(a.field_type))}: ${esc(ptxt)}</span>`;
+        }).join('');
+        const moreAssets=assets.length>4?`<span class="a">+${assets.length-4}</span>`:'';
+        const media=`<div class="thumb" data-name="${esc(r.entity_name||'')}" data-type="${esc(typeLabel(r.channel_type))}"
+             data-strength="${esc(r.strength||'')}" data-meta="${esc((slabel||'')+' · '+PERIOD)}"
+             data-assets='${esc(JSON.stringify(assets))}'>
+          <span class="fmt"><span class="ic">${ICONS[rtk]||ICONS.channel}</span><span class="fl">${esc((TYPE_LABEL[String(r.channel_type||'').toUpperCase()]||typeLabel(r.channel_type)).split(' ')[0])}</span></span>
+          <span class="statusdot" style="background:${scol}" title="${esc(slabel)}"></span>
+          ${r.stale?'<span class="stale">oud</span>':''}
+          ${r.strength?`<span class="astr" title="Ad strength">${esc(String(r.strength).replace(/_/g,' ').toLowerCase())}</span>`:''}
+        </div>`;
+        return `<div class="adcard ${be}">
+          ${media}
+          <div class="info">
+            <div class="row1">
+              <div class="adname">${esc(r.entity_name||r.entity_id)}</div>
+              <span class="chip">${ICONS[rtk]||ICONS.channel}${esc((TYPE_LABEL[String(r.channel_type||'').toUpperCase()]||typeLabel(r.channel_type)))}</span>
             </div>
-            <span class="bl">${be==='idle'?'geen levering':(be==='above'?'boven be':'onder be')}</span>
+            <div class="mrow">
+              <div class="m"><span class="k">Spend</span><span class="v">${eur0(r.cost)}</span></div>
+              <div class="m"><span class="k">ROAS</span><span class="v ${be}">${roasTxt(r.roas)}</span></div>
+              <div class="m"><span class="k">Conversies</span><span class="v">${conv1(r.conversions)}</span></div>
+              <div class="m"><span class="k">CPA</span><span class="v ${r.cpa_ok?'above':(Number(r.conversions)>0?'below':'idle')}">${cpaTxt(r.cpa)}</span></div>
+            </div>
+            <div class="bev">
+              <div class="track">
+                ${be!=='idle'?`<div class="fill ${be}" style="width:${fillW.toFixed(1)}%"></div>`:''}
+                <div class="tick" style="left:${tickPos.toFixed(1)}%"></div>
+              </div>
+              <span class="bl">${be==='idle'?'geen levering':(be==='above'?'boven be':'onder be')}</span>
+            </div>
+            ${chips?`<div class="assets">${chips}${moreAssets}</div>`:''}
+            <div class="subline"><span>👁 ${fmtK(r.impressions)} impr</span><span>${fmtK(r.clicks)} clicks</span><span>CTR ${roasTxt(r.ctr)}%</span></div>
           </div>
-          ${chips?`<div class="assets">${chips}${moreAssets}</div>`:''}
-          <div class="subline"><span>👁 ${fmtK(r.impressions)} impr</span><span>${fmtK(r.clicks)} clicks</span><span>CTR ${roasTxt(r.ctr)}%</span></div>
+        </div>`;
+      }).join('');
+      const grpLabel = tk==='pmax' ? 'Asset-groepen' : 'Campagne-niveau (geen asset-groepen)';
+      body+=`<div class="camp ${cCls}">
+        <div class="camphead">
+          <span class="cname"><span class="cd"></span>${esc(c.name)}<span class="ctype">${esc(typeLabel(c.type))}</span></span>
+          <span class="ctot">
+            <span class="share"><span class="lbl">${share}%</span><span class="track"><span class="fill" style="width:${share}%"></span></span></span>
+            <span class="kv">spend<b>${eur0(c.spend)}</b></span>
+            <span class="kv">ROAS<b>${roasTxt(cRoas)}</b></span>
+            <span class="kv">omzet<b>${eur0(c.rev)}</b></span>
+            <span class="kv">conversies<b>${conv1(c.conv)}</b></span>
+          </span>
+        </div>
+        <div class="adset">
+          <div class="adsethead">
+            <span class="asn"><span class="adot"></span>${esc(grpLabel)}</span>
+            <span class="astot"><span class="kv">groepen<b>${c.cards.length}</b></span></span>
+          </div>
+          <div class="ads">${cards}</div>
         </div>
       </div>`;
-    }).join('');
-    // sub-kop per campagne: bij PMax noemen we het "asset-groepen", bij Shopping/Search "campagne-niveau"
-    const grpLabel = tk==='pmax' ? 'Asset-groepen' : 'Campagne-niveau (geen asset-groepen)';
-    body+=`<div class="camp ${cCls}">
-      <div class="camphead">
-        <span class="cname"><span class="cd"></span>${esc(c.name)}<span class="ctype">${esc(typeLabel(c.type))}</span></span>
-        <span class="ctot">
-          <span class="share"><span class="lbl">${share}%</span><span class="track"><span class="fill" style="width:${share}%"></span></span></span>
-          <span class="kv">spend<b>${eur0(c.spend)}</b></span>
-          <span class="kv">ROAS<b>${roasTxt(cRoas)}</b></span>
-          <span class="kv">omzet<b>${eur0(c.rev)}</b></span>
-          <span class="kv">conversies<b>${conv1(c.conv)}</b></span>
-        </span>
-      </div>
-      <div class="adset">
-        <div class="adsethead">
-          <span class="asn"><span class="adot"></span>${esc(grpLabel)}</span>
-          <span class="astot"><span class="kv">groepen<b>${c.cards.length}</b></span></span>
-        </div>
-        <div class="ads">${cards}</div>
-      </div>
-    </div>`;
+    }
+    countEl.textContent=`${cardCount} groep(en) · ${campList.length} campagne(s) · ${PERIOD}`;
+    gridHtml=head+body;
+  } else {
+    countEl.textContent=`0 groepen · ${PERIOD}`;
+    gridHtml=`<div class="sec"><div class="sec-empty">Geen asset-groepen of campagnekaarten met levering in de periode <b>${PERIOD}</b>. De segmentaties hieronder tonen de laatst geleverde (7-daagse) cijfers.</div></div>`;
   }
 
-  // ---- gaten & kanttekeningen ----
-  const gaps=[];
-  gaps.push('Google geeft per <b>advertentie</b> nauwelijks losse cijfers vrij. Voor <b>Performance Max</b> is de kleinste zichtbare eenheid de <b>asset-groep</b>; losse assets krijgen alleen een <b>performance-label</b> (Beste / Goed / Laag), geen eigen spend/omzet. Die labels staan op de kaart en volledig in de detailweergave (klik op de tegel).');
-  gaps.push('<b>Shopping</b>- en <b>Search</b>-campagnes hebben geen asset-groepen; die tonen we op <b>campagne-niveau</b> als één kaart.');
-  gaps.push('ROAS/CPA zijn <b>Google Ads-conversieattributie</b> (Google\u2019s eigen toerekening) en break-even is ROAS&nbsp;1,58 / CPA&nbsp;€82 — dit staat los van de GA4-last-click cijfers in de KPI-kanalen en ligt doorgaans hoger.');
-  gaps.push('Alleen entiteiten met <b>levering in de gekozen periode</b> verschijnen; groepen zonder impressies vallen buiten beeld.');
-  if(staleCount) gaps.push(`<b>${staleCount}</b> groep(en) niet ververst in de laatste run (levering mogelijk gestopt) — waarden zijn laatst bekend, gemarkeerd met <b>oud</b>.`);
-  if(!pmaxCount) gaps.push('Nog geen Performance Max-asset-groepen met levering in beeld — zodra PMax draait en leestoegang live is, verschijnen de asset-groepen met hun asset-labels.');
-  body+=`<div class="gaps"><h4><span class="cd"></span>Gaten &amp; kanttekeningen</h4><ul>${gaps.map(g=>'<li>'+g+'</li>').join('')}</ul></div>`;
+  // ==== 2) ZOEK-IMPRESSIEAANDEEL (campagne-niveau) ==== 
+  gridHtml += isSection(isRows);
+  // ==== 3) NETWERK · APPARAAT · LAND ====
+  gridHtml += mixSection(net,dev,geo);
+  // ==== 4) TOP ZOEKTERMEN ====
+  gridHtml += termSection(term);
+  // ==== 5) ADVERTENTIES (ad-niveau; leeg bij PMax) ====
+  gridHtml += adSection(adL);
+  // ==== gaten & kanttekeningen ====
+  gridHtml += gapsSection(staleCount,pmaxCount,grid.length);
 
-  countEl.textContent=`${cardCount} groep(en) · ${campList.length} campagne(s) · ${PERIOD}`;
-  stage.innerHTML=head+body;
+  stage.innerHTML=gridHtml;
   stage.querySelectorAll('.thumb').forEach(el=>{ el.onclick=()=>openThumb(el); });
 }
 
+/* ---------- secties ---------- */
+function isSection(rows){
+  if(!rows.length) return `<div class="sec"><div class="sechead"><span class="st-i"></span><h3>Zoek-impressieaandeel</h3></div>
+    <div class="sec-empty">Geen impression-share-cijfers voor de periode <b>${PERIOD}</b>.</div></div>`;
+  const bar=(cls,lbl,v)=>`<div class="isrow"><span class="isl">${lbl}</span>
+      <div class="track"><div class="fill ${cls}" style="width:${(Math.min(Number(v)||0,1)*100).toFixed(1)}%"></div></div>
+      <span class="isv">${pct1(v)}</span></div>`;
+  const blocks=rows.map(r=>{
+    const conv=Number(r.conversions)||0, roas=Number(r.cost)>0?(Number(r.conv_value)||0)/Number(r.cost):0;
+    return `<div class="iscamp">
+      <div class="isc-name"><span class="cd"></span>${esc(r.campaign_name||r.entity_name||'campagne')}
+        <span class="cvt">${eur0(r.cost)} spend · ROAS ${conv>0?roasTxt(roas):'—'}</span></div>
+      ${bar('good','Behaald aandeel',r.search_is)}
+      ${bar('warn','Verloren · budget',r.search_budget_lost_is)}
+      ${bar('bad','Verloren · rang',r.search_rank_lost_is)}
+    </div>`;
+  }).join('');
+  return `<div class="sec"><div class="sechead"><span class="st-i"></span><h3>Zoek-impressieaandeel</h3>
+      <span class="st-sub">campagne-niveau · ${PERIOD}</span></div>
+    <div class="secbody">${blocks}
+    <div class="ishint">Alleen op <b>campagne-niveau</b> beschikbaar — PMax geeft geen aandeel per asset-groep.
+      <b>Behaald aandeel</b> = getoonde vertoningen ÷ in aanmerking komende; <b>Verloren · budget</b> = gemist door budgetplafond;
+      <b>Verloren · rang</b> = gemist door lagere ad-rang/relevantie. De drie tellen samen op tot 100%.</div></div></div>`;
+}
+
+function mixCol(title, icon, picked, mapFn){
+  const rs=picked.rows;
+  if(!rs.length) return `<div class="mixcol"><h5>${icon} ${esc(title)}</h5><div class="mx-c">—</div></div>`;
+  const sorted=rs.slice().sort((a,b)=>(Number(b.cost)||0)-(Number(a.cost)||0));
+  const tot=sorted.reduce((s,r)=>s+(Number(r.cost)||0),0);
+  const rows=sorted.map(r=>{
+    const sp=Number(r.cost)||0, p=tot>0?sp/tot*100:0;
+    return `<div class="mixrow">
+      <div class="mx-top"><span class="mx-n">${esc(mapFn(r.entity_name))}</span><span class="mx-p">${p.toFixed(0)}%</span></div>
+      <div class="track"><div class="fill" style="width:${p.toFixed(1)}%"></div></div>
+      <div class="mx-c">${eur0(sp)} · ${fmtK(r.impressions)} impr · ${fmtK(r.clicks)} klik</div>
+    </div>`;
+  }).join('');
+  return `<div class="mixcol"><h5>${icon} ${esc(title)}</h5>${rows}</div>`;
+}
+
+function mixSection(net,dev,geo){
+  if(!(net.rows.length||dev.rows.length||geo.rows.length)) return '';
+  const cols=[
+    mixCol('Netwerk','🌐',net,netLabel),
+    mixCol('Apparaat','📱',dev,devLabel),
+    mixCol('Land','📍',geo,geoLabel)
+  ].join('');
+  const fellBack = net.period!==PERIOD||dev.period!==PERIOD||geo.period!==PERIOD;
+  const sub = fellBack ? '7 dagen (28d niet geleverd)' : PERIOD;
+  return `<div class="sec"><div class="sechead"><span class="st-i"></span><h3>Netwerk · apparaat · land</h3>
+      <span class="st-sub">verdeling naar spend · ${sub}</span></div>
+    <div class="secbody"><div class="mixgrid">${cols}</div></div></div>`;
+}
+
+function termSection(picked){
+  const rs=picked.rows;
+  if(!rs.length) return `<div class="sec"><div class="sechead"><span class="st-i"></span><h3>Top zoektermen</h3></div>
+    <div class="sec-empty">Geen zoektermen voor de periode <b>${PERIOD}</b>.</div></div>`;
+  const sorted=rs.slice().sort((a,b)=>(Number(b.cost)||0)-(Number(a.cost)||0)||(Number(b.impressions)||0)-(Number(a.impressions)||0));
+  const TOPN=25, top=sorted.slice(0,TOPN);
+  const trs=top.map(r=>{
+    const conv=Number(r.conversions)||0, roas=Number(r.cost)>0?(Number(r.conv_value)||0)/Number(r.cost):0;
+    return `<tr><td class="term" title="${esc(r.entity_name)}">${esc(r.entity_name)}</td>
+      <td class="num">${fmtK(r.impressions)}</td>
+      <td class="num">${num(r.clicks)}</td>
+      <td class="num">${eur0(r.cost)}</td>
+      <td class="num">${conv1(r.conversions)}</td>
+      <td class="num">${conv>0?roasTxt(roas):'—'}</td></tr>`;
+  }).join('');
+  const more=sorted.length>TOPN?`<div class="stmore">+ ${sorted.length-TOPN} meer zoektermen — top ${TOPN} op spend getoond.</div>`:'';
+  const sub = picked.period!==PERIOD ? '7 dagen (28d niet geleverd)' : PERIOD;
+  return `<div class="sec"><div class="sechead"><span class="st-i"></span><h3>Top zoektermen</h3>
+      <span class="st-sub">${sorted.length} termen · ${sub}</span></div>
+    <div class="secbody"><div class="stwrap"><table class="stbl">
+      <thead><tr><th>Zoekterm</th><th class="num">Impr</th><th class="num">Klik</th><th class="num">Spend</th><th class="num">Conv</th><th class="num">ROAS</th></tr></thead>
+      <tbody>${trs}</tbody></table></div>${more}</div></div>`;
+}
+
+function adSection(picked){
+  const rs=picked.rows;
+  if(!rs.length){
+    return `<div class="sec"><div class="sechead"><span class="st-i"></span><h3>Advertenties</h3><span class="st-sub">ad-niveau</span></div>
+      <div class="sec-empty">Bij <b>Performance Max</b> geeft Google geen cijfers per losse advertentie vrij — de kleinste zichtbare eenheid is de asset-groep hierboven.
+      Deze sectie vult zich zodra er <b>Search/Shopping</b>-advertenties draaien.</div></div>`;
+  }
+  const sorted=rs.slice().sort((a,b)=>(Number(b.cost)||0)-(Number(a.cost)||0));
+  const rows=sorted.map(r=>{
+    const be=beClass(r.conv_value,r.cost), roas=Number(r.cost)>0?(Number(r.conv_value)||0)/Number(r.cost):0;
+    return `<div class="mixrow"><div class="mx-top"><span class="mx-n">${esc(r.entity_name||r.entity_id)}</span>
+        <span class="mx-p ${be}">${roasTxt(roas)}×</span></div>
+      <div class="mx-c">${eur0(r.cost)} · ${fmtK(r.impressions)} impr · ${fmtK(r.clicks)} klik · ${conv1(r.conversions)} conv</div></div>`;
+  }).join('');
+  const sub = picked.period!==PERIOD ? '7 dagen (28d niet geleverd)' : PERIOD;
+  return `<div class="sec"><div class="sechead"><span class="st-i"></span><h3>Advertenties</h3>
+      <span class="st-sub">${sorted.length} · ${sub}</span></div>
+    <div class="secbody"><div class="mixgrid"><div class="mixcol">${rows}</div></div></div></div>`;
+}
+
+function gapsSection(staleCount,pmaxCount,gridLen){
+  const gaps=[];
+  gaps.push('Google geeft per <b>advertentie</b> nauwelijks losse cijfers vrij. Voor <b>Performance Max</b> is de kleinste zichtbare eenheid de <b>asset-groep</b>; losse assets tonen hun <b>primary-status</b> (Actief / Beperkt / In review / …), geen eigen spend/omzet. Die status staat op de kaart en volledig in de detailweergave (klik op de tegel).');
+  gaps.push('<b>Zoek-impressieaandeel</b>, de <b>netwerk/apparaat/land-mix</b> en de <b>zoektermen</b> staan op <b>campagne-niveau</b> en worden voorlopig alleen over <b>7 dagen</b> geleverd — bij 28 dagen tonen die secties de 7-daagse cijfers.');
+  gaps.push('<b>Shopping</b>- en <b>Search</b>-campagnes hebben geen asset-groepen; die verschijnen op <b>campagne-niveau</b> als één kaart, en hun losse advertenties in de sectie <b>Advertenties</b>.');
+  gaps.push('ROAS/CPA zijn <b>Google Ads-conversieattributie</b> (Google\u2019s eigen toerekening) en break-even is ROAS&nbsp;1,58 / CPA&nbsp;€82 — dit staat los van de GA4-last-click cijfers in de KPI-kanalen en ligt doorgaans hoger.');
+  gaps.push('Alleen entiteiten met <b>levering in de gekozen periode</b> verschijnen; groepen zonder impressies vallen buiten beeld.');
+  if(staleCount) gaps.push(`<b>${staleCount}</b> groep(en) niet ververst in de laatste run (levering mogelijk gestopt) — waarden zijn laatst bekend, gemarkeerd met <b>oud</b>.`);
+  if(!pmaxCount && !gridLen) gaps.push('Nog geen Performance Max-asset-groepen met levering in beeld — zodra PMax draait en leestoegang live is, verschijnen de asset-groepen met hun asset-labels.');
+  return `<div class="gaps"><h4><span class="cd"></span>Gaten &amp; kanttekeningen</h4><ul>${gaps.map(g=>'<li>'+g+'</li>').join('')}</ul></div>`;
+}
+
+/* ---------- lightbox (asset-detail per groep) ---------- */
 function openThumb(el){
   const name=el.dataset.name, meta=el.dataset.meta, type=el.dataset.type, strength=el.dataset.strength;
   let assets=[]; try{ assets=JSON.parse(el.dataset.assets||'[]'); }catch(e){}
   let tbl='';
   if(assets.length){
     const rows=assets.map(a=>{
-      const [pcls,ptxt]=plMeta(a.performance_label);
+      const [pcls,ptxt]=psMeta(a.primary_status);
+      const rsn=psReasons(a);
       return `<tr><td>${esc(fieldLabel(a.field_type))}</td>
-        <td><span class="pl ${pcls}"></span>${esc(ptxt)}</td>
+        <td><span class="pl ${pcls}"></span>${esc(ptxt)}${rsn?`<span class="rsn">${esc(rsn)}</span>`:''}</td>
         <td>${esc(a.text||'—')}</td></tr>`;
     }).join('');
-    tbl=`<table><thead><tr><th>Type</th><th>Prestatie</th><th>Asset</th></tr></thead><tbody>${rows}</tbody></table>`;
+    tbl=`<table><thead><tr><th>Type</th><th>Status</th><th>Asset</th></tr></thead><tbody>${rows}</tbody></table>`;
   } else {
-    tbl=`<div class="lb-note">Geen losse asset-labels beschikbaar voor deze groep (niet-PMax of nog geen labels vrijgegeven door Google).</div>`;
+    tbl=`<div class="lb-note">Geen losse asset-status beschikbaar voor deze groep (niet-PMax of nog geen assets vrijgegeven door Google).</div>`;
   }
   showLb(`<div class="lb-cap">${esc(name||'')}</div>
     <div class="lb-meta">${esc(type||'')}${strength?' · ad strength: '+esc(String(strength).replace(/_/g,' ').toLowerCase()):''} · ${esc(meta||'')}</div>
