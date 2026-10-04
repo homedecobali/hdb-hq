@@ -58,6 +58,38 @@ a{color:inherit}
   display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .card .d{font-size:11px;color:var(--dim);margin-top:3px}
 
+/* ---- per-channel panel (pipeline boven, gepost onder) ---- */
+.chan{border:1px solid var(--line);background:linear-gradient(180deg,var(--panel) 0%,#13181f 100%);
+  border-radius:var(--radius);padding:14px 14px 8px;margin-bottom:20px;position:relative;overflow:hidden}
+.chan::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--cacc,var(--accent))}
+.chan .rowhead{margin:0 2px 10px}
+.chan .rowhead .lbl{font-size:15px}
+.lane{margin:0 0 4px}
+.lane-lbl{display:flex;align-items:center;gap:7px;margin:0 2px 7px;font-size:11px;font-weight:600;
+  letter-spacing:.06em;text-transform:uppercase;color:var(--dim)}
+.lane-lbl .dash{flex:1;height:1px;background:var(--line)}
+.lane-lbl .ln{font-size:11px;color:var(--dim);background:var(--panel-2);border:1px solid var(--line);
+  padding:1px 8px;border-radius:999px;letter-spacing:.02em;text-transform:none}
+.lane.posted{margin-top:12px;padding-top:12px;border-top:1px dashed var(--line)}
+.pipe-empty{color:var(--dim);font-size:12.5px;padding:10px 6px 14px;display:flex;align-items:center;gap:8px}
+.pipe-empty .ic{opacity:.6}
+
+/* ---- pipeline card ---- */
+.pcard.pipe{width:150px}
+.pcard.pipe .frame{cursor:zoom-in}
+.pcard.pipe .frame img,.pcard.pipe .frame video{aspect-ratio:9/16}
+.pcard.pipe.r-social .frame img,.pcard.pipe.r-social .frame video{aspect-ratio:1/1}
+.pcard.pipe .noimg{aspect-ratio:9/16}
+.pcard.pipe.r-social .noimg{aspect-ratio:1/1}
+.phase{position:absolute;top:7px;left:7px;font-size:9px;font-weight:700;padding:2px 8px;border-radius:999px;
+  letter-spacing:.03em;color:#04070d}
+.phase.review{background:var(--amber)}
+.phase.approved{background:var(--ok);color:#fff}
+.phase.draft{background:var(--dim);color:#0e1116}
+.pcard.pipe .pcap{padding:7px 9px 9px}
+.pcard.pipe .pt{font-size:12px;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.pcard.pipe .psub{font-size:10.5px;color:var(--dim);margin-top:3px}
+
 /* ---- pending (goedkeuring) section ---- */
 .pending{border:1px solid #3a3320;background:linear-gradient(180deg,#191509 0%,#14161d 100%);
   border-radius:var(--radius);padding:14px 14px 6px;margin-bottom:28px}
@@ -217,39 +249,51 @@ function carouselCover(cj){
 }
 
 /* ============ STUDIO default: goedkeuring-view (v_dewi_studio) + naslagwerk (v_dewi_feed) ============ */
-const SLOTS = [
-  ['social','Social posts','feed · 1:1','var(--social)'],
-  ['reels','Reels','video · 9:16','var(--reels)'],
-  ['stories','Stories','video · 9:16','var(--stories)'],
-  ['stills','Stills','story · 9:16','var(--stills)']
+// Drie kanaal-panelen. feedSlots = welke v_dewi_feed.slot-waarden erin vallen
+// (Stories bundelt de photo-stills én de video-stories, beide landen op Stories).
+// pipeSlots = welke v_dewi_pipeline.slot-waarden de open pijplijn van dit kanaal vormen.
+const PANELS = [
+  {key:'stories', label:'Stories',      fmt:'stories · 9:16', color:'var(--stories)',
+   feedSlots:['stills','stories'], pipeSlots:['stories']},
+  {key:'reels',   label:'Reels',        fmt:'video · 9:16',   color:'var(--reels)',
+   feedSlots:['reels'],            pipeSlots:[]},
+  {key:'social',  label:'Social posts', fmt:'profiel · 1:1',  color:'var(--social)',
+   feedSlots:['social'],           pipeSlots:['social']}
 ];
-let _feed = {}, _pending = [], _outs = [], _sent = [];
+let _feed = {}, _pipe = {}, _pending = [], _outs = [], _sent = [];
 
 async function loadStudio(){
   try{
-    const [rp,rf,ro,rm] = await Promise.all([
+    const [rp,rf,rq,ro,rm] = await Promise.all([
       fetch(`${SUPA}/rest/v1/v_dewi_studio?select=*`,{headers:HDR}),
       fetch(`${SUPA}/rest/v1/v_dewi_feed?select=*`,{headers:HDR}),
+      fetch(`${SUPA}/rest/v1/v_dewi_pipeline?select=*`,{headers:HDR}),
       fetch(`${SUPA}/rest/v1/v_dewi_outputs?select=*&order=panel,sort`,{headers:HDR}),
       fetch(`${SUPA}/rest/v1/v_dewi_sent_mailings?select=*&order=sent_at.desc`,{headers:HDR})
     ]);
     if(!rf.ok) throw new Error('feed HTTP '+rf.status);
     _pending = rp.ok ? await rp.json() : [];
     const rows = await rf.json();
+    const pipe = rq.ok ? await rq.json() : [];
     const outs = ro.ok ? await ro.json() : [];
     const sent = rm.ok ? await rm.json() : [];
-    renderStudio(_pending, rows, outs, sent);
+    renderStudio(_pending, rows, pipe, outs, sent);
   }catch(e){
     stage.innerHTML=`<div class="state"><div class="ico">⚠</div><h2>Kon Studio niet laden</h2>
       <p>${esc(e.message)} — probeer te verversen.</p></div>`;
   }
 }
 
-function renderStudio(pending, rows, outs, sent){
+function renderStudio(pending, rows, pipe, outs, sent){
   const by={social:[],reels:[],stories:[],stills:[]};
   for(const x of rows){ if(by[x.slot]) by[x.slot].push(x); }
   _feed=by;
-  countEl.textContent = (pending.length? pending.length+' wacht · ' : '') + rows.length + ' posts · 120 dagen';
+  const pby={social:[],reels:[],stories:[],stills:[]};
+  for(const x of (pipe||[])){ if(pby[x.slot]) pby[x.slot].push(x); }
+  _pipe=pby;
+  const openN=(pipe||[]).length;
+  countEl.textContent = (pending.length? pending.length+' wacht · ' : '')
+    + (openN? openN+' in pijplijn · ' : '') + rows.length + ' posts · 120 dagen';
 
   let html='';
   // --- pending / goedkeuring-view met creative (op moment van opvraging) ---
@@ -265,19 +309,38 @@ function renderStudio(pending, rows, outs, sent){
       <div class="strip">${pcards}</div>
     </div>`;
   }
-  // --- naslagwerk ---
-  for(const [slot,label,fmt,color] of SLOTS){
-    const items=by[slot]||[];
-    const cards = items.length ? items.map((p,i)=>feedCard(slot,p,i)).join('')
-      : `<div class="empty">Nog niets gepost in deze categorie.</div>`;
-    html+=`<div class="row">
+  // --- per-kanaal panelen: open pijplijn boven, geposte outreach onder ---
+  for(const P of PANELS){
+    // geposte outreach: alle feedSlots samengevoegd, nieuwste eerst.
+    // elke kaart houdt zijn eigen (slot,index) zodat openFeedMedia blijft kloppen.
+    const posted=[];
+    for(const s of P.feedSlots){ (by[s]||[]).forEach((p,i)=>posted.push({slot:s,p,i})); }
+    posted.sort((a,b)=>new Date(b.p.posted_at||0)-new Date(a.p.posted_at||0));
+    const postedCards = posted.length
+      ? posted.map(x=>feedCard(x.slot,x.p,x.i)).join('')
+      : `<div class="empty">Nog niets gepost in dit kanaal.</div>`;
+
+    // open pijplijn: items uit v_dewi_pipeline voor de pipeSlots van dit kanaal.
+    const pipe = P.pipeSlots.flatMap(s=>_pipe[s]||[]);
+    const pipeLane = pipe.length
+      ? `<div class="strip">${pipe.map((p,i)=>pipeCard(p,i)).join('')}</div>`
+      : `<div class="pipe-empty"><span class="ic">✓</span> Geen open voorstellen — dit kanaal loopt automatisch door naar publicatie.</div>`;
+
+    html+=`<div class="chan" style="--cacc:${P.color}">
       <div class="rowhead">
-        <span class="cd" style="background:${color}"></span>
-        <span class="lbl">${label}</span>
-        <span class="n">${items.length}</span>
-        <span class="fmt">${fmt}</span>
+        <span class="cd" style="background:${P.color}"></span>
+        <span class="lbl">${P.label}</span>
+        <span class="n">${posted.length} gepost</span>
+        <span class="fmt">${P.fmt}</span>
       </div>
-      <div class="strip">${cards}</div>
+      <div class="lane">
+        <div class="lane-lbl">In de pijplijn <span class="dash"></span>${pipe.length?`<span class="ln">${pipe.length} open</span>`:''}</div>
+        ${pipeLane}
+      </div>
+      <div class="lane posted">
+        <div class="lane-lbl">Geposte outreach <span class="dash"></span><span class="ln">120 dagen</span></div>
+        <div class="strip">${postedCards}</div>
+      </div>
     </div>`;
   }
   _outs = outs||[];
@@ -287,7 +350,8 @@ function renderStudio(pending, rows, outs, sent){
   stage.innerHTML=html;
 
   stage.querySelectorAll('.card').forEach(el=>{ el.onclick=()=>openFeedMedia(el.dataset.slot, +el.dataset.i); });
-  stage.querySelectorAll('.pcard .frame').forEach(el=>{ el.onclick=()=>openPendingMedia(+el.dataset.i); });
+  stage.querySelectorAll('.pcard.pipe .frame').forEach(el=>{ el.onclick=()=>openPipeMedia(el.dataset.slot, +el.dataset.i); });
+  stage.querySelectorAll('.pending .pcard .frame').forEach(el=>{ el.onclick=()=>openPendingMedia(+el.dataset.i); });
   stage.querySelectorAll('.mini').forEach(b=>{ b.onclick=()=>decideCard(b.dataset.id, b.dataset.kind, b); });
   stage.querySelectorAll('.orow.clk').forEach(el=>{ el.onclick=()=>{ const o=_outs.find(x=>x.key===el.dataset.okey); if(!o) return;
     if(o.ref_offer) return openOffer(o.ref_offer, o.last_sent);
@@ -341,6 +405,44 @@ function feedCard(slot,p,i){
       <div class="d">${esc(dateTxt(p.posted_at))}</div>
     </div>
   </div>`;
+}
+
+function pipeCard(p,i){
+  const isVid = p.media_type==='video' && p.video_url;
+  const cov = isVid ? poster(p.video_url) : (carouselCover(p.carousel_json) || p.image_url);
+  const media = cov
+    ? `<img loading="lazy" src="${esc(cov)}" alt="" onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'noimg',textContent:'🖼'}))">`
+    : `<div class="noimg">🖼</div>`;
+  const ph = p.phase||'draft';
+  return `<div class="pcard pipe r-${esc(p.slot)}">
+    <div class="frame" data-slot="${esc(p.slot)}" data-i="${i}">
+      ${media}
+      <span class="phase ${esc(ph)}">${esc(p.phase_label||'')}</span>
+      ${isVid?'<div class="play">▶</div>':''}
+    </div>
+    <div class="pcap">
+      <div class="pt">${esc(p.title||'')}</div>
+      <div class="psub">${esc(p.origin_label||'')}${p.created_at?' · '+esc(dateTxt(p.created_at)):''}</div>
+    </div>
+  </div>`;
+}
+
+function openPipeMedia(slot,i){
+  const p=(_pipe[slot]||[])[i]; if(!p) return;
+  const isVid=p.media_type==='video'&&p.video_url;
+  let body;
+  if(isVid) body=`<video src="${esc(p.video_url)}" controls autoplay playsinline></video>`;
+  else{
+    const cov=carouselCover(p.carousel_json)||p.image_url;
+    body=cov?`<img src="${esc(cov)}" alt="">`:`<div class="lb-cap">Geen media.</div>`;
+  }
+  const links=[];
+  if(p.product_url) links.push(`<a href="${esc(p.product_url)}" target="_blank" rel="noopener">Product ↗</a>`);
+  showLb(`${body}
+    <div class="lb-meta">${esc(p.phase_label||'')} · in de pijplijn</div>
+    ${p.title?`<div class="lb-cap" style="font-weight:600">${esc(p.title)}</div>`:''}
+    ${p.origin_label?`<div class="lb-cap">${esc(p.origin_label)}</div>`:''}
+    ${links.length?`<div class="lb-links">${links.join('')}</div>`:''}`);
 }
 
 function openFeedMedia(slot,i){
