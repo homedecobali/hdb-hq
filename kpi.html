@@ -250,6 +250,18 @@
   .prop-tag.social{background:#ff5fa2}
   .prop-tag.meta_ads{background:var(--cyan)}
   .prop-tag.newsletter{background:var(--green)}
+  .prop-tag.stories{background:var(--orange)}
+  .prop-tag.reels{background:#c96dd8}
+  /* Ingepland (opt-out): geplande tijd + Tegenhouden */
+  .sched-item{display:flex;gap:9px;border:1px solid var(--line);border-radius:10px;padding:8px 10px;background:rgba(0,212,255,.03)}
+  .sched-item.held{opacity:.6;background:rgba(255,93,93,.04)}
+  .sched-when{font:700 10px/1 system-ui;color:var(--cyan);display:flex;align-items:center;gap:5px}
+  .sched-item.held .sched-when{color:var(--muted)}
+  .sched-hold{font:700 9px/1 system-ui;letter-spacing:.06em;padding:6px 10px;border-radius:6px;cursor:pointer;
+    border:1px solid rgba(255,93,93,.4);color:var(--red);background:transparent}
+  .sched-hold:hover{background:var(--red);color:#fff}
+  .sched-held-tag{font:700 8px/1 system-ui;letter-spacing:.06em;color:var(--red);
+    border:1px solid rgba(255,93,93,.35);border-radius:5px;padding:4px 7px}
   .prop-title{font:700 11px/1.2 system-ui;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .prop-sub{font:500 9px/1.3 system-ui;color:var(--muted)}
   .prop-prev{font:500 10px/1.35 system-ui;color:var(--text);opacity:.8;margin-top:3px;
@@ -543,6 +555,12 @@
             <span class="when">wachten op goedkeuring</span>
             <span class="prop-badge zero" id="propBadge">0</span></h2>
           <div id="propBody"><div class="sml-msg">laden&hellip;</div></div>
+        </div>
+        <div class="card">
+          <h2><span class="dot" style="background:var(--cyan)"></span>Ingepland
+            <span class="when">opt-out &middot; klik Tegenhouden om te annuleren</span>
+            <span class="prop-badge zero" id="schedBadge">0</span></h2>
+          <div id="schedBody"><div class="sml-msg">laden&hellip;</div></div>
         </div>
       </div>
     </section>
@@ -1534,6 +1552,7 @@
 
   async function load(){
     loadProposals();   // voorstellen-blok (eigen foutafhandeling, blokkeert de rest niet)
+    loadScheduled();   // ingepland-blok (opt-out; eigen foutafhandeling)
     var res = await Promise.all([
       settle(fetchAll('bridge_kpi_daily', ['kpi_date','source','metric'])),
       settle(sb.from('bridge_memos').select('*')),
@@ -2553,23 +2572,26 @@
       + "&id=" + encodeURIComponent(id) + "&action=" + encodeURIComponent(action), "_blank", "noopener");
     setTimeout(loadProposals, 4000); setTimeout(loadProposals, 12000);
   }
-  // toont/verbergt het Voorstellen-paneel bovenaan; het verschijnt alleen als er echt voorstellen zijn
-  function setPropPanel(visible){
+  // De Voorstellen-zone bundelt twee panelen: pending (proposals_pending) + ingepland (v_dewi_pipeline).
+  // De zone is zichtbaar zodra één van beide iets bevat.
+  var _nPending = 0, _nSched = 0;
+  function syncPropZone(){
     var p = $("z-prop"); if(!p) return;
-    p.classList.toggle("hidden", !visible);
+    p.classList.toggle("hidden", (_nPending + _nSched) === 0);
   }
   async function loadProposals(){
     var body = $("propBody"), badge = $("propBadge");
     if(!body) return;
     try{
       var r = await sb.from("proposals_pending").select("*").order("created_at",{ascending:true});
-      if(r.error){ console.warn("proposals_pending:", r.error.message); setPropPanel(false); body.innerHTML = '<div class="sml-msg">kon voorstellen niet laden</div>'; return; }
+      if(r.error){ console.warn("proposals_pending:", r.error.message); _nPending=0; syncPropZone(); body.innerHTML = '<div class="sml-msg">kon voorstellen niet laden</div>'; return; }
       var rows = r.data || [];
+      _nPending = rows.length;
       if(badge){ badge.textContent = String(rows.length); badge.classList.toggle("zero", rows.length === 0); }
       zset('zs-dewi-prop', String(rows.length), rows.length ? 'warn' : 'good');
       zset('zs-prop-count', String(rows.length), rows.length ? 'warn' : 'good');
-      if(!rows.length){ setPropPanel(false); body.innerHTML = '<div class="sml-msg">geen openstaande voorstellen \u2705</div>'; return; }
-      setPropPanel(true);
+      if(!rows.length){ syncPropZone(); body.innerHTML = '<div class="sml-msg">geen openstaande voorstellen \u2705</div>'; return; }
+      syncPropZone();
       var KIND = { social:{l:"SOCIAL"}, meta_ads:{l:"META ADS"}, newsletter:{l:"NIEUWSBRIEF"} };
       var escp = function(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); };
       body.innerHTML = rows.map(function(r){
@@ -2593,13 +2615,69 @@
           + '</div></div></div>';
       }).join('')
       + '<div class="sml-foot">\u00e9\u00e9n klik &middot; bevestiging opent in een nieuw tabblad</div>';
-    }catch(e){ console.warn("proposals:", e); setPropPanel(false); body.innerHTML = '<div class="sml-msg">fout bij laden</div>'; }
+    }catch(e){ console.warn("proposals:", e); _nPending=0; syncPropZone(); body.innerHTML = '<div class="sml-msg">fout bij laden</div>'; }
   }
   (function(){
     var b = $("propBody");
     if(b) b.addEventListener("click", function(ev){
       var btn = ev.target.closest(".prop-btn");
       if(btn){ propDispatch(btn.dataset.kind, btn.dataset.id, btn.dataset.action); return; }
+    });
+  })();
+
+  /* ================= Ingepland (opt-out) — bron: v_dewi_pipeline (scheduled + held).
+     Organic social/story (en straks reels) staan dagen vooruit klaar; niets doen = post op
+     scheduled_for. Tegenhouden hergebruikt dezelfde Dispatch-webhook als Telegram (action=skip
+     -> status=held), geen directe tabel-write. ================= */
+  function schedFmt(iso){
+    if(!iso) return '';
+    var d = new Date(iso);
+    var day = d.toLocaleDateString('nl-NL',{weekday:'short',day:'numeric',month:'short',timeZone:'Europe/Madrid'});
+    var tm  = d.toLocaleTimeString('nl-NL',{hour:'2-digit',minute:'2-digit',timeZone:'Europe/Madrid'});
+    return day + ' \u00B7 ' + tm;
+  }
+  function holdScheduled(id, kind){
+    if(!window.confirm("Dit ingeplande item tegenhouden? Het wordt dan niet gepost.")) return;
+    window.open(PROP_DISPATCH_URL + "?kind=" + encodeURIComponent(kind||"")
+      + "&id=" + encodeURIComponent(id) + "&action=skip", "_blank", "noopener");
+    setTimeout(loadScheduled, 4000); setTimeout(loadScheduled, 12000);
+  }
+  async function loadScheduled(){
+    var body = $("schedBody"), badge = $("schedBadge");
+    if(!body) return;
+    try{
+      var r = await sb.from("v_dewi_pipeline").select("*").in("phase",["scheduled","held"]).order("scheduled_for",{ascending:true});
+      if(r.error){ console.warn("v_dewi_pipeline:", r.error.message); _nSched=0; syncPropZone();
+        if(badge){ badge.textContent="0"; badge.classList.add("zero"); }
+        body.innerHTML = '<div class="sml-msg">kon planning niet laden</div>'; return; }
+      var rows = r.data || [];
+      _nSched = rows.length;
+      if(badge){ badge.textContent = String(rows.length); badge.classList.toggle("zero", rows.length === 0); }
+      syncPropZone();
+      if(!rows.length){ body.innerHTML = '<div class="sml-msg">niets ingepland</div>'; return; }
+      var escp = function(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); };
+      var SLOT = { social:'SOCIAL', stories:'STORIES', reels:'REELS' };
+      body.innerHTML = rows.map(function(r){
+        var held  = r.phase === 'held';
+        var thumb = r.image_url ? '<img class="prop-thumb" src="' + escp(r.image_url) + '" loading="lazy" alt="">' : '<div class="prop-thumb ph">\u2709</div>';
+        var when  = schedFmt(r.scheduled_for);
+        var right = held
+          ? '<span class="sched-held-tag">\u26D4 TEGENGEHOUDEN</span>'
+          : '<button class="sched-hold" data-id="' + escp(r.id) + '" data-kind="' + escp(r.kind) + '">\u26D4 TEGENHOUDEN</button>';
+        return '<div class="sched-item' + (held ? ' held' : '') + '">' + thumb + '<div class="prop-main">'
+          + '<div class="prop-h"><span class="prop-tag ' + escp(r.slot) + '">' + (SLOT[r.slot] || escp(String(r.slot||'').toUpperCase())) + '</span>'
+          + '<span class="prop-title">' + escp(r.title || '') + '</span></div>'
+          + '<div class="prop-sub">' + escp(r.origin_label || '') + '</div>'
+          + '<div class="prop-foot"><span class="sched-when">\uD83D\uDCC5 ' + (held ? ('was ' + when) : when) + '</span>' + right + '</div>'
+          + '</div></div>';
+      }).join('');
+    }catch(e){ console.warn("scheduled:", e); _nSched=0; syncPropZone(); body.innerHTML = '<div class="sml-msg">fout bij laden</div>'; }
+  }
+  (function(){
+    var b = $("schedBody");
+    if(b) b.addEventListener("click", function(ev){
+      var btn = ev.target.closest(".sched-hold");
+      if(btn){ holdScheduled(btn.dataset.id, btn.dataset.kind); }
     });
   })();
 

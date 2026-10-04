@@ -86,6 +86,17 @@ a{color:inherit}
 .phase.review{background:var(--amber)}
 .phase.approved{background:var(--ok);color:#fff}
 .phase.draft{background:var(--dim);color:#0e1116}
+.phase.scheduled{background:var(--stills);color:#04070d}
+.phase.held{background:var(--no);color:#fff}
+.schedline{display:flex;align-items:center;gap:6px;margin-top:7px;font-size:11px;color:var(--txt)}
+.schedline .cal{opacity:.85}
+.schedline .when{font-weight:600;white-space:nowrap}
+.hold{margin-left:auto;font:inherit;font-size:10px;font-weight:700;cursor:pointer;border:1px solid var(--line);
+  background:var(--panel-2);color:var(--muted);padding:3px 9px;border-radius:999px;letter-spacing:.02em;flex:none}
+.hold:hover{border-color:var(--no);color:var(--no)}
+.hold:disabled{opacity:.5;cursor:default}
+.heldline{margin-top:7px;font-size:11px;color:var(--muted);display:flex;align-items:center;gap:6px}
+.heldline .when{color:var(--dim)}
 .pcard.pipe .pcap{padding:7px 9px 9px}
 .pcard.pipe .pt{font-size:12px;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .pcard.pipe .psub{font-size:10.5px;color:var(--dim);margin-top:3px}
@@ -266,6 +277,10 @@ function toast(msg,err){toastEl.textContent=msg;toastEl.className='toast show'+(
   clearTimeout(toast._t);toast._t=setTimeout(()=>toastEl.className='toast',2600);}
 function dateTxt(iso){ if(!iso) return ''; const d=new Date(iso);
   return d.toLocaleDateString('nl-NL',{day:'numeric',month:'short'}); }
+function schedTxt(iso){ if(!iso) return ''; const d=new Date(iso);
+  const day=d.toLocaleDateString('nl-NL',{weekday:'short',day:'numeric',month:'short',timeZone:'Europe/Madrid'});
+  const tm=d.toLocaleTimeString('nl-NL',{hour:'2-digit',minute:'2-digit',timeZone:'Europe/Madrid'});
+  return day+' · '+tm; }
 function fmtViews(n){ n=Number(n)||0; if(n>=1000) return (n/1000).toFixed(n>=10000?0:1).replace('.',',')+'k'; return String(n); }
 function fmtN(n){ return Number(n||0).toLocaleString('nl-NL'); }
 function relTxt(iso){ if(!iso) return 'nog niet'; const d=new Date(iso), now=new Date();
@@ -289,7 +304,7 @@ const PANELS = [
   {key:'stories', label:'Stories',      fmt:'stories · 9:16', color:'var(--stories)',
    feedSlots:['stills','stories'], pipeSlots:['stories']},
   {key:'reels',   label:'Reels',        fmt:'video · 9:16',   color:'var(--reels)',
-   feedSlots:['reels'],            pipeSlots:[]},
+   feedSlots:['reels'],            pipeSlots:['reels']},
   {key:'social',  label:'Social posts', fmt:'profiel · 1:1',  color:'var(--social)',
    feedSlots:['social'],           pipeSlots:['social']}
 ];
@@ -387,6 +402,7 @@ function renderStudio(pending, rows, pipe, outs, sent){
   stage.querySelectorAll('.pcard.pipe .frame').forEach(el=>{ el.onclick=()=>openPipeMedia(el.dataset.slot, +el.dataset.i); });
   stage.querySelectorAll('.pending .pcard .frame').forEach(el=>{ el.onclick=()=>openPendingMedia(+el.dataset.i); });
   stage.querySelectorAll('.mini').forEach(b=>{ b.onclick=()=>decideCard(b.dataset.id, b.dataset.kind, b); });
+  stage.querySelectorAll('.hold').forEach(b=>{ b.onclick=(ev)=>{ ev.stopPropagation(); holdCard(b.dataset.id, b.dataset.kind, b); }; });
   stage.querySelectorAll('.orow.clk').forEach(el=>{ el.onclick=()=>{ const o=_outs.find(x=>x.key===el.dataset.okey); if(!o) return;
     if(o.ref_offer) return openOffer(o.ref_offer, o.last_sent);
     openMail({preview:o.ref_preview,label:o.label,mail_creative:o.ref_creative}); }; });
@@ -448,6 +464,15 @@ function pipeCard(p,i){
     ? `<img loading="lazy" src="${esc(cov)}" alt="" onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'noimg',textContent:'🖼'}))">`
     : `<div class="noimg">🖼</div>`;
   const ph = p.phase||'draft';
+  // Ingepland (opt-out): toon geplande tijd + Tegenhouden-knop (hergebruikt de Dispatch-webhook, action=skip).
+  // Tegengehouden: alleen een rustige notitie — de Scheduler slaat de rij over.
+  let extra='';
+  if(ph==='scheduled'){
+    extra=`<div class="schedline"><span class="cal">📅</span><span class="when">${esc(schedTxt(p.scheduled_for))}</span>
+      <button class="hold" data-id="${esc(p.id)}" data-kind="${esc(p.kind||'')}" title="Niet posten — tegenhouden">Tegenhouden</button></div>`;
+  }else if(ph==='held'){
+    extra=`<div class="heldline"><span>⛔ Tegengehouden</span>${p.scheduled_for?`<span class="when">· was ${esc(schedTxt(p.scheduled_for))}</span>`:''}</div>`;
+  }
   return `<div class="pcard pipe r-${esc(p.slot)}">
     <div class="frame" data-slot="${esc(p.slot)}" data-i="${i}">
       ${media}
@@ -457,6 +482,7 @@ function pipeCard(p,i){
     <div class="pcap">
       <div class="pt">${esc(p.title||'')}</div>
       <div class="psub">${esc(p.origin_label||'')}${p.created_at?' · '+esc(dateTxt(p.created_at)):''}</div>
+      ${extra}
     </div>
   </div>`;
 }
@@ -533,6 +559,19 @@ async function decideCard(id,kind,btn){
     card.querySelectorAll('.mini').forEach(b=>b.disabled=false);
     toast('Actie mislukt: '+e.message,true);
   }
+}
+
+// Tegenhouden van een ingepland item: zelfde Dispatch-webhook als Telegram (action=skip -> status=held).
+async function holdCard(id,kind,btn){
+  if(btn.disabled) return;
+  btn.disabled=true; const old=btn.textContent; btn.textContent='…';
+  try{
+    const url=`${DISPATCH}?id=${encodeURIComponent(id)}&kind=${encodeURIComponent(kind||'')}&action=skip`;
+    const r=await fetch(url,{method:'GET'});
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    toast('⛔ Tegengehouden — wordt niet gepost');
+    loadStudio();
+  }catch(e){ btn.disabled=false; btn.textContent=old; toast('Tegenhouden mislukt: '+e.message,true); }
 }
 
 function renderOutputs(outs){
