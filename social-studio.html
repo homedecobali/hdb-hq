@@ -100,7 +100,7 @@ a{color:inherit}
 .schedline{display:flex;align-items:center;gap:6px;margin-top:7px;font-size:11px;color:var(--txt)}
 .schedline .cal{opacity:.85}
 .schedline .when{font-weight:600;white-space:nowrap}
-.hold{margin-left:auto;font:inherit;font-size:10px;font-weight:700;cursor:pointer;border:1px solid var(--line);
+.hold{margin-left:auto;font:inherit;font-size:14px;line-height:1;font-weight:700;cursor:pointer;border:1px solid var(--line);
   background:var(--panel-2);color:var(--muted);padding:3px 9px;border-radius:999px;letter-spacing:.02em;flex:none}
 .hold:hover{border-color:var(--no);color:var(--no)}
 .hold:disabled{opacity:.5;cursor:default}
@@ -306,10 +306,10 @@ function carouselCover(cj){ const a=carSlides(cj); return a.length?a[0]:null; }
 // alle slides naast elkaar (swipe/scroll) voor de lightbox; 1 beeld = gewoon dat beeld
 function slidesBody(cj,fallback){
   const a=carSlides(cj);
-  if(a.length>=2) return `<div class="lb-slides">${a.map(u=>`<img src="${esc(u)}" alt="">`).join('')}</div>
+  if(a.length>=2) return `<div class="lb-slides">${a.map(u=>`<img src="${esc(u)}" alt="" onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'lb-cap',textContent:'Slide kon niet geladen worden.'}))">`).join('')}</div>
     <div class="lb-meta">Carrousel · ${a.length} slides · veeg of scroll opzij</div>`;
   const cov=a[0]||fallback;
-  return cov?`<img src="${esc(cov)}" alt="">`:`<div class="lb-cap">Geen media.</div>`;
+  return cov?`<img src="${esc(cov)}" alt="" onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'lb-cap',textContent:'Slide kon niet geladen worden.'}))">`:`<div class="lb-cap">Geen media.</div>`;
 }
 
 /* ============ STUDIO default: goedkeuring-view (v_dewi_studio) + naslagwerk (v_dewi_feed) ============ */
@@ -321,7 +321,7 @@ const PANELS = [
    feedSlots:['stills','stories'], pipeSlots:['stories']},
   {key:'reels',   label:'Reels',        fmt:'video · 9:16',   color:'var(--reels)',
    feedSlots:['reels'],            pipeSlots:['reels']},
-  {key:'social',  label:'Social posts', fmt:'profiel · 1:1',  color:'var(--social)',
+  {key:'social',  label:'Social posts', fmt:'profiel · carrousel 4:5',  color:'var(--social)',
    feedSlots:['social'],           pipeSlots:['social']}
 ];
 let _feed = {}, _pipe = {}, _pending = [], _outs = [], _sent = [];
@@ -487,7 +487,7 @@ function pipeCard(p,i){
   let extra='';
   if(ph==='scheduled'){
     extra=`<div class="schedline"><span class="cal">📅</span><span class="when">${esc(schedTxt(p.scheduled_for))}</span>
-      <button class="hold" data-id="${esc(p.id)}" data-kind="${esc(p.kind||'')}" title="Niet posten — tegenhouden">Tegenhouden</button></div>`;
+      <button class="hold" data-id="${esc(p.id)}" data-kind="${esc(p.kind||'')}" title="Tegenhouden — niet posten" aria-label="Tegenhouden">👎</button></div>`;
   }else if(ph==='held'){
     extra=`<div class="heldline"><span>⛔ Tegengehouden</span>${p.scheduled_for?`<span class="when">· was ${esc(schedTxt(p.scheduled_for))}</span>`:''}</div>`;
   }
