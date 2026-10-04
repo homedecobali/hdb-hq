@@ -81,6 +81,15 @@ a{color:inherit}
 .pcard.pipe.r-social .frame img,.pcard.pipe.r-social .frame video{aspect-ratio:1/1}
 .pcard.pipe .noimg{aspect-ratio:9/16}
 .pcard.pipe.r-social .noimg{aspect-ratio:1/1}
+/* carrousel (04-10): 1 voorstel = 1 carrousel 4:5; eerste slide + aantal + mini-slides */
+.pcard.pipe.r-social.car .frame img{aspect-ratio:4/5}
+.slidecount{position:absolute;right:7px;bottom:7px;font-size:9.5px;font-weight:700;padding:2px 7px;border-radius:999px;
+  background:rgba(0,0,0,.68);color:#fff;letter-spacing:.03em}
+.slidethumbs{display:flex;gap:3px;margin-top:7px}
+.slidethumbs img{flex:1 1 0;min-width:0;aspect-ratio:4/5;object-fit:cover;border-radius:4px;border:1px solid var(--line);background:#000}
+.lb-slides{display:flex;gap:10px;overflow-x:auto;scroll-snap-type:x mandatory;padding-bottom:6px}
+.lb-slides img{flex:0 0 86%;max-width:86%;scroll-snap-align:center;margin:0}
+.lb-inner.wide{max-width:min(94vw,560px)}
 .phase{position:absolute;top:7px;left:7px;font-size:9px;font-weight:700;padding:2px 8px;border-radius:999px;
   letter-spacing:.03em;color:#04070d}
 .phase.review{background:var(--amber)}
@@ -291,9 +300,16 @@ function relTxt(iso){ if(!iso) return 'nog niet'; const d=new Date(iso), now=new
 function poster(url){ if(!url) return null;
   if(url.indexOf('/video/upload/')>=0) return url.replace('/video/upload/','/video/upload/so_0,f_jpg,w_420/');
   return url; }
-function carouselCover(cj){
-  if(Array.isArray(cj)&&cj.length){ const s=cj[0]||{}; return s.image_url||s.imageUrl||s.url||s.media_url||null; }
-  return null;
+function slideUrl(s){ if(!s) return null; if(typeof s==='string') return s; return s.image_url||s.imageUrl||s.url||s.media_url||null; }
+function carSlides(cj){ return Array.isArray(cj) ? cj.map(slideUrl).filter(Boolean) : []; }
+function carouselCover(cj){ const a=carSlides(cj); return a.length?a[0]:null; }
+// alle slides naast elkaar (swipe/scroll) voor de lightbox; 1 beeld = gewoon dat beeld
+function slidesBody(cj,fallback){
+  const a=carSlides(cj);
+  if(a.length>=2) return `<div class="lb-slides">${a.map(u=>`<img src="${esc(u)}" alt="">`).join('')}</div>
+    <div class="lb-meta">Carrousel · ${a.length} slides · veeg of scroll opzij</div>`;
+  const cov=a[0]||fallback;
+  return cov?`<img src="${esc(cov)}" alt="">`:`<div class="lb-cap">Geen media.</div>`;
 }
 
 /* ============ STUDIO default: goedkeuring-view (v_dewi_studio) + naslagwerk (v_dewi_feed) ============ */
@@ -464,6 +480,8 @@ function pipeCard(p,i){
     ? `<img loading="lazy" src="${esc(cov)}" alt="" onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'noimg',textContent:'🖼'}))">`
     : `<div class="noimg">🖼</div>`;
   const ph = p.phase||'draft';
+  const slides = isVid ? [] : carSlides(p.carousel_json);
+  const isCar = slides.length>=2;
   // Ingepland (opt-out): toon geplande tijd + Tegenhouden-knop (hergebruikt de Dispatch-webhook, action=skip).
   // Tegengehouden: alleen een rustige notitie — de Scheduler slaat de rij over.
   let extra='';
@@ -473,15 +491,17 @@ function pipeCard(p,i){
   }else if(ph==='held'){
     extra=`<div class="heldline"><span>⛔ Tegengehouden</span>${p.scheduled_for?`<span class="when">· was ${esc(schedTxt(p.scheduled_for))}</span>`:''}</div>`;
   }
-  return `<div class="pcard pipe r-${esc(p.slot)}">
+  return `<div class="pcard pipe r-${esc(p.slot)}${isCar?' car':''}">
     <div class="frame" data-slot="${esc(p.slot)}" data-i="${i}">
       ${media}
       <span class="phase ${esc(ph)}">${esc(p.phase_label||'')}</span>
       ${isVid?'<div class="play">▶</div>':''}
+      ${isCar?`<span class="slidecount" title="Carrousel">▦ ${slides.length} slides</span>`:''}
     </div>
     <div class="pcap">
       <div class="pt">${esc(p.title||'')}</div>
       <div class="psub">${esc(p.origin_label||'')}${p.created_at?' · '+esc(dateTxt(p.created_at)):''}</div>
+      ${isCar?`<div class="slidethumbs">${slides.slice(0,5).map(u=>`<img loading="lazy" src="${esc(u)}" alt="">`).join('')}</div>`:''}
       ${extra}
     </div>
   </div>`;
@@ -492,14 +512,11 @@ function openPipeMedia(slot,i){
   const isVid=p.media_type==='video'&&p.video_url;
   let body;
   if(isVid) body=`<video src="${esc(p.video_url)}" controls autoplay playsinline></video>`;
-  else{
-    const cov=carouselCover(p.carousel_json)||p.image_url;
-    body=cov?`<img src="${esc(cov)}" alt="">`:`<div class="lb-cap">Geen media.</div>`;
-  }
+  else body=slidesBody(p.carousel_json,p.image_url);
   const links=[];
   if(p.product_url) links.push(`<a href="${esc(p.product_url)}" target="_blank" rel="noopener">Product ↗</a>`);
   showLb(`${body}
-    <div class="lb-meta">${esc(p.phase_label||'')} · in de pijplijn</div>
+    <div class="lb-meta">${esc(p.phase_label||'')} · in de pijplijn${p.scheduled_for?' · 📅 '+esc(schedTxt(p.scheduled_for)):''}</div>
     ${p.title?`<div class="lb-cap" style="font-weight:600">${esc(p.title)}</div>`:''}
     ${p.origin_label?`<div class="lb-cap">${esc(p.origin_label)}</div>`:''}
     ${links.length?`<div class="lb-links">${links.join('')}</div>`:''}`);
@@ -527,10 +544,7 @@ function openPendingMedia(i){
   const isVid=p.media_type==='video'&&p.video_url;
   let body;
   if(isVid) body=`<video src="${esc(p.video_url)}" controls autoplay playsinline></video>`;
-  else{
-    const cov=carouselCover(p.carousel_json)||p.image_url;
-    body=cov?`<img src="${esc(cov)}" alt="">`:`<div class="lb-cap">Geen media.</div>`;
-  }
+  else body=slidesBody(p.carousel_json,p.image_url);
   const links=[];
   if(p.product_url) links.push(`<a href="${esc(p.product_url)}" target="_blank" rel="noopener">Product ↗</a>`);
   showLb(`${body}
@@ -666,13 +680,13 @@ function renderSchedule(){
   const BLUE='var(--social)', AMBER='var(--stories)', PURPLE='var(--reels)', TEAL='var(--stills)';
   const social=[
     {lbl:'Profiel', col:BLUE, day:{
-      1:[{t:'Post',tm:'09:00',c:BLUE}],
-      3:[{t:'Post',tm:'09:00',c:BLUE},{t:'Shop the Look',tm:'11:00',c:BLUE}],
-      5:[{t:'Post',tm:'09:00',c:BLUE}],
-      6:[{t:'Post',tm:'09:00',c:BLUE}]
+      1:[{t:'Carrousel',tm:'09:00',c:BLUE}],
+      3:[{t:'Carrousel',tm:'09:00',c:BLUE},{t:'Shop the Look',tm:'11:00',c:BLUE}],
+      5:[{t:'Carrousel',tm:'09:00',c:BLUE}],
+      6:[{t:'Carrousel',tm:'09:00',c:BLUE}]
     }},
     {lbl:'Stories', col:AMBER,
-      every:[{t:'Stills',tm:'14:00',c:TEAL}],
+      every:[{t:'Still',tm:'14:00',c:TEAL}],
       day:{ 1:[{t:'Reveal',tm:'17:30',c:AMBER}], 4:[{t:'Reveal',tm:'17:30',c:AMBER}] }
     },
     {lbl:'Reels', col:PURPLE, day:{
@@ -714,8 +728,8 @@ function renderSchedule(){
     <div class="intro">Wat er automatisch op welke dag gepost wordt op FB + Instagram. Posts met goedkeuringsstap verschijnen eerst in de pijplijn hierboven.</div>
     <div class="schedwrap">${socialGrid}</div>
     <div class="leg">
-      <span><span class="cd" style="background:${BLUE}"></span>Profiel (1:1)</span>
-      <span><span class="cd" style="background:${TEAL}"></span>Story-stills (1×/dag)</span>
+      <span><span class="cd" style="background:${BLUE}"></span>Profiel (carrousel 4:5, 2 producten)</span>
+      <span><span class="cd" style="background:${TEAL}"></span>Story-still (1×/dag)</span>
       <span><span class="cd" style="background:${AMBER}"></span>Story reveal (video)</span>
       <span><span class="cd" style="background:${PURPLE}"></span>Reels (5×/week)</span>
     </div>
@@ -835,7 +849,7 @@ function openOffer(f, sentAt){
 }
 
 /* ============ lightbox ============ */
-function showLb(inner){ const el=document.getElementById('lbInner'); el.classList.remove('scroll'); el.innerHTML=inner; document.getElementById('lb').classList.add('open'); }
+function showLb(inner){ const el=document.getElementById('lbInner'); el.classList.remove('scroll'); el.innerHTML=inner; el.classList.toggle('wide', !!el.querySelector('.lb-slides')); document.getElementById('lb').classList.add('open'); }
 function closeLightbox(){ document.getElementById('lb').classList.remove('open'); document.getElementById('lbInner').innerHTML=''; }
 document.getElementById('lb').onclick=closeLightbox;
 document.getElementById('lbClose').onclick=e=>{e.stopPropagation();closeLightbox();};
