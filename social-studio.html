@@ -195,6 +195,39 @@ a{color:inherit}
 .ofchip.off{background:var(--panel-2);color:var(--dim);border:1px solid var(--line)}
 .lb-inner.scroll{overflow-y:auto}
 @media(max-width:620px){ .card{width:132px} .pcard{width:150px} }
+
+/* ---- weekschema (statisch naslagwerk — vaste GROWTHENGINE-cadans) ---- */
+.sched{margin-top:30px}
+.sched .rowhead{margin:0 2px 12px}
+.sched .intro{font-size:11.5px;color:var(--dim);margin:0 2px 12px;line-height:1.5}
+.schedwrap{overflow-x:auto;padding-bottom:6px}
+.schedwrap::-webkit-scrollbar{height:8px}
+.schedwrap::-webkit-scrollbar-thumb{background:var(--line);border-radius:8px}
+.schedwrap::-webkit-scrollbar-track{background:transparent}
+.grid{display:grid;grid-template-columns:108px repeat(7,minmax(104px,1fr));gap:6px;min-width:860px}
+.grid .gh{font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--dim);
+  padding:2px 6px 6px;text-align:center}
+.grid .gh.today{color:var(--txt)}
+.grid .rl{display:flex;align-items:center;gap:8px;font-size:12.5px;font-weight:600;color:var(--txt);padding:10px 6px}
+.grid .rl .cd{width:9px;height:9px;border-radius:50%;flex:none}
+.grid .cell{background:var(--panel-2);border:1px solid var(--line);border-radius:10px;min-height:46px;
+  padding:6px;display:flex;flex-direction:column;gap:5px;justify-content:center}
+.grid .cell.today{border-color:var(--accent)}
+.grid .cell.off{background:transparent;border-style:dashed;border-color:#232b35}
+.grid .cell .none{color:var(--dim);font-size:14px;text-align:center}
+.chip{font-size:11px;font-weight:600;line-height:1.2;padding:4px 8px;border-radius:7px;color:#04070d;
+  display:flex;align-items:center;justify-content:space-between;gap:7px;white-space:nowrap}
+.chip .tm{font-weight:700;opacity:.82;font-variant-numeric:tabular-nums}
+.chip.sub{background:transparent;color:var(--muted);border:1px dashed var(--line);padding:3px 7px;justify-content:center}
+.sched .leg{display:flex;gap:16px;flex-wrap:wrap;margin:12px 2px 0;font-size:11.5px;color:var(--dim)}
+.sched .leg span{display:inline-flex;align-items:center;gap:6px}
+.sched .leg .cd{width:9px;height:9px;border-radius:50%}
+.sublabel{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--dim);margin:16px 2px 9px}
+.evrow{display:flex;gap:9px;flex-wrap:wrap}
+.evpill{display:flex;align-items:center;gap:9px;background:var(--panel);border:1px solid var(--line);
+  border-radius:999px;padding:7px 13px;font-size:12px}
+.evpill .ic{font-size:14px}
+.evpill .ev-when{color:var(--dim)}
 </style>
 </head>
 <body>
@@ -347,6 +380,7 @@ function renderStudio(pending, rows, pipe, outs, sent){
   html += renderOutputs(outs||[]);
   _sent = sent||[];
   html += renderSentMailings(_sent);
+  html += renderSchedule();
   stage.innerHTML=html;
 
   stage.querySelectorAll('.card').forEach(el=>{ el.onclick=()=>openFeedMedia(el.dataset.slot, +el.dataset.i); });
@@ -566,6 +600,95 @@ function renderSentMailings(sent){
       <span class="fmt">klik om terug te lezen · 180 dagen</span>
     </div>
     <div class="opanel">${rows}</div>
+  </div>`;
+}
+
+/* ============ weekschema (vaste GROWTHENGINE-cadans, Europe/Madrid) ============ */
+function renderSchedule(){
+  const days=['Ma','Di','Wo','Do','Vr','Za','Zo'];
+  const today=(new Date().getDay()+6)%7; // ma=0 … zo=6
+
+  const chip=o=>`<span class="chip" style="background:${o.c}">`
+    +`<span>${esc(o.t)}</span><span class="tm">${esc(o.tm)}</span></span>`
+    +(o.note?`<span class="chip sub">${esc(o.note)}</span>`:'');
+
+  function row(r){
+    let cells='';
+    for(let d=0;d<7;d++){
+      const list=[...(r.every||[]),...((r.day&&r.day[d])||[])];
+      const cls='cell'+(d===today?' today':'')+(list.length?'':' off');
+      cells+=`<div class="${cls}">${list.length?list.map(chip).join(''):'<span class="none">·</span>'}</div>`;
+    }
+    return `<div class="rl"><span class="cd" style="background:${r.col}"></span>${r.lbl}</div>${cells}`;
+  }
+  const header='<div class="gh"></div>'+days.map((d,i)=>`<div class="gh${i===today?' today':''}">${d}</div>`).join('');
+
+  // --- social: profiel / stories / reels ---
+  const BLUE='var(--social)', AMBER='var(--stories)', PURPLE='var(--reels)', TEAL='var(--stills)';
+  const social=[
+    {lbl:'Profiel', col:BLUE, day:{
+      1:[{t:'Post',tm:'09:00',c:BLUE}],
+      3:[{t:'Post',tm:'09:00',c:BLUE},{t:'Shop the Look',tm:'11:00',c:BLUE}],
+      5:[{t:'Post',tm:'09:00',c:BLUE}],
+      6:[{t:'Post',tm:'09:00',c:BLUE}]
+    }},
+    {lbl:'Stories', col:AMBER,
+      every:[{t:'Stills',tm:'14:00 · 21:00',c:TEAL}],
+      day:{ 1:[{t:'Reveal',tm:'17:30',c:AMBER}], 4:[{t:'Reveal',tm:'17:30',c:AMBER}] }
+    },
+    {lbl:'Reels', col:PURPLE, day:{
+      0:[{t:'Reel',tm:'17:00',c:PURPLE}],
+      2:[{t:'Reel',tm:'17:00',c:PURPLE}],
+      4:[{t:'Reel',tm:'17:00',c:PURPLE}]
+    }}
+  ];
+  const socialGrid=`<div class="grid">${header}${social.map(row).join('')}</div>`;
+
+  // --- outbound mail: vaste nieuwsbrieven + event-gestuurd ---
+  const mail=[
+    {lbl:'Nieuwsbrief', col:AMBER, day:{
+      2:[{t:'🏷️ Aanbieding',tm:'12:00',c:AMBER,note:'om de week'}],
+      3:[{t:'🛍️ Productnieuws',tm:'09:00',c:TEAL}],
+      4:[{t:'✉️ Verhaal',tm:'14:00',c:BLUE}]
+    }}
+  ];
+  const mailGrid=`<div class="grid">${header}${mail.map(row).join('')}</div>`;
+
+  const events=[
+    {ic:'👋',n:'Welkomstmail',w:'bij inschrijving · BIENVENIDO10'},
+    {ic:'📦',n:'Vervolg na levering',w:'+10 dagen na verzending'},
+    {ic:'🙏',n:'Bedankmail',w:'bij 2e bestelling'},
+    {ic:'❤️',n:'Loyalty-voucher 15%',w:'bij 3e bestelling'}
+  ];
+  const evHtml=events.map(e=>`<div class="evpill"><span class="ic">${e.ic}</span>`
+    +`<span><b>${esc(e.n)}</b> <span class="ev-when">· ${esc(e.w)}</span></span></div>`).join('');
+
+  return `
+  <div class="sched">
+    <div class="rowhead">
+      <span class="cd" style="background:${BLUE}"></span>
+      <span class="lbl">Weekschema · social</span>
+      <span class="fmt">vaste cadans · Europe/Madrid</span>
+    </div>
+    <div class="intro">Wat er automatisch op welke dag gepost wordt op FB + Instagram. Posts met goedkeuringsstap verschijnen eerst in de pijplijn hierboven.</div>
+    <div class="schedwrap">${socialGrid}</div>
+    <div class="leg">
+      <span><span class="cd" style="background:${BLUE}"></span>Profiel (1:1)</span>
+      <span><span class="cd" style="background:${TEAL}"></span>Story-stills (2×/dag)</span>
+      <span><span class="cd" style="background:${AMBER}"></span>Story reveal (video)</span>
+      <span><span class="cd" style="background:${PURPLE}"></span>Reels</span>
+    </div>
+  </div>
+
+  <div class="sched">
+    <div class="rowhead">
+      <span class="cd" style="background:${AMBER}"></span>
+      <span class="lbl">Weekschema · outbound mail</span>
+      <span class="fmt">klant-nieuwsbrieven · verzending na goedkeuring</span>
+    </div>
+    <div class="schedwrap">${mailGrid}</div>
+    <div class="sublabel">Event-gestuurd · geen vaste dag</div>
+    <div class="evrow">${evHtml}</div>
   </div>`;
 }
 
