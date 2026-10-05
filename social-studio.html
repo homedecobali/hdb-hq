@@ -270,6 +270,20 @@ a{color:inherit}
   display:flex;align-items:center;justify-content:space-between;gap:7px;white-space:nowrap}
 .chip .tm{font-weight:700;opacity:.82;font-variant-numeric:tabular-nums}
 .chip.sub{background:transparent;color:var(--muted);border:1px dashed var(--line);padding:3px 7px;justify-content:center}
+/* Weekschema social (05-10): gestippeld = in de pijplijn (gebouwd, nog niet live) · gevuld = live */
+.grid.pl{grid-template-columns:96px repeat(7,minmax(138px,1fr));min-width:1100px}
+.grid.pl .cell{justify-content:flex-start}
+.grid.pl .chip{font-size:10.5px}
+.grid.pl .chip .nm{display:flex;align-items:center;gap:5px;min-width:0}
+.grid.pl .chip .nm i{font-style:normal;font-size:8px;opacity:.75}
+.chip.pipe{background:transparent;border:1px dashed var(--c);color:var(--c);flex-direction:column;align-items:stretch;
+  gap:3px;padding:3px 7px 4px}
+.chip.pipe .r1{display:flex;align-items:center;justify-content:space-between;gap:7px}
+.chip.pipe .r2{font-size:9.5px;font-weight:500;opacity:.9}
+.chip.pipe .tm{opacity:1}
+.sched .leg .lg-live{width:22px;height:9px;border-radius:4px;background:var(--muted)}
+.sched .leg .lg-pipe{width:22px;height:9px;border-radius:4px;border:1px dashed var(--muted)}
+.sched .leg.key{margin-top:10px;color:var(--muted)}
 .sched .leg{display:flex;gap:16px;flex-wrap:wrap;margin:12px 2px 0;font-size:11.5px;color:var(--dim)}
 .sched .leg span{display:inline-flex;align-items:center;gap:6px}
 .sched .leg .cd{width:9px;height:9px;border-radius:50%}
@@ -723,14 +737,20 @@ function renderSchedule(){
   const days=['Ma','Di','Wo','Do','Vr','Za','Zo'];
   const today=(new Date().getDay()+6)%7; // ma=0 … zo=6
 
-  const chip=o=>`<span class="chip" style="background:${o.c}">`
-    +`<span>${esc(o.t)}</span><span class="tm">${esc(o.tm)}</span></span>`
-    +(o.note?`<span class="chip sub">${esc(o.note)}</span>`:'');
+  // Gevuld = live-moment. Gestippeld (o.live gezet) = gebouwd en in de pijplijn, met eronder wanneer hij live gaat.
+  const chip=o=> o.live
+    ? `<span class="chip pipe" style="--c:${o.c}"><span class="r1"><span class="nm"><i>⚙</i>${esc(o.t)}</span>`
+      +`<span class="tm">${esc(o.tm)}</span></span><span class="r2">→ live ${esc(o.live)}</span></span>`
+    : `<span class="chip" style="background:${o.c}">`
+      +`<span class="nm">${o.dot?'<i>●</i>':''}${esc(o.t)}</span><span class="tm">${esc(o.tm)}</span></span>`
+      +(o.note?`<span class="chip sub">${esc(o.note)}</span>`:'');
+  const tmKey=o=>String(o.tm||'').replace(/[^0-9:]/g,'');
 
   function row(r){
     let cells='';
     for(let d=0;d<7;d++){
-      const list=[...(r.every||[]),...((r.day&&r.day[d])||[])];
+      const list=[...(r.every?r.every(d):[]),...((r.day&&r.day[d])||[])];
+      if(r.sort) list.sort((x,y)=>tmKey(x).localeCompare(tmKey(y)));
       const cls='cell'+(d===today?' today':'')+(list.length?'':' off');
       cells+=`<div class="${cls}">${list.length?list.map(chip).join(''):'<span class="none">·</span>'}</div>`;
     }
@@ -739,27 +759,42 @@ function renderSchedule(){
   const header='<div class="gh"></div>'+days.map((d,i)=>`<div class="gh${i===today?' today':''}">${d}</div>`).join('');
 
   // --- social: profiel / stories / reels ---
+  // Bron live-tijden: Propose CAD (social zo/di/do/za 09:00 · story di/vr 17:30 · reel ma/wo/vr 17:00 + za/zo 09:00),
+  // still dagelijks 14:00, Shop the Look do 11:00 (bouwt en plaatst direct, geen pijplijn).
+  // Bron pijplijn-tijden: Reels Builder ma/wo/do/vr/za 17:00 (ma->wo, wo->vr, do->za, vr->zo, za->ma) ·
+  // still-builder dagelijks 09:00 -> morgen 14:00 · carrousel + reveal op voorraad (Voorraadbewaker, 2-4 vooruit):
+  // geen vaste bouwdag, wel lead-time-floor 36 u -> "≤" = uiterlijk dan in de pijplijn (live-moment − 36 u).
   const BLUE='var(--social)', AMBER='var(--stories)', PURPLE='var(--reels)', TEAL='var(--stills)';
+  const dl=d=>days[(d+7)%7].toLowerCase();
+  const L=(t,tm,c)=>({t,tm,c,dot:true});
+  const P=(t,tm,c,live)=>({t,tm,c,live});
   const social=[
-    {lbl:'Profiel', col:BLUE, day:{
-      1:[{t:'Carrousel',tm:'09:00',c:BLUE}],
-      3:[{t:'Carrousel',tm:'09:00',c:BLUE},{t:'Shop the Look',tm:'11:00',c:BLUE}],
-      5:[{t:'Carrousel',tm:'09:00',c:BLUE}],
-      6:[{t:'Carrousel',tm:'09:00',c:BLUE}]
+    {lbl:'Profiel', col:BLUE, sort:true, day:{
+      1:[L('Carrousel','09:00',BLUE), P('Carrousel','≤ 21:00',BLUE,'do 09:00')],
+      3:[L('Carrousel','09:00',BLUE), L('Shop the Look','11:00',BLUE), P('Carrousel','≤ 21:00',BLUE,'za 09:00')],
+      4:[P('Carrousel','≤ 21:00',BLUE,'zo 09:00')],
+      5:[L('Carrousel','09:00',BLUE)],
+      6:[L('Carrousel','09:00',BLUE), P('Carrousel','≤ 21:00',BLUE,'di 09:00')]
     }},
-    {lbl:'Stories', col:AMBER,
-      every:[{t:'Still',tm:'14:00',c:TEAL}],
-      day:{ 1:[{t:'Reveal',tm:'17:30',c:AMBER}], 4:[{t:'Reveal',tm:'17:30',c:AMBER}] }
+    {lbl:'Stories', col:AMBER, sort:true,
+      every:d=>[P('Still','09:00',TEAL,dl(d+1)+' 14:00'), L('Still','14:00',TEAL)],
+      day:{
+        0:[P('Reveal','≤ 05:30',AMBER,'di 17:30')],
+        1:[L('Reveal','17:30',AMBER)],
+        3:[P('Reveal','≤ 05:30',AMBER,'vr 17:30')],
+        4:[L('Reveal','17:30',AMBER)]
+      }
     },
-    {lbl:'Reels', col:PURPLE, day:{
-      0:[{t:'Reel',tm:'17:00',c:PURPLE}],
-      2:[{t:'Reel',tm:'17:00',c:PURPLE}],
-      4:[{t:'Reel',tm:'17:00',c:PURPLE}],
-      5:[{t:'Reel',tm:'09:00',c:PURPLE}],
-      6:[{t:'Reel',tm:'09:00',c:PURPLE}]
+    {lbl:'Reels', col:PURPLE, sort:true, day:{
+      0:[L('Reel','17:00',PURPLE), P('Reel','17:00',PURPLE,'wo 17:00')],
+      2:[L('Reel','17:00',PURPLE), P('Reel','17:00',PURPLE,'vr 17:00')],
+      3:[P('Reel','17:00',PURPLE,'za 09:00')],
+      4:[L('Reel','17:00',PURPLE), P('Reel','17:00',PURPLE,'zo 09:00')],
+      5:[L('Reel','09:00',PURPLE), P('Reel','17:00',PURPLE,'ma 17:00')],
+      6:[L('Reel','09:00',PURPLE)]
     }}
   ];
-  const socialGrid=`<div class="grid">${header}${social.map(row).join('')}</div>`;
+  const socialGrid=`<div class="grid pl">${header}${social.map(row).join('')}</div>`;
 
   // --- outbound mail: vaste nieuwsbrieven + event-gestuurd ---
   const mail=[
@@ -785,12 +820,16 @@ function renderSchedule(){
     <div class="rowhead">
       <span class="cd" style="background:${BLUE}"></span>
       <span class="lbl">Weekschema · social</span>
-      <span class="fmt">alle tijden = live-moment · Europe/Madrid</span>
+      <span class="fmt">gestippeld = in de pijplijn · gevuld = live · Europe/Madrid</span>
     </div>
-    <div class="intro"><span class="livedot">●</span> <b>De tijden in dit schema zijn het moment waarop de post live gaat</b> op FB + Instagram — niet het moment van klaarzetten.<br>
-      <b>Klaarzetten in de pijplijn gebeurt eerder:</b> carrousels en story-reveals dagen vooruit, de story-still de dag ervoor om 09:00, reels minstens 36 uur vooraf (gemaakt ma/wo/do/vr/za om 17:00). Tot hun live-moment staan ze hierboven onder “In de pijplijn · nog niet live”, met per post “in pijplijn sinds” en “gaat live”. Ze gaan vanzelf online, tenzij je ze tegenhoudt.<br>
-      Alleen Shop the Look wordt op het tijdstip zelf gemaakt en direct geplaatst.</div>
+    <div class="intro"><b>Gestippeld</b> = gebouwd en in de pijplijn, nog niet live (tegenhouden kan nog); eronder staat wanneer hij live gaat. <b>Gevuld</b> = het moment waarop de post live staat op FB + Instagram.</div>
     <div class="schedwrap">${socialGrid}</div>
+    <div class="leg key">
+      <span><span class="lg-live"></span>● gevuld = live op FB + Instagram</span>
+      <span><span class="lg-pipe"></span>⚙ gestippeld = in de pijplijn (gebouwd, nog niet live)</span>
+      <span>≤ = uiterlijk dan in de pijplijn — carrousels en story-reveals worden op voorraad gebouwd, meestal dagen eerder</span>
+      <span>Shop the Look: direct geplaatst, zonder pijplijn</span>
+    </div>
     <div class="leg">
       <span><span class="cd" style="background:${BLUE}"></span>Profiel (carrousel 4:5, 2 producten)</span>
       <span><span class="cd" style="background:${TEAL}"></span>Story-still (1×/dag)</span>
