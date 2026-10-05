@@ -106,6 +106,26 @@ a{color:inherit}
 .hold:disabled{opacity:.5;cursor:default}
 .heldline{margin-top:7px;font-size:11px;color:var(--muted);display:flex;align-items:center;gap:6px}
 .heldline .when{color:var(--dim)}
+/* Twee momenten per pijplijn-item (05-10): in pijplijn (klaargezet, nog niet live) vs. gaat live (publicatie) */
+.ptimes{margin-top:7px;display:flex;flex-direction:column;gap:1px}
+.ptimes .pl{font-size:8.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--dim)}
+.ptimes .pv{font-size:11px;color:var(--muted);margin-bottom:4px;white-space:nowrap}
+.ptimes .pl.live{color:var(--stills)}
+.ptimes .pv.live{font-weight:700;color:var(--stills);margin-bottom:0}
+.ptimes .pfoot{display:flex;align-items:center;gap:6px;min-height:24px}
+.ptimes .pr{font-size:10.5px;color:var(--muted);line-height:1.25}
+.ptimes.late .pl.live,.ptimes.late .pv.live,.ptimes.late .pr{color:var(--amber)}
+.ptimes.held .pl.live,.ptimes.held .pv.live{color:var(--dim)}
+.ptimes.held .pr{color:var(--no)}
+.ptimes.big{margin:12px 2px 0;gap:2px}
+.ptimes.big .pl{font-size:10px}
+.ptimes.big .pv{font-size:13px;margin-bottom:8px}
+.ptimes.big .pv.live{font-size:16px;margin-bottom:0}
+.ptimes.big .pr{font-size:12.5px}
+.lane-lbl .lh{font-weight:500;letter-spacing:.02em;text-transform:none;color:var(--dim)}
+.lane-lbl .lh.live{color:var(--ok)}
+.sched .intro b{color:var(--txt);font-weight:600}
+.sched .intro .livedot{color:var(--stills);font-weight:700}
 .pcard.pipe .pcap{padding:7px 9px 9px}
 .pcard.pipe .pt{font-size:12px;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .pcard.pipe .psub{font-size:10.5px;color:var(--dim);margin-top:3px}
@@ -297,6 +317,40 @@ function toast(msg,err){toastEl.textContent=msg;toastEl.className='toast show'+(
   clearTimeout(toast._t);toast._t=setTimeout(()=>toastEl.className='toast',2600);}
 function dateTxt(iso){ if(!iso) return ''; const d=new Date(iso);
   return d.toLocaleDateString('nl-NL',{day:'numeric',month:'short'}); }
+// Pijplijn-items hebben TWEE momenten (05-10, zelfde labels als Postschema in kpi.html):
+//   created_at    = "in pijplijn sinds": door DEWI klaargezet, nog niet online zichtbaar
+//   scheduled_for = "gaat live": moment waarop de Scheduler (elke 15 min) de post echt plaatst
+// De bouwdatum in de titel ("Carrousel 04-10-2026 …") leest als postdatum -> hier weggelaten.
+function pipeTitle(t){ return String(t||'').replace(/\s*\b\d{2}-\d{2}-\d{4}\b/,''); }
+function liveRel(iso){
+  const ms=new Date(iso)-Date.now(), min=Math.round(Math.abs(ms)/60000);
+  if(ms>=0){
+    if(min<60) return {t:'over '+Math.max(1,min)+' min',late:false};
+    if(min<48*60) return {t:'over '+Math.round(min/60)+' uur',late:false};
+    return {t:'over '+Math.round(min/1440)+' dagen',late:false};
+  }
+  if(min<=20) return {t:'wordt nu gepost',late:false};
+  return {t:'tijdstip voorbij — nog niet gepost',late:true};
+}
+// footHtml = optioneel element rechts naast de afstand-tot-live (bv. de Tegenhouden-knop op de kaart)
+function pipeTimes(p, footHtml, big){
+  const ph=p.phase||'draft', held=ph==='held';
+  const rel=(!held && p.scheduled_for) ? liveRel(p.scheduled_for) : null;
+  let h=`<div class="ptimes${big?' big':''}${held?' held':''}${rel&&rel.late?' late':''}">`;
+  if(p.created_at) h+=`<div class="pl">In pijplijn sinds</div><div class="pv">${esc(schedTxt(p.created_at))}</div>`;
+  let note='';
+  if(p.scheduled_for){
+    h+= held
+      ? `<div class="pl live">Zou live gaan</div><div class="pv live"><s>${esc(schedTxt(p.scheduled_for))}</s></div>`
+      : `<div class="pl live">Gaat live</div><div class="pv live">${esc(schedTxt(p.scheduled_for))}</div>`;
+    note = held ? '⛔ tegengehouden — wordt niet gepost' : rel.t;
+  }else{
+    h+=`<div class="pl live">Gaat live</div><div class="pv">${held?'—':'nog geen tijdstip'}</div>`;
+    if(held) note='⛔ tegengehouden — wordt niet gepost';
+  }
+  if(note||footHtml) h+=`<div class="pfoot"><span class="pr">${esc(note)}</span>${footHtml||''}</div>`;
+  return h+'</div>';
+}
 function schedTxt(iso){ if(!iso) return ''; const d=new Date(iso);
   const day=d.toLocaleDateString('nl-NL',{weekday:'short',day:'numeric',month:'short',timeZone:'Europe/Madrid'});
   const tm=d.toLocaleTimeString('nl-NL',{hour:'2-digit',minute:'2-digit',timeZone:'Europe/Madrid'});
@@ -368,7 +422,7 @@ function renderStudio(pending, rows, pipe, outs, sent){
   _pipe=pby;
   const openN=(pipe||[]).length;
   countEl.textContent = (pending.length? pending.length+' wacht · ' : '')
-    + (openN? openN+' in pijplijn · ' : '') + rows.length + ' posts · 120 dagen';
+    + (openN? openN+' in pijplijn (nog niet live) · ' : '') + rows.length + ' live gepost · 120 dagen';
 
   let html='';
   // --- pending / goedkeuring-view met creative (op moment van opvraging) ---
@@ -393,7 +447,7 @@ function renderStudio(pending, rows, pipe, outs, sent){
     posted.sort((a,b)=>new Date(b.p.posted_at||0)-new Date(a.p.posted_at||0));
     const postedCards = posted.length
       ? posted.map(x=>feedCard(x.slot,x.p,x.i)).join('')
-      : `<div class="empty">Nog niets gepost in dit kanaal.</div>`;
+      : `<div class="empty">Nog niets live gepost in dit kanaal.</div>`;
 
     // open pijplijn: items uit v_dewi_pipeline voor de pipeSlots van dit kanaal.
     const pipe = P.pipeSlots.flatMap(s=>_pipe[s]||[]);
@@ -405,15 +459,15 @@ function renderStudio(pending, rows, pipe, outs, sent){
       <div class="rowhead">
         <span class="cd" style="background:${P.color}"></span>
         <span class="lbl">${P.label}</span>
-        <span class="n">${posted.length} gepost</span>
+        <span class="n">${posted.length} live gepost</span>
         <span class="fmt">${P.fmt}</span>
       </div>
       <div class="lane">
-        <div class="lane-lbl">In de pijplijn <span class="dash"></span>${pipe.length?`<span class="ln">${pipe.length} open</span>`:''}</div>
+        <div class="lane-lbl">In de pijplijn <span class="lh">· klaargezet, nog niet live</span><span class="dash"></span>${pipe.length?`<span class="ln">${pipe.length} open</span>`:''}</div>
         ${pipeLane}
       </div>
       <div class="lane posted">
-        <div class="lane-lbl">Geposte outreach <span class="dash"></span><span class="ln">120 dagen</span></div>
+        <div class="lane-lbl">Live gepost <span class="lh live">· staat online</span><span class="dash"></span><span class="ln">120 dagen</span></div>
         <div class="strip">${postedCards}</div>
       </div>
     </div>`;
@@ -493,15 +547,12 @@ function pipeCard(p,i){
   const ph = p.phase||'draft';
   const slides = isVid ? [] : carSlides(p.carousel_json);
   const isCar = slides.length>=2;
-  // Ingepland (opt-out): toon geplande tijd + Tegenhouden-knop (hergebruikt de Dispatch-webhook, action=skip).
-  // Tegengehouden: alleen een rustige notitie — de Scheduler slaat de rij over.
-  let extra='';
-  if(ph==='scheduled'){
-    extra=`<div class="schedline"><span class="cal">📅</span><span class="when">${esc(schedTxt(p.scheduled_for))}</span>
-      <button class="hold" data-id="${esc(p.id)}" data-kind="${esc(p.kind||'')}" title="Tegenhouden — niet posten" aria-label="Tegenhouden">👎</button></div>`;
-  }else if(ph==='held'){
-    extra=`<div class="heldline"><span>⛔ Tegengehouden</span>${p.scheduled_for?`<span class="when">· was ${esc(schedTxt(p.scheduled_for))}</span>`:''}</div>`;
-  }
+  // Twee gelabelde momenten (in pijplijn sinds / gaat live). Ingepland (opt-out) krijgt de Tegenhouden-knop
+  // (hergebruikt de Dispatch-webhook, action=skip); tegengehouden = doorgestreept, de Scheduler slaat de rij over.
+  const holdBtn = ph==='scheduled'
+    ? `<button class="hold" data-id="${esc(p.id)}" data-kind="${esc(p.kind||'')}" title="Tegenhouden — niet posten" aria-label="Tegenhouden">👎</button>` : '';
+  const extra = pipeTimes(p, holdBtn);
+  const sub = (p.origin_label && p.origin_label!==p.title) ? p.origin_label : '';
   return `<div class="pcard pipe r-${esc(p.slot)}${isCar?' car':''}">
     <div class="frame" data-slot="${esc(p.slot)}" data-i="${i}">
       ${media}
@@ -510,8 +561,8 @@ function pipeCard(p,i){
       ${isCar?`<span class="slidecount" title="Carrousel">▦ ${slides.length} slides</span>`:''}
     </div>
     <div class="pcap">
-      <div class="pt">${esc(p.title||'')}</div>
-      <div class="psub">${esc(p.origin_label||'')}${p.created_at?' · '+esc(dateTxt(p.created_at)):''}</div>
+      <div class="pt">${esc(pipeTitle(p.title))}</div>
+      ${sub?`<div class="psub">${esc(sub)}</div>`:''}
       ${isCar?`<div class="slidethumbs">${slides.slice(0,5).map(u=>`<img loading="lazy" src="${esc(u)}" alt="">`).join('')}</div>`:''}
       ${extra}
     </div>
@@ -527,9 +578,9 @@ function openPipeMedia(slot,i){
   const links=[];
   if(p.product_url) links.push(`<a href="${esc(p.product_url)}" target="_blank" rel="noopener">Product ↗</a>`);
   showLb(`${body}
-    <div class="lb-meta">${esc(p.phase_label||'')} · in de pijplijn${p.scheduled_for?' · 📅 '+esc(schedTxt(p.scheduled_for)):''}</div>
-    ${p.title?`<div class="lb-cap" style="font-weight:600">${esc(p.title)}</div>`:''}
-    ${p.origin_label?`<div class="lb-cap">${esc(p.origin_label)}</div>`:''}
+    <div class="lb-meta">${esc(p.phase_label||'')} · nog niet live${p.created_at?' · in pijplijn sinds '+esc(schedTxt(p.created_at)):''}${p.scheduled_for?(p.phase==='held'?' · zou live gaan ':' · gaat live ')+esc(schedTxt(p.scheduled_for)):''}</div>
+    ${p.title?`<div class="lb-cap" style="font-weight:600">${esc(pipeTitle(p.title))}</div>`:''}
+    ${p.origin_label&&p.origin_label!==p.title?`<div class="lb-cap">${esc(p.origin_label)}</div>`:''}
     ${links.length?`<div class="lb-links">${links.join('')}</div>`:''}`);
 }
 
@@ -734,9 +785,11 @@ function renderSchedule(){
     <div class="rowhead">
       <span class="cd" style="background:${BLUE}"></span>
       <span class="lbl">Weekschema · social</span>
-      <span class="fmt">vaste cadans · Europe/Madrid</span>
+      <span class="fmt">alle tijden = live-moment · Europe/Madrid</span>
     </div>
-    <div class="intro">Wat er automatisch op welke dag gepost wordt op FB + Instagram. Posts met goedkeuringsstap verschijnen eerst in de pijplijn hierboven.</div>
+    <div class="intro"><span class="livedot">●</span> <b>De tijden in dit schema zijn het moment waarop de post live gaat</b> op FB + Instagram — niet het moment van klaarzetten.<br>
+      <b>Klaarzetten in de pijplijn gebeurt eerder:</b> carrousels en story-reveals dagen vooruit, de story-still de dag ervoor om 09:00. Tot hun live-moment staan ze hierboven onder “In de pijplijn · nog niet live”, met per post “in pijplijn sinds” en “gaat live”. Ze gaan vanzelf online, tenzij je ze tegenhoudt.<br>
+      Shop the Look wordt op het tijdstip zelf gemaakt en direct geplaatst; reels lopen nog niet via de pijplijn.</div>
     <div class="schedwrap">${socialGrid}</div>
     <div class="leg">
       <span><span class="cd" style="background:${BLUE}"></span>Profiel (carrousel 4:5, 2 producten)</span>
@@ -812,19 +865,20 @@ function renderPipeSingle(){
   const body=isVid?`<video src="${esc(p.video_url)}" controls playsinline></video>`:slidesBody(p.carousel_json,p.image_url);
   let status='', action='';
   if(ph==='scheduled'){
-    status=`<div class="pstat sched">📅 Ingepland · ${esc(schedTxt(p.scheduled_for))}</div>
-      <div class="pnote">Nog niet gepost. Gaat automatisch door — niets doen = plaatsen.</div>`;
+    status=`<div class="pstat sched">📅 Ingepland — nog niet live</div>
+      ${pipeTimes(p,'',true)}
+      <div class="pnote">Staat klaar in de pijplijn. Gaat vanzelf online op het tijdstip bij “gaat live” — niets doen = plaatsen.</div>`;
     action=`<div class="thumbs"><button class="holdbig" id="btnHold">⛔ Tegenhouden</button></div>`;
   }else if(ph==='held'){
-    status=`<div class="pstat held">⛔ Tegengehouden${p.scheduled_for?' · was '+esc(schedTxt(p.scheduled_for)):''}</div>
-      <div class="pnote">Wordt niet gepost.</div>`;
+    status=`<div class="pstat held">⛔ Tegengehouden</div>
+      ${pipeTimes(p,'',true)}`;
   }else{
     status=`<div class="pstat">${esc(p.phase_label||'In de pijplijn')}</div>`;
   }
   stage.innerHTML=`<div class="review">
     <div class="frame">${body}</div>
-    <div class="ctitle">${esc(p.title||'')}</div>
-    <div class="cmeta">${esc(p.origin_label||p.kind||'')}${p.product_url?` · <a class="nav" href="${esc(p.product_url)}" target="_blank" rel="noopener">Product ↗</a>`:''}</div>
+    <div class="ctitle">${esc(pipeTitle(p.title))}</div>
+    <div class="cmeta">${esc((p.origin_label&&p.origin_label!==p.title?p.origin_label:'')||p.kind||'')}${p.product_url?` · <a class="nav" href="${esc(p.product_url)}" target="_blank" rel="noopener">Product ↗</a>`:''}</div>
     ${status}
     ${action}
     <div class="state" style="padding:22px 0 0"><p style="font-size:12px"><a class="nav" href="social-studio.html">→ alle ingeplande posts in het naslagwerk</a></p></div>
