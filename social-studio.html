@@ -174,6 +174,17 @@ a{color:inherit}
 .tbtn.up{color:var(--ok)} .tbtn.up:hover{background:var(--ok-bg);border-color:var(--ok)}
 .tbtn.down{color:var(--no)} .tbtn.down:hover{background:var(--no-bg);border-color:var(--no)}
 .tbtn:disabled{opacity:.4;cursor:default}
+/* ?id= op een ingeplande/tegengehouden organic post (opt-out pijplijn) */
+.review .frame .lb-slides{padding:10px 10px 6px}
+.review .frame .lb-meta{padding:2px 12px 10px}
+.pstat{margin:12px 2px 0;font-size:14px;font-weight:600;color:var(--txt)}
+.pstat.sched{color:var(--stills)}
+.pstat.held{color:var(--no)}
+.pnote{margin:4px 2px 0;font-size:12.5px;color:var(--muted)}
+.holdbig{font:inherit;font-size:14px;font-weight:700;padding:13px 22px;border:1px solid var(--line);border-radius:12px;
+  background:var(--panel-2);color:var(--no);cursor:pointer;transition:.12s}
+.holdbig:hover{background:var(--no-bg);border-color:var(--no)}
+.holdbig:disabled{opacity:.4;cursor:default}
 
 /* ---- toast ---- */
 .toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(20px);
@@ -748,14 +759,21 @@ function renderSchedule(){
 }
 
 /* ============ single approval (?id=) ============ */
-let apItem=null, apBusy=false;
+let apItem=null, apBusy=false, apPipe=null;
 async function loadApproval(id){
   try{
     const r=await fetch(`${SUPA}/rest/v1/v_dewi_studio?select=*`,{headers:HDR});
     if(!r.ok) throw new Error('HTTP '+r.status);
     const q=await r.json();
     apItem=q.find(x=>x.id===id)||null;
-    renderApproval();
+    apPipe=null;
+    // Niet in de goedkeuringslijst? Organic posts zijn opt-out: die staan als ingepland/tegengehouden
+    // in v_dewi_pipeline (v_dewi_studio toont ze sinds 04-10 bewust niet meer).
+    if(!apItem){
+      const r2=await fetch(`${SUPA}/rest/v1/v_dewi_pipeline?select=*&id=eq.${encodeURIComponent(id)}`,{headers:HDR});
+      if(r2.ok){ const q2=await r2.json(); apPipe=(Array.isArray(q2)&&q2[0])||null; }
+    }
+    if(apPipe) renderPipeSingle(); else renderApproval();
   }catch(e){
     stage.innerHTML=`<div class="state"><div class="ico">⚠</div><h2>Kon voorstel niet laden</h2>
       <p>${esc(e.message)} — probeer te verversen.</p></div>`;
@@ -764,8 +782,8 @@ async function loadApproval(id){
 function renderApproval(){
   const p=apItem;
   if(!p){ countEl.textContent='—';
-    stage.innerHTML=`<div class="state"><div class="ico">✓</div><h2>Voorstel niet meer open</h2>
-      <p>Al afgehandeld of verlopen. <a class="nav" href="social-studio.html">→ naar het naslagwerk</a></p></div>`; return; }
+    stage.innerHTML=`<div class="state"><div class="ico">✓</div><h2>Niet meer in de pijplijn</h2>
+      <p>Al gepost, afgekeurd of verlopen. <a class="nav" href="social-studio.html">→ naar het naslagwerk</a></p></div>`; return; }
   countEl.textContent='1 goedkeuring';
   const isVid=p.media_type==='video'&&p.video_url;
   const cov=isVid?null:(carouselCover(p.carousel_json)||p.image_url);
@@ -784,6 +802,49 @@ function renderApproval(){
   </div>`;
   document.getElementById('btnUp').onclick=()=>decideSingle('approve');
   document.getElementById('btnDown').onclick=()=>decideSingle('skip');
+}
+// ?id= van een organic post uit de opt-out pijplijn: toon de post + geplande tijd + Tegenhouden.
+function renderPipeSingle(){
+  const p=apPipe; if(!p){ renderApproval(); return; }
+  const ph=p.phase||'draft';
+  countEl.textContent = ph==='scheduled' ? '1 ingepland' : (ph==='held' ? '1 tegengehouden' : '1 in de pijplijn');
+  const isVid=p.media_type==='video'&&p.video_url;
+  const body=isVid?`<video src="${esc(p.video_url)}" controls playsinline></video>`:slidesBody(p.carousel_json,p.image_url);
+  let status='', action='';
+  if(ph==='scheduled'){
+    status=`<div class="pstat sched">📅 Ingepland · ${esc(schedTxt(p.scheduled_for))}</div>
+      <div class="pnote">Nog niet gepost. Gaat automatisch door — niets doen = plaatsen.</div>`;
+    action=`<div class="thumbs"><button class="holdbig" id="btnHold">⛔ Tegenhouden</button></div>`;
+  }else if(ph==='held'){
+    status=`<div class="pstat held">⛔ Tegengehouden${p.scheduled_for?' · was '+esc(schedTxt(p.scheduled_for)):''}</div>
+      <div class="pnote">Wordt niet gepost.</div>`;
+  }else{
+    status=`<div class="pstat">${esc(p.phase_label||'In de pijplijn')}</div>`;
+  }
+  stage.innerHTML=`<div class="review">
+    <div class="frame">${body}</div>
+    <div class="ctitle">${esc(p.title||'')}</div>
+    <div class="cmeta">${esc(p.origin_label||p.kind||'')}${p.product_url?` · <a class="nav" href="${esc(p.product_url)}" target="_blank" rel="noopener">Product ↗</a>`:''}</div>
+    ${status}
+    ${action}
+    <div class="state" style="padding:22px 0 0"><p style="font-size:12px"><a class="nav" href="social-studio.html">→ alle ingeplande posts in het naslagwerk</a></p></div>
+  </div>`;
+  const b=document.getElementById('btnHold'); if(b) b.onclick=holdSingle;
+}
+// Zelfde Dispatch-webhook als Telegram en de pijplijn-kaart (action=skip -> status=held).
+async function holdSingle(){
+  if(apBusy||!apPipe) return; apBusy=true;
+  const b=document.getElementById('btnHold'); if(b){ b.disabled=true; b.textContent='…'; }
+  try{
+    const url=`${DISPATCH}?id=${encodeURIComponent(apPipe.id)}&kind=${encodeURIComponent(apPipe.kind||'')}&action=skip`;
+    const r=await fetch(url,{method:'GET'});
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    toast('⛔ Tegengehouden — wordt niet gepost');
+    apPipe.phase='held'; apPipe.phase_label='tegengehouden'; apBusy=false; renderPipeSingle();
+  }catch(e){
+    apBusy=false; if(b){ b.disabled=false; b.textContent='⛔ Tegenhouden'; }
+    toast('Tegenhouden mislukt: '+e.message,true);
+  }
 }
 async function decideSingle(action){
   if(apBusy||!apItem) return; apBusy=true;
