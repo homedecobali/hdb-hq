@@ -28,17 +28,23 @@
 (function (global) {
   "use strict";
 
-  /* --- HDB favicon (Zegel licht) — één bron voor alle dash-pagina's --------
-     dewi-frame.js wordt door elke cockpit-pagina geladen (kpi, organisation,
-     agents, competition, studio), dus hier gezet verschijnt de favicon op
-     alle tabs ineens. Bron: Cloudinary Zegel_licht, on-the-fly naar 64px. */
+  /* --- Dash-favicon (D-monogram, huisstijl) — één bron voor alle dash-pagina's ---
+     Bestanden in de repo-root: favicon.svg (bron), favicon.ico (fallback, pakt de
+     browser vanzelf op pagina's zonder dit script), apple-touch-icon.png.
+     Espresso-tegel + crème D + koperen voet: leesbaar op lichte én donkere tabbalk.
+     Geen externe afhankelijkheid meer (was: Cloudinary Zegel_licht, onleesbaar op 16px). */
   (function setFavicon(){
     try{
-      var HREF = "https://res.cloudinary.com/dkujwmni2/image/upload/w_64,h_64,c_fit,f_png/v1787578926/Zegel_licht_ub6gym.png";
-      var link = document.querySelector('link[rel~="icon"]');
-      if(!link){ link = document.createElement("link"); link.rel = "icon"; document.head.appendChild(link); }
-      link.type = "image/png";
-      link.href = HREF;
+      var me = document.currentScript && document.currentScript.src;
+      var base = me ? me.replace(/dewi-frame\.js(\?.*)?$/, "") : "";
+      var old = document.querySelectorAll('link[rel~="icon"], link[rel="apple-touch-icon"]');
+      for (var i = 0; i < old.length; i++) old[i].parentNode.removeChild(old[i]);
+      var add = function(rel, type, href){
+        var l = document.createElement("link"); l.rel = rel; if (type) l.type = type; l.href = base + href;
+        document.head.appendChild(l);
+      };
+      add("icon", "image/svg+xml", "favicon.svg");
+      add("apple-touch-icon", "", "apple-touch-icon.png");
     }catch(e){}
   })();
 
