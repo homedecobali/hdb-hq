@@ -760,9 +760,10 @@ function renderSchedule(){
 
   // --- social: profiel / stories / reels ---
   // Bron live-tijden: Propose CAD (social zo/di/do/za 09:00 · story di/vr 17:30 · reel ma/wo/vr 17:00 + za/zo 09:00),
-  // still dagelijks 14:00, Shop the Look do 11:00 (bouwt en plaatst direct, geen pijplijn).
+  // still dagelijks 14:00, Shop the Look do 11:00.
   // Bron pijplijn-tijden: Reels Builder ma/wo/do/vr/za 17:00 (ma->wo, wo->vr, do->za, vr->zo, za->ma) ·
-  // still-builder dagelijks 09:00 -> morgen 14:00 · carrousel + reveal op voorraad (Voorraadbewaker, 2-4 vooruit):
+  // still-builder dagelijks 09:00 -> morgen 14:00 · Shop the Look-builder di 11:00 -> do 11:00 (sinds 05-10) ·
+  // carrousel + reveal op voorraad (Voorraadbewaker, 2-4 vooruit):
   // geen vaste bouwdag, wel lead-time-floor 36 u -> "≤" = uiterlijk dan in de pijplijn (live-moment − 36 u).
   const BLUE='var(--social)', AMBER='var(--stories)', PURPLE='var(--reels)', TEAL='var(--stills)';
   const dl=d=>days[(d+7)%7].toLowerCase();
@@ -770,7 +771,7 @@ function renderSchedule(){
   const P=(t,tm,c,live)=>({t,tm,c,live});
   const social=[
     {lbl:'Profiel', col:BLUE, sort:true, day:{
-      1:[L('Carrousel','09:00',BLUE), P('Carrousel','≤ 21:00',BLUE,'do 09:00')],
+      1:[L('Carrousel','09:00',BLUE), P('Shop the Look','11:00',BLUE,'do 11:00'), P('Carrousel','≤ 21:00',BLUE,'do 09:00')],
       3:[L('Carrousel','09:00',BLUE), L('Shop the Look','11:00',BLUE), P('Carrousel','≤ 21:00',BLUE,'za 09:00')],
       4:[P('Carrousel','≤ 21:00',BLUE,'zo 09:00')],
       5:[L('Carrousel','09:00',BLUE)],
@@ -828,7 +829,6 @@ function renderSchedule(){
       <span><span class="lg-live"></span>● gevuld = live op FB + Instagram</span>
       <span><span class="lg-pipe"></span>⚙ gestippeld = in de pijplijn (gebouwd, nog niet live)</span>
       <span>≤ = uiterlijk dan in de pijplijn — carrousels en story-reveals worden op voorraad gebouwd, meestal dagen eerder</span>
-      <span>Shop the Look: direct geplaatst, zonder pijplijn</span>
     </div>
     <div class="leg">
       <span><span class="cd" style="background:${BLUE}"></span>Profiel (carrousel 4:5, 2 producten)</span>
