@@ -12,7 +12,7 @@
    het opent dat scherm (pagina = navigeren; zone = op kpi.html uitklappen en
    ernaartoe scrollen). Er gaan vanuit het menu geen zijpanelen meer open.
 
-   Groepen: HANDEL · MARKETING · STUDIO'S · SYSTEEM.
+   Groepen: HANDEL · MARKETING · STUDIO'S · SYSTEEM · SETUP.
    Item-soorten:
      url   — gewone pagina (elders: navigeren)
      pane  — (historisch veld) wordt genegeerd; het item navigeert naar url
@@ -63,6 +63,9 @@
       { id: "constellation", label: "Constellation", pane: "constellation", url: "constellation.html", ic: "\u2735", c: "#a37bff", kw: "swarm" },
       { id: "creds",         label: "Credentials",  pane: "creds",         url: "credentials.html",   ic: "\u26BF", c: "#a37bff", kw: "keys connectors tokens" },
       { id: "z-dewi",        label: "DEWI-zone",    zone: "dewi",          ic: "D", c: "#a37bff", kw: "to-do todo memos stille agents systeem voorstellen" }
+    ]},
+    { id: "setup", label: "Setup", items: [
+      { id: "usage", label: "Verbruik tools", url: "usage.html", ic: "%", c: "#3ecf8e", kw: "verbruik kosten plafond limiet quota abonnement n8n executies anthropic api cloudinary credits brevo apify pdfshift" }
     ]}
   ];
   /* extra palet-doelen (geen menu-item): kaarten binnen de cockpit */

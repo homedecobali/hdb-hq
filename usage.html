@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<!--
+  DEWI — usage.html
+  Verbruik per betaalde tool met een maandplafond of prepaid tegoed (menu ☰ > Setup > Verbruik tools).
+  Zelfde conventie als credentials.html / agents.html:
+  - deelt de Supabase Auth-sessie met organisation.html (zelfde origin -> localStorage-sessie),
+  - leest SUPABASE_URL + anon key uit dewi-config.js, geen eigen loginformulier,
+  - eigen <header> met het DEWI-merkje zodat dewi-frame.js de paneel-toggle plaatst.
+  Leest alleen views: bridge_tool_usage (laatste stand) en bridge_tool_usage_daily (dagverloop).
+  Beide security_invoker + RLS "authenticated and not dewi_is_team()": zonder sessie of als team = 0 rijen.
+  Data komt van agent tool-usage "HDB · MGMT · Verbruik Tools" (n8n NrymXzZLlkNGc1AB, 4x per dag)
+  -> tool_usage_snapshots. Plannen/limieten die de API niet levert staan in tool_quota_config (Rick beheert).
+-->
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Verbruik tools · DEWI</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.7"></script>
+<script src="dewi-config.js"></script>
+<script src="dewi-frame.js"></script><!-- uniforme paneel-toggle + menu -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0b0f14; --panel:#111823; --panel-2:#0e141d; --line:#1e2937;
+    --ink:#e6edf3; --muted:#7d8da8; --accent:#5eb0ff;
+    --ok:#3ecf8e; --warn:#f5a623; --crit:#e5484d; --idle:#4a5a72;
+    --radius:12px;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:'Inter',system-ui,sans-serif;
+    font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased}
+  a{color:var(--accent);text-decoration:none}
+  a:hover{text-decoration:underline}
+  a:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px}
+  .mono{font-family:'JetBrains Mono',ui-monospace,monospace}
+
+  /* kop gelijk aan credentials.html / agents.html: merkje links, toggle ernaast */
+  header{display:flex;align-items:center;gap:18px;padding:14px 22px;
+    border-bottom:1px solid var(--line);background:var(--panel);position:sticky;top:0;z-index:6}
+  header .brand{font-weight:900;letter-spacing:.28em;color:#00d4ff;font-size:15px}
+
+  #wrap{padding:18px 18px 40px}
+  .head{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap;
+    border-bottom:1px solid var(--line);padding-bottom:14px;margin-bottom:18px}
+  .head h1{margin:0;font-size:20px;font-weight:700;letter-spacing:.2px}
+  .head .sub{color:var(--muted);font-size:12.5px}
+  .tally{display:flex;gap:10px;flex-wrap:wrap}
+  .stat{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:6px 12px;min-width:74px;text-align:center}
+  .stat b{display:block;font-size:18px;font-family:'JetBrains Mono',monospace}
+  .stat span{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px}
+  .stat.ok b{color:var(--ok)} .stat.warn b{color:var(--warn)} .stat.crit b{color:var(--crit)}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:14px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:16px 16px 14px;
+    display:flex;flex-direction:column;gap:12px;position:relative;overflow:hidden}
+  .card::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--idle)}
+  .card.s-ok::before{background:var(--ok)} .card.s-warn::before{background:var(--warn)}
+  .card.s-critical::before{background:var(--crit)}
+  .top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+  .name{font-size:16px;font-weight:700}
+  .plan{color:var(--muted);font-size:12px}
+  .pill{font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:.7px;padding:3px 8px;border-radius:999px;
+    border:1px solid currentColor;white-space:nowrap}
+  .pill.ok{color:var(--ok)} .pill.warn{color:var(--warn)} .pill.critical{color:var(--crit)}
+  .pill.nolimit,.pill.prepaid,.pill.stale,.pill.nodata{color:var(--muted)}
+  .big{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+  .big .pct{font-size:30px;font-weight:700;font-family:'JetBrains Mono',monospace;line-height:1}
+  .big .of{color:var(--muted);font-size:13px}
+  .bar{position:relative;height:10px;border-radius:6px;background:var(--panel-2);border:1px solid var(--line);overflow:visible}
+  .bar .fill{position:absolute;left:0;top:0;bottom:0;border-radius:6px;background:var(--ok);max-width:100%}
+  .card.s-warn .bar .fill{background:var(--warn)} .card.s-critical .bar .fill{background:var(--crit)}
+  .bar .proj{position:absolute;left:0;top:0;bottom:0;border-radius:6px;background:repeating-linear-gradient(135deg,rgba(245,166,35,.35) 0 4px,transparent 4px 8px)}
+  .bar .tick{position:absolute;top:-4px;bottom:-4px;width:2px;background:var(--ink);opacity:.55;border-radius:1px}
+  .legend{display:flex;justify-content:space-between;gap:8px;color:var(--muted);font-size:11.5px;margin-top:5px}
+  .facts{display:grid;grid-template-columns:1fr 1fr;gap:6px 14px;font-size:12.5px}
+  .facts div span{display:block;color:var(--muted);font-size:10.5px;text-transform:uppercase;letter-spacing:.6px}
+  .facts div b{font-weight:600;font-family:'JetBrains Mono',monospace;font-size:13px}
+  .spark{height:36px;width:100%}
+  .brk{display:flex;flex-direction:column;gap:4px;font-size:12px}
+  .brk-h{color:var(--muted);font-size:10.5px;text-transform:uppercase;letter-spacing:.6px}
+  .brk-r{display:grid;grid-template-columns:minmax(0,1.4fr) 1fr auto;align-items:center;gap:8px}
+  .brk-r span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:'JetBrains Mono',monospace;font-size:11.5px}
+  .brk-r i{display:block;height:6px;border-radius:3px;background:var(--accent);opacity:.7}
+  .brk-r b{font-family:'JetBrains Mono',monospace;font-weight:600;font-size:12px}
+  .info{color:var(--muted);font-size:11.5px;line-height:1.45}
+  .foot{display:flex;justify-content:space-between;align-items:center;gap:8px;color:var(--muted);font-size:11.5px;
+    border-top:1px solid var(--line);padding-top:10px;margin-top:auto}
+  .hint{background:var(--panel-2);border:1px dashed var(--line);border-radius:8px;padding:8px 10px;font-size:12px;color:var(--muted)}
+  .note{margin-top:18px;color:var(--muted);font-size:12px;max-width:110ch}
+  .state{display:flex;align-items:center;justify-content:center;min-height:60vh;color:var(--muted)}
+  .state .box{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:22px 26px;max-width:420px;text-align:center}
+  .state h3{margin:0 0 6px;color:var(--ink);font-size:15px}
+  .state a.btn{display:inline-block;margin-top:14px;background:var(--accent);color:#04121f;border-radius:9px;padding:9px 16px;font-weight:600}
+  @media (max-width:520px){ header{padding:12px 14px} #wrap{padding:14px 12px 30px} .grid{grid-template-columns:1fr} .big .pct{font-size:26px} }
+</style>
+</head>
+<body>
+<header>
+  <span class="brand">DEWI</span>
+</header>
+
+<div id="app"><div class="state"><div class="box">Laden…</div></div></div>
+
+<script>
+// ---- Config uit dewi-config.js (zelfde als de andere DEWI-pagina's) ----
+const CFG = window.DEWI_CONFIG || window.BRIDGE_CONFIG || {};
+const SUPABASE_URL  = window.SUPABASE_URL || CFG.SUPABASE_URL;
+const SUPABASE_ANON = window.SUPABASE_ANON_KEY || window.SUPABASE_ANON
+                   || CFG.SUPABASE_ANON_KEY || CFG.SUPABASE_ANON;
+
+const app = document.getElementById("app");
+
+if(!SUPABASE_URL || !SUPABASE_ANON){
+  app.innerHTML = `<div class="state"><div class="box"><h3>Config ontbreekt</h3>
+    <p>dewi-config.js levert geen <code>SUPABASE_URL</code> / anon key onder de verwachte naam.</p></div></div>`;
+  throw new Error("dewi-config.js: SUPABASE_URL/anon key niet gevonden");
+}
+
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+
+const STATUS_LABEL = { ok:"op koers", warn:"loopt voor", critical:"bijna op", nolimit:"limiet onbekend", prepaid:"prepaid tegoed", stale:"meting oud", nodata:"nog geen meting" };
+// dec = vaste decimalen; max = hooguit zoveel decimalen (credits kunnen gebroken zijn, bv. Cloudinary)
+const UNIT = {
+  USD:{pre:"$",dec:2,word:""}, EUR:{pre:"€ ",dec:2,word:""},
+  executions:{dec:0,word:"executies"}, credits:{dec:0,max:2,word:"credits"},
+  emails:{dec:0,word:"e-mails"}, minutes:{dec:0,word:"minuten"}, contacts:{dec:0,word:"contacten"}
+};
+
+function esc(s){return String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));}
+function fmt(v, unit){
+  if(v===null||v===undefined||v==="") return "–";
+  const u = UNIT[unit]||{dec:0,word:unit};
+  const n = Number(v);
+  const s = n.toLocaleString("nl-NL",{minimumFractionDigits:u.dec,maximumFractionDigits:(u.max??u.dec)});
+  return (u.pre||"") + s;
+}
+function unitWord(unit){ return (UNIT[unit]||{word:unit}).word; }
+function d(ts){ if(!ts) return "–"; return new Date(ts).toLocaleDateString("nl-NL",{day:"numeric",month:"short",timeZone:"Europe/Madrid"}); }
+function ago(ts){
+  if(!ts) return "nooit";
+  const m = Math.round((Date.now()-new Date(ts).getTime())/60000);
+  if(m<60) return m+" min geleden";
+  const h = Math.round(m/60); if(h<48) return h+" u geleden";
+  return Math.round(h/24)+" d geleden";
+}
+function daysLeft(end){ if(!end) return null; return Math.max(0, Math.ceil((new Date(end)-Date.now())/86400000)); }
+
+async function boot(){
+  const { data:{ session } } = await sb.auth.getSession();
+  if(!session){ renderLoggedOut(); return; }
+  await load();
+}
+sb.auth.onAuthStateChange((_e, session)=>{ if(session) load(); else renderLoggedOut(); });
+
+function renderLoggedOut(){
+  app.innerHTML = `<div class="state"><div class="box"><h3>Niet ingelogd</h3>
+    <p>Dit scherm deelt de login van DEWI. Log in op het hoofdscherm en dit scherm vult zich vanzelf.</p>
+    <a class="btn" href="organisation.html" target="_top">Naar DEWI</a></div></div>`;
+}
+
+let loading = false;
+async function load(){
+  if(loading) return; loading = true;
+  try{
+    const [u, h] = await Promise.all([
+      sb.from("bridge_tool_usage").select("*").order("sort_order"),
+      sb.from("bridge_tool_usage_daily").select("tool,day,used,plan_limit").order("day")
+    ]);
+    if(u.error) throw u.error;
+    render(u.data||[], h.error ? [] : (h.data||[]));
+  }catch(e){
+    app.innerHTML = `<div id="wrap"><div class="hint">Kon niet laden: ${esc(e.message||e)}</div></div>`;
+  }finally{ loading = false; }
+}
+
+function spark(rows, unit){
+  const pts = rows.filter(r=>r.used!==null);
+  if(pts.length < 2) return "";
+  const W=300,H=36,P=2;
+  const max = Math.max(...pts.map(r=>Number(r.plan_limit)||0), ...pts.map(r=>Number(r.used)));
+  if(!max) return "";
+  const x = i => P + i*(W-2*P)/(pts.length-1);
+  const y = v => H-P - (Number(v)/max)*(H-2*P);
+  const line = pts.map((r,i)=>(i?"L":"M")+x(i).toFixed(1)+" "+y(r.used).toFixed(1)).join(" ");
+  const lim = pts[pts.length-1].plan_limit;
+  const limLine = lim ? `<line x1="${P}" x2="${W-P}" y1="${y(lim).toFixed(1)}" y2="${y(lim).toFixed(1)}" stroke="#4a5a72" stroke-dasharray="3 3" stroke-width="1"/>` : "";
+  return `<svg class="spark" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img" aria-label="verloop per dag">
+    ${limLine}<path d="${line}" fill="none" stroke="#5eb0ff" stroke-width="1.6" vector-effect="non-scaling-stroke"/>
+    <title>${pts.map(r=>esc(r.day)+": "+fmt(r.used,unit)).join("\n")}</title></svg>`;
+}
+
+// Grootste posten: raw.top = [{label, value}], raw.top_unit = eenheid van value
+function breakdown(t){
+  const raw = t.raw || {};
+  const top = Array.isArray(raw.top) ? raw.top.filter(x=>x && Number(x.value)>0) : [];
+  if(!top.length) return "";
+  const tu = raw.top_unit || t.unit;
+  const tot = top.reduce((a,x)=>a+Number(x.value),0) || 1;
+  const title = tu==="executions" ? "Meeste runs deze periode" : "Grootste posten" + (tu==="USD"||tu==="EUR" ? " ("+tu+")" : "");
+  return `<div class="brk"><span class="brk-h">${esc(title)}</span>${top.map(x=>`<div class="brk-r"><span title="${esc(x.label)}">${esc(x.label)}</span><i style="width:${Math.max(2,Math.round(100*Number(x.value)/tot))}%"></i><b>${fmt(x.value,tu)}</b></div>`).join("")}</div>`;
+}
+
+function card(t, hist){
+  const st = t.status||"nodata";
+  const rolling = t.period_type==="rolling_30d";
+  const prepaid = t.period_type==="prepaid";
+  const level = t.period_type==="level";
+  const pct = t.pct_used!==null ? Number(t.pct_used) : null;
+  const pctProj = t.pct_projected!==null ? Number(t.pct_projected) : null;
+  const pctPer = t.pct_period!==null && t.pct_period!==undefined ? Number(t.pct_period) : null;
+  const left = daysLeft(t.period_end);
+  let barHTML = "";
+  if(pct!==null){
+    const projW = pctProj!==null && pctProj>pct ? Math.min(pctProj,100) : 0;
+    const legend = pctPer!==null
+      ? `<span>${d(t.period_start)}</span><span>vandaag ${pctPer.toFixed(0)}% van de periode</span><span>${d(t.period_end)}</span>`
+      : `<span>${rolling ? "voortschrijdend venster, laatste 30 dagen" : (prepaid ? "verbruik deze kalendermaand" : (level ? "actuele stand, geen reset" : "periode onbekend"))}</span>`;
+    barHTML = `<div>
+      <div class="bar">
+        ${projW ? `<div class="proj" style="width:${projW}%"></div>`:""}
+        <div class="fill" style="width:${Math.min(pct,100)}%"></div>
+        ${pctPer!==null ? `<div class="tick" style="left:calc(${Math.min(pctPer,100)}% - 1px)" title="${pctPer}% van de periode verstreken"></div>`:""}
+      </div>
+      <div class="legend">${legend}</div>
+    </div>`;
+  }
+  const hasAny = t.used!==null || t.remaining!==null;
+  const big = pct!==null
+    ? `<div class="big"><span class="pct">${pct.toLocaleString("nl-NL",{maximumFractionDigits:1})}%</span>
+         <span class="of">${fmt(t.used,t.unit)} van ${fmt(t.plan_limit,t.unit)} ${esc(unitWord(t.unit))}</span></div>`
+    : t.remaining!==null
+      ? `<div class="big"><span class="pct">${fmt(t.remaining,t.unit)}</span><span class="of">${prepaid ? "tegoed resterend" : esc(unitWord(t.unit))+" resterend"}</span></div>`
+      : t.used!==null
+        ? `<div class="big"><span class="pct">${fmt(t.used,t.unit)}</span><span class="of">${esc(unitWord(t.unit))} verbruikt deze periode</span></div>`
+        : `<div class="big"><span class="pct">–</span><span class="of">nog geen meting</span></div>`;
+  let hint = "";
+  if(st==="nolimit" && hasAny){
+    hint = `<div class="hint">${t.used===null ? "De API geeft alleen het resterende tegoed. " : "Er is nog geen plafond bekend. "}Vul het plafond in <span class="mono">tool_quota_config.plan_limit</span> (tool <span class="mono">${esc(t.tool)}</span>) voor een percentage.</div>`;
+  }else if(st==="stale"||st==="nodata"||t.note){
+    hint = `<div class="hint">${t.note ? "Laatste meting mislukt: "+esc(t.note) : (st==="nodata" ? "Nog geen meting. De agent meet om 03:10, 09:10, 15:10 en 21:10." : "Geen geslaagde meting in de laatste 30 uur.")}</div>`;
+  }
+  const facts = prepaid && pct===null
+    ? `<div class="facts">
+      <div><span>Resterend</span><b>${fmt(t.remaining,t.unit)}</b></div>
+      <div><span>Verbruikt deze maand</span><b>${fmt(t.used,t.unit)}</b></div>
+      <div><span>Bijna op onder</span><b>${t.warn_remaining!==null && t.warn_remaining!==undefined ? fmt(t.warn_remaining,t.unit) : "–"}</b></div>
+      <div><span>Kosten / maand</span><b>${t.cost_eur_month!==null ? "€ "+Number(t.cost_eur_month).toLocaleString("nl-NL") : "–"}</b></div>
+    </div>`
+    : `<div class="facts">
+      <div><span>Resterend</span><b>${fmt(t.remaining,t.unit)}</b></div>
+      <div><span>Prognose einde periode</span><b>${pctProj!==null ? fmt(t.projected,t.unit)+" ("+pctProj.toFixed(0)+"%)" : "–"}</b></div>
+      <div><span>Dagen tot reset</span><b>${left===null?"–":left}</b></div>
+      <div><span>Kosten / maand</span><b>${t.cost_eur_month!==null ? "€ "+Number(t.cost_eur_month).toLocaleString("nl-NL") : "–"}</b></div>
+    </div>`;
+  const through = t.raw && t.raw.through_day ? ` · telling t/m ${d(t.raw.through_day+"T12:00:00Z")}` : "";
+  return `<div class="card s-${esc(st)}">
+    <div class="top">
+      <div><div class="name">${esc(t.label)}</div><div class="plan">${esc(t.plan_name||"plan onbekend")}${unitWord(t.unit) ? " · "+esc(unitWord(t.unit)) : " · "+esc(t.unit)}</div></div>
+      <span class="pill ${esc(st)}">${esc(STATUS_LABEL[st]||st)}</span>
+    </div>
+    ${big}${barHTML}${hint}${facts}${breakdown(t)}
+    ${spark(hist, t.unit)}
+    ${t.info ? `<div class="info">${esc(t.info)}</div>` : ""}
+    <div class="foot"><span>${t.ok_at ? "Gemeten "+esc(ago(t.ok_at)) : (t.captured_at ? "Laatste poging "+esc(ago(t.captured_at)) : "Nog niet gemeten")}${through}</span>${t.manage_url?`<a href="${esc(t.manage_url)}" target="_blank" rel="noopener">Beheer ↗</a>`:""}</div>
+  </div>`;
+}
+
+function render(rows, hist){
+  const n = { ok:0, warn:0, critical:0 };
+  rows.forEach(r=>{ if(n[r.status]!==undefined) n[r.status]++; });
+  const byTool = {}; hist.forEach(h=>{ (byTool[h.tool]=byTool[h.tool]||[]).push(h); });
+  app.innerHTML = `<div id="wrap">
+    <div class="head">
+      <div><h1>Verbruik tools</h1><div class="sub">Maandverbruik van betaalde tools met een plafond · live uit Supabase, gemeten 4× per dag</div></div>
+      <div class="tally">
+        <div class="stat ok"><b>${n.ok}</b><span>op koers</span></div>
+        <div class="stat warn"><b>${n.warn}</b><span>loopt voor</span></div>
+        <div class="stat crit"><b>${n.critical}</b><span>bijna op</span></div>
+      </div>
+    </div>
+    <div class="grid">${rows.map(r=>card(r, byTool[r.tool]||[])).join("") || `<div class="hint">Geen tools zichtbaar. Dit scherm is alleen voor het beheerdersaccount; als collega zie je hier niets.</div>`}</div>
+    <div class="note">Witte streep = hoeveel van de periode verstreken is; ligt de balk ervoor, dan gaat het verbruik sneller dan de klok. Gearceerd = prognose tot einde periode (vanaf 15% van de periode). Loopt voor = prognose boven het plafond of 75% verbruikt; bijna op = 90% verbruikt.
+      Ook gratis plannen met een plafond (Cloudinary) en prepaid tegoed (fal.ai: saldo, bijna op onder de ingestelde grens) staan erbij. Diensten zonder verbruiksplafond (Shopify, Supabase, Google, Meta, Pinterest, GitHub Pages), Higgsfield en het Claude-chatabonnement (geen API voor het verbruik) staan hier niet.</div>
+  </div>`;
+}
+
+boot();
+setInterval(()=>{ if(document.visibilityState==="visible") load(); }, 5*60*1000);
+</script>
+</body>
+</html>
