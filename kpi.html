@@ -252,38 +252,43 @@
   .prop-tag.newsletter{background:var(--green)}
   .prop-tag.stories{background:var(--orange)}
   .prop-tag.reels{background:#c96dd8}
-  /* Ingepland (opt-out): geplande tijd + Tegenhouden */
-  .sched-item{display:flex;gap:9px;border:1px solid var(--line);border-radius:10px;padding:8px 10px;background:rgba(0,212,255,.03)}
-  .sched-item.held{opacity:.6;background:rgba(255,93,93,.04)}
-  .sched-when{font:700 10px/1 system-ui;color:var(--cyan);display:flex;align-items:center;gap:5px}
-  .sched-item.held .sched-when{color:var(--muted)}
-  /* Postschema (05-10): twee momenten per item — in pijplijn (klaargezet) vs. gaat live (publicatie) */
-  #schedBody{display:flex;flex-direction:column;gap:8px}
-  .sched-key{display:flex;flex-direction:column;gap:3px;font:500 10px/1.4 system-ui;color:var(--muted);
-    border:1px dashed var(--line);border-radius:8px;padding:7px 10px}
-  .sched-key b{font-weight:700;letter-spacing:.06em;text-transform:uppercase;font-size:9px}
-  .sched-key .k-pipe b{color:var(--text)}
-  .sched-key .k-live b{color:var(--cyan)}
-  .sched-day{display:flex;align-items:center;gap:8px;margin:6px 0 -2px;
-    font:800 9px/1 system-ui;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
-  .sched-day b{color:var(--cyan)}
-  .sched-day::after{content:"";flex:1;height:1px;background:var(--line)}
-  .sched-row{display:flex;align-items:flex-end;justify-content:space-between;gap:8px;margin-top:6px}
-  .sched-row .sched-hold,.sched-row .sched-held-tag{flex:none;white-space:nowrap}
-  .sched-times{display:grid;grid-template-columns:auto 1fr;gap:4px 9px;align-items:baseline;min-width:0}
-  .sched-lbl{font:700 8px/1 system-ui;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);white-space:nowrap}
-  .sched-val{font:500 10px/1.2 system-ui;color:var(--muted)}
-  .sched-val i{font-style:normal;font-weight:500;color:var(--muted);margin-left:6px}
-  .sched-lbl.live{color:var(--cyan)}
-  .sched-val.live{font-weight:700;font-size:11px;color:var(--cyan)}
-  .sched-item.late .sched-lbl.live,.sched-item.late .sched-val.live,.sched-item.late .sched-val.live i{color:var(--orange)}
-  .sched-item.held .sched-lbl.live,.sched-item.held .sched-val.live{color:var(--muted)}
-  .sched-item.held .sched-val.live s{text-decoration:line-through}
-  .sched-hold{font:700 9px/1 system-ui;letter-spacing:.06em;padding:6px 10px;border-radius:6px;cursor:pointer;
-    border:1px solid rgba(255,93,93,.4);color:var(--red);background:transparent}
-  .sched-hold:hover{background:var(--red);color:#fff}
-  .sched-held-tag{font:700 8px/1 system-ui;letter-spacing:.06em;color:var(--red);
-    border:1px solid rgba(255,93,93,.35);border-radius:5px;padding:4px 7px}
+  /* Planning-strook (08-10): vaste hoogte, weekrooster 7 dagen, detailregel bij klik.
+     Vervangt de kaartenlijst "Postschema" (opt-out: niets doen = post gaat live). */
+  #planBody{display:flex;flex-direction:column;gap:10px}
+  .pl-stats{display:flex;flex-wrap:wrap;gap:6px 16px;align-items:center}
+  .pl-stat{font:500 10px/1.2 system-ui;color:var(--muted)}
+  .pl-stat b{font:800 12px/1 system-ui;color:var(--text);margin-left:5px}
+  .pl-stat.warn b{color:var(--orange)} .pl-stat.bad b{color:var(--red)} .pl-stat.new b{color:var(--cyan)}
+  .pl-next{font:500 10px/1.3 system-ui;color:var(--muted)}
+  .pl-next b{color:var(--cyan);font-weight:700}
+  .pl-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}
+  .pl-col{display:flex;flex-direction:column;gap:4px;min-width:0}
+  .pl-day{font:700 9px/1 system-ui;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:0 0 3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .pl-day.today{color:var(--cyan)}
+  .pl-chip{display:flex;align-items:center;gap:4px;width:100%;font:600 10px/1.25 system-ui;padding:4px 6px;border-radius:6px;
+    border:1px solid transparent;cursor:pointer;text-align:left;color:#0a1018;overflow:hidden;white-space:nowrap}
+  .pl-chip span{overflow:hidden;text-overflow:ellipsis}
+  .pl-chip.social{background:#ff5fa2} .pl-chip.stories{background:var(--orange)} .pl-chip.reels{background:#c96dd8}
+  .pl-chip.late{background:transparent;border-color:var(--orange);color:var(--orange)}
+  .pl-chip.held{background:transparent;border-color:rgba(255,93,93,.5);color:var(--red);text-decoration:line-through}
+  .pl-chip.sel{outline:2px solid var(--cyan);outline-offset:1px}
+  .pl-new{width:6px;height:6px;border-radius:50%;background:var(--cyan);flex:none;margin-left:auto;box-shadow:0 0 0 1px #0a1018}
+  .pl-gap{font:500 9px/1.2 system-ui;color:var(--muted);padding:4px 6px;border:1px dashed var(--line);border-radius:6px;text-align:center}
+  .pl-legend{display:flex;flex-wrap:wrap;gap:4px 12px;align-items:center;font:500 9px/1.2 system-ui;color:var(--muted)}
+  .pl-legend i{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:4px;vertical-align:-1px}
+  .pl-legend .more{margin-left:auto}
+  .pl-detail{display:flex;gap:10px;align-items:center;border-top:1px solid var(--line);padding-top:10px}
+  .pl-detail .prop-thumb{width:52px;height:52px}
+  .pl-detail-main{min-width:0;flex:1}
+  .pl-detail-t{font:700 11px/1.3 system-ui;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .pl-detail-m{font:500 10px/1.4 system-ui;color:var(--muted);margin-top:2px}
+  .pl-detail-m b{color:var(--cyan);font-weight:700}
+  .pl-detail.late .pl-detail-m b{color:var(--orange)} .pl-detail.held .pl-detail-m b{color:var(--red);text-decoration:line-through}
+  .pl-detail-btns{display:flex;gap:6px;flex:none}
+  .pl-btn{font:700 9px/1 system-ui;letter-spacing:.06em;padding:6px 10px;border-radius:6px;cursor:pointer;background:transparent;border:1px solid var(--line);color:var(--text);text-decoration:none}
+  .pl-btn.hold{border-color:rgba(255,93,93,.4);color:var(--red)} .pl-btn.hold:hover{background:var(--red);color:#fff}
+  .pl-held-tag{font:700 8px/1 system-ui;letter-spacing:.06em;color:var(--red);border:1px solid rgba(255,93,93,.35);border-radius:5px;padding:4px 7px}
+  .pl-hint{font:500 9px/1.3 system-ui;color:var(--muted);text-align:center}
   .prop-title{font:700 11px/1.2 system-ui;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .prop-sub{font:500 9px/1.3 system-ui;color:var(--muted)}
   .prop-prev{font:500 10px/1.35 system-ui;color:var(--text);opacity:.8;margin-top:3px;
@@ -560,29 +565,30 @@
       <div id="al-body"><div class="al-empty">laden&hellip;</div></div>
     </section>
 
-    <!-- ==================== VOORSTELLEN (verschijnt alleen als er openstaande voorstellen zijn) ==================== -->
+    <!-- ==================== PLANNING (08-10): te beslissen + opt-out-planning in één strook met vaste hoogte ==================== -->
     <section class="zone hidden" id="z-prop" style="--acc:var(--yellow)">
       <div class="zone-head">
         <span class="zi">!</span>
-        <span class="zt">Voorstellen</span>
-        <span class="zs">wachten op goedkeuring</span>
+        <span class="zt">Planning</span>
+        <span class="zs">te beslissen &middot; gaat vanzelf live &middot; tegenhouden kan</span>
         <span class="zkpi">
-          <div>Openstaand<b id="zs-prop-count">&mdash;</b></div>
+          <div>Te beslissen<b id="zs-prop-count">&mdash;</b></div>
+          <div>Ingepland<b id="zs-prop-sched">&mdash;</b></div>
         </span>
         <button class="fold" data-zone="prop">&minus;</button>
       </div>
       <div class="zone-body">
-        <div class="card">
-          <h2><span class="dot" style="background:var(--yellow)"></span>Voorstellen
-            <span class="when">wachten op goedkeuring</span>
+        <div class="card hidden" id="propCard">
+          <h2><span class="dot" style="background:var(--yellow)"></span>Te beslissen
+            <span class="when">wachten op jouw goedkeuring</span>
             <span class="prop-badge zero" id="propBadge">0</span></h2>
           <div id="propBody"><div class="sml-msg">laden&hellip;</div></div>
         </div>
         <div class="card">
-          <h2><span class="dot" style="background:var(--cyan)"></span>Postschema
-            <span class="when">ingepland &middot; nog niet live &middot; gaat vanzelf online op &ldquo;gaat live&rdquo;</span>
+          <h2><span class="dot" style="background:var(--cyan)"></span>Planning
+            <span class="when">niets doen = gaat live op het tijdstip &middot; klik een post voor details</span>
             <span class="prop-badge zero" id="schedBadge">0</span></h2>
-          <div id="schedBody"><div class="sml-msg">laden&hellip;</div></div>
+          <div id="planBody"><div class="sml-msg">laden&hellip;</div></div>
         </div>
       </div>
     </section>
@@ -2609,6 +2615,7 @@
       if(r.error){ console.warn("proposals_pending:", r.error.message); _nPending=0; syncPropZone(); body.innerHTML = '<div class="sml-msg">kon voorstellen niet laden</div>'; return; }
       var rows = r.data || [];
       _nPending = rows.length;
+      var pc = $("propCard"); if(pc) pc.classList.toggle("hidden", rows.length === 0);
       if(badge){ badge.textContent = String(rows.length); badge.classList.toggle("zero", rows.length === 0); }
       zset('zs-dewi-prop', String(rows.length), rows.length ? 'warn' : 'good');
       zset('zs-prop-count', String(rows.length), rows.length ? 'warn' : 'good');
@@ -2647,10 +2654,12 @@
     });
   })();
 
-  /* ================= Ingepland (opt-out) — bron: v_dewi_pipeline (scheduled + held).
-     Organic social/story (en straks reels) staan dagen vooruit klaar; niets doen = post op
-     scheduled_for. Tegenhouden hergebruikt dezelfde Dispatch-webhook als Telegram (action=skip
-     -> status=held), geen directe tabel-write. ================= */
+  /* ================= Planning (opt-out) — bron: v_dewi_pipeline (scheduled + held).
+     Organic social/story/reel staan dagen vooruit klaar; niets doen = post op scheduled_for.
+     Strook met vaste hoogte (08-10): tellers · eerstvolgende · weekrooster 7 dagen (chip per
+     post) · "+N later" · één detailregel bij klik. Tegenhouden hergebruikt de Dispatch-webhook
+     (action=skip -> status=held), geen directe tabel-write. "Nieuw" = created_at ná het vorige
+     bezoek (localStorage dewi_plan_seen). Volledige kaarten: social-studio.html. ================= */
   function schedFmt(iso){
     if(!iso) return '';
     var d = new Date(iso);
@@ -2658,19 +2667,8 @@
     var tm  = d.toLocaleTimeString('nl-NL',{hour:'2-digit',minute:'2-digit',timeZone:'Europe/Madrid'});
     return day + ' \u00B7 ' + tm;
   }
-  // Postschema (05-10): elk item toont TWEE momenten, expliciet gelabeld —
-  //   created_at    = "in pijplijn": door DEWI klaargezet, nog niet online zichtbaar
-  //   scheduled_for = "gaat live": moment waarop de Scheduler de post echt publiceert
-  // De bouwdatum in de titel ("Carrousel 04-10-2026 ...") wordt hier weggelaten: die leest als
-  // postdatum en staat al (in Madrid-tijd) achter "in pijplijn".
   function schedDayKey(iso){ return new Date(iso).toLocaleDateString('en-CA',{timeZone:'Europe/Madrid'}); }
-  function schedDayHead(iso){
-    var key = schedDayKey(iso), today = schedDayKey(new Date().toISOString());
-    var diff = Math.round((new Date(key + 'T12:00:00Z') - new Date(today + 'T12:00:00Z')) / 86400000);
-    var lbl = new Date(iso).toLocaleDateString('nl-NL',{weekday:'long',day:'numeric',month:'long',timeZone:'Europe/Madrid'});
-    var pre = diff === 0 ? 'vandaag' : diff === 1 ? 'morgen' : diff === 2 ? 'overmorgen' : diff < 0 ? 'verlopen' : '';
-    return '<div class="sched-day">' + (pre ? '<b>' + pre + '</b>' : '') + '<span>' + lbl + '</span></div>';
-  }
+  function schedTime(iso){ return new Date(iso).toLocaleTimeString('nl-NL',{hour:'2-digit',minute:'2-digit',timeZone:'Europe/Madrid'}); }
   // {txt, late}: afstand tot het live-moment
   function schedRel(iso){
     var ms = new Date(iso) - Date.now(), min = Math.round(Math.abs(ms) / 60000);
@@ -2688,61 +2686,123 @@
       + "&id=" + encodeURIComponent(id) + "&action=skip", "_blank", "noopener");
     setTimeout(loadScheduled, 4000); setTimeout(loadScheduled, 12000);
   }
+  var _planRows = [], _planSel = null, _planSeen = 0, _planSeenNext = 0;
+  try{ _planSeen = Number(localStorage.getItem('dewi_plan_seen') || 0); }catch(e){}
+  var SLOT_LBL = { social:'carr.', stories:'story', reels:'reel' };
+  var KIND_LBL = { social:'carrousel', still:'still', story_video:'story', reel:'reel' };
+  function planEsc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+  function planState(r){
+    if(r.phase === 'held') return 'held';
+    if(r.scheduled_for && schedRel(r.scheduled_for).late) return 'late';
+    return '';
+  }
+  function planTitle(r){ return String(r.title || '').replace(/\s*\b\d{2}-\d{2}-\d{4}\b/, ''); }
+  function renderPlanDetail(){
+    var box = $("planDetail"); if(!box) return;
+    var r = _planRows.filter(function(x){ return x.id === _planSel; })[0];
+    if(!r){ box.innerHTML = '<div class="pl-hint">klik een post in het rooster voor details \u00B7 volledige kaarten in Social Studio</div>'; box.className = 'pl-detail'; return; }
+    var st = planState(r), held = st === 'held';
+    var thumb = r.image_url ? '<img class="prop-thumb" src="' + planEsc(r.image_url) + '" loading="lazy" alt="">' : '<div class="prop-thumb ph">\u2709</div>';
+    var live = !r.scheduled_for ? 'nog geen tijdstip'
+      : held ? '<b>' + schedFmt(r.scheduled_for) + '</b> tegengehouden \u2014 wordt niet gepost'
+      : '<b>' + schedFmt(r.scheduled_for) + '</b> ' + schedRel(r.scheduled_for).txt;
+    var sub = (r.origin_label && r.origin_label !== r.title) ? ' \u00B7 ' + planEsc(r.origin_label) : '';
+    box.className = 'pl-detail' + (st ? ' ' + st : '');
+    box.innerHTML = thumb + '<div class="pl-detail-main">'
+      + '<div class="pl-detail-t">' + planEsc(planTitle(r)) + sub + '</div>'
+      + '<div class="pl-detail-m">Gaat live ' + live + ' \u00B7 in pijplijn sinds ' + (r.created_at ? schedFmt(r.created_at) : '\u2014') + '</div></div>'
+      + '<div class="pl-detail-btns">'
+      + '<a class="pl-btn" href="social-studio.html?id=' + encodeURIComponent(r.id) + '" target="_blank" rel="noopener">BEKIJK IN STUDIO</a>'
+      + (held ? '<span class="pl-held-tag">\u26D4 TEGENGEHOUDEN</span>'
+              : '<button class="pl-btn hold" data-id="' + planEsc(r.id) + '" data-kind="' + planEsc(r.kind) + '">\u26D4 TEGENHOUDEN</button>')
+      + '</div>';
+  }
+  function renderPlan(){
+    var body = $("planBody"); if(!body) return;
+    var rows = _planRows;
+    if(!rows.length){ body.innerHTML = '<div class="sml-msg">niets ingepland</div>'; return; }
+    var todayKey = schedDayKey(new Date().toISOString());
+    var days = [], byDay = {};
+    for(var i = 0; i < 7; i++){
+      var d = new Date(); d.setUTCDate(d.getUTCDate() + i);
+      var k = schedDayKey(d.toISOString()); days.push({ key:k, date:d }); byDay[k] = [];
+    }
+    var later = 0, lastLive = null, nToday = 0, n7 = 0, nNew = 0, nHeld = 0, nLate = 0, next = null;
+    rows.forEach(function(r){
+      var st = planState(r);
+      if(st === 'held') nHeld++; else if(st === 'late') nLate++;
+      if(r.created_at && new Date(r.created_at).getTime() > _planSeen) nNew++;
+      if(!r.scheduled_for) return;
+      var k = schedDayKey(r.scheduled_for);
+      if(byDay[k]){ byDay[k].push(r); n7++; if(k === todayKey) nToday++; }
+      else if(k > todayKey){ later++; lastLive = r.scheduled_for; }
+      else if(st === 'late' && byDay[todayKey]) { byDay[todayKey].unshift(r); }
+      if(!next && st === '' && new Date(r.scheduled_for) > Date.now()) next = r;
+    });
+    var stats = '<div class="pl-stats">'
+      + '<span class="pl-stat">Vandaag<b>' + nToday + '</b></span>'
+      + '<span class="pl-stat">Komende 7 dagen<b>' + n7 + '</b></span>'
+      + '<span class="pl-stat new">Nieuw<b>' + nNew + '</b></span>'
+      + (nLate ? '<span class="pl-stat warn">Niet gepost<b>' + nLate + '</b></span>' : '')
+      + '<span class="pl-stat' + (nHeld ? ' bad' : '') + '">Tegengehouden<b>' + nHeld + '</b></span>'
+      + '</div>';
+    var nextHtml = next
+      ? '<div class="pl-next">\u23F1 Eerstvolgende: <b>' + planEsc(planTitle(next)) + '</b> \u00B7 ' + schedFmt(next.scheduled_for) + ' \u00B7 ' + schedRel(next.scheduled_for).txt + '</div>'
+      : '<div class="pl-next">Geen post meer gepland in de komende dagen.</div>';
+    var grid = '<div class="pl-grid">' + days.map(function(d, i){
+      var lbl = i === 0 ? 'vandaag' : i === 1 ? 'morgen'
+        : d.date.toLocaleDateString('nl-NL',{weekday:'short',day:'numeric',timeZone:'Europe/Madrid'});
+      var items = byDay[d.key];
+      var chips = items.length ? items.map(function(r){
+        var st = planState(r);
+        var isNew = r.created_at && new Date(r.created_at).getTime() > _planSeen;
+        var lbl2 = KIND_LBL[r.kind] || SLOT_LBL[r.slot] || String(r.slot||'');
+        return '<button type="button" class="pl-chip ' + planEsc(r.slot) + (st ? ' ' + st : '') + (r.id === _planSel ? ' sel' : '') + '" data-id="' + planEsc(r.id) + '" title="' + planEsc(planTitle(r)) + '">'
+          + '<span>' + schedTime(r.scheduled_for) + ' ' + planEsc(lbl2) + '</span>' + (isNew ? '<i class="pl-new"></i>' : '') + '</button>';
+      }).join('') : '<div class="pl-gap">niets</div>';
+      return '<div class="pl-col"><div class="pl-day' + (i === 0 ? ' today' : '') + '">' + lbl + '</div>' + chips + '</div>';
+    }).join('') + '</div>';
+    var legend = '<div class="pl-legend">'
+      + '<span><i style="background:#ff5fa2"></i>Social</span><span><i style="background:var(--orange)"></i>Stories</span><span><i style="background:#c96dd8"></i>Reels</span>'
+      + '<span><i style="background:var(--cyan);border-radius:50%;width:6px;height:6px"></i>Nieuw sinds je vorige bezoek</span>'
+      + '<span><i style="border:1px solid var(--orange);background:transparent"></i>Tijdstip voorbij</span>'
+      + '<span><i style="border:1px solid var(--red);background:transparent"></i>Tegengehouden</span>'
+      + (later ? '<span class="more">+' + later + ' later, t/m ' + schedFmt(lastLive).split(' \u00B7 ')[0] + '</span>' : '')
+      + '</div>';
+    body.innerHTML = stats + nextHtml + grid + legend + '<div class="pl-detail" id="planDetail"></div>';
+    renderPlanDetail();
+  }
   async function loadScheduled(){
-    var body = $("schedBody"), badge = $("schedBadge");
+    var body = $("planBody"), badge = $("schedBadge");
     if(!body) return;
     try{
       var r = await sb.from("v_dewi_pipeline").select("*").in("phase",["scheduled","held"]).order("scheduled_for",{ascending:true});
       if(r.error){ console.warn("v_dewi_pipeline:", r.error.message); _nSched=0; syncPropZone();
         if(badge){ badge.textContent="0"; badge.classList.add("zero"); }
+        zset('zs-prop-sched', '\u2014', 'warn');
         body.innerHTML = '<div class="sml-msg">kon planning niet laden</div>'; return; }
-      var rows = r.data || [];
-      _nSched = rows.length;
-      if(badge){ badge.textContent = String(rows.length); badge.classList.toggle("zero", rows.length === 0); }
+      _planRows = r.data || [];
+      _nSched = _planRows.length;
+      if(badge){ badge.textContent = String(_nSched); badge.classList.toggle("zero", _nSched === 0); }
+      zset('zs-prop-sched', String(_nSched), 'good');
       syncPropZone();
-      if(!rows.length){ body.innerHTML = '<div class="sml-msg">niets ingepland</div>'; return; }
-      var escp = function(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); };
-      var SLOT = { social:'SOCIAL', stories:'STORIES', reels:'REELS' };
-      var keyHtml = '<div class="sched-key">'
-        + '<span class="k-pipe"><b>In pijplijn</b> = door DEWI klaargezet. Nog n\u00EDet online zichtbaar.</span>'
-        + '<span class="k-live"><b>Gaat live</b> = het moment waarop de post echt online komt (tijd Madrid). '
-        + 'Niets doen = hij gaat live \u00B7 Tegenhouden = hij wordt niet gepost.</span></div>';
-      var lastDay = null;
-      body.innerHTML = keyHtml + rows.map(function(r){
-        var held  = r.phase === 'held';
-        var thumb = r.image_url ? '<img class="prop-thumb" src="' + escp(r.image_url) + '" loading="lazy" alt="">' : '<div class="prop-thumb ph">\u2709</div>';
-        var title = String(r.title || '').replace(/\s*\b\d{2}-\d{2}-\d{4}\b/, '');
-        var sub   = (r.origin_label && r.origin_label !== r.title) ? r.origin_label : '';
-        var rel   = (!held && r.scheduled_for) ? schedRel(r.scheduled_for) : null;
-        var head  = '';
-        if(r.scheduled_for){
-          var dk = schedDayKey(r.scheduled_for);
-          if(dk !== lastDay){ lastDay = dk; head = schedDayHead(r.scheduled_for); }
-        }
-        var liveVal = !r.scheduled_for ? '\u2014'
-          : held ? '<s>' + schedFmt(r.scheduled_for) + '</s><i>tegengehouden \u2014 wordt niet gepost</i>'
-          : schedFmt(r.scheduled_for) + '<i>' + rel.txt + '</i>';
-        var right = held
-          ? '<span class="sched-held-tag">\u26D4 TEGENGEHOUDEN</span>'
-          : '<button class="sched-hold" data-id="' + escp(r.id) + '" data-kind="' + escp(r.kind) + '">\u26D4 TEGENHOUDEN</button>';
-        return head + '<div class="sched-item' + (held ? ' held' : '') + (rel && rel.late ? ' late' : '') + '">' + thumb + '<div class="prop-main">'
-          + '<div class="prop-h"><span class="prop-tag ' + escp(r.slot) + '">' + (SLOT[r.slot] || escp(String(r.slot||'').toUpperCase())) + '</span>'
-          + '<span class="prop-title">' + escp(title) + '</span></div>'
-          + (sub ? '<div class="prop-sub">' + escp(sub) + '</div>' : '')
-          + '<div class="sched-row"><div class="sched-times">'
-          + '<span class="sched-lbl">In pijplijn</span><span class="sched-val">sinds ' + (r.created_at ? schedFmt(r.created_at) : '\u2014') + '</span>'
-          + '<span class="sched-lbl live">' + (held ? 'Zou live gaan' : 'Gaat live') + '</span><span class="sched-val live">' + liveVal + '</span>'
-          + '</div>' + right + '</div>'
-          + '</div></div>';
-      }).join('');
+      renderPlan();
+      // "gezien" pas na het renderen vastleggen, zodat de stippen in dit bezoek blijven staan
+      _planSeenNext = Date.now();
     }catch(e){ console.warn("scheduled:", e); _nSched=0; syncPropZone(); body.innerHTML = '<div class="sml-msg">fout bij laden</div>'; }
   }
   (function(){
-    var b = $("schedBody");
+    var b = $("planBody");
     if(b) b.addEventListener("click", function(ev){
-      var btn = ev.target.closest(".sched-hold");
-      if(btn){ holdScheduled(btn.dataset.id, btn.dataset.kind); }
+      var hold = ev.target.closest(".pl-btn.hold");
+      if(hold){ holdScheduled(hold.dataset.id, hold.dataset.kind); return; }
+      var chip = ev.target.closest(".pl-chip");
+      if(chip){ _planSel = (_planSel === chip.dataset.id) ? null : chip.dataset.id; renderPlan(); }
     });
+    // bezoek afsluiten = nieuw-markering verschuiven naar nu
+    var mark = function(){ if(_planSeenNext){ try{ localStorage.setItem('dewi_plan_seen', String(_planSeenNext)); }catch(e){} } };
+    window.addEventListener('pagehide', mark);
+    document.addEventListener('visibilitychange', function(){ if(document.visibilityState === 'hidden') mark(); });
   })();
 
   /* ---- Omzet & winst, laatste 7 dagen, per order uitklapbaar ---- */
