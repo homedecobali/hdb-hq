@@ -106,7 +106,7 @@
 
   <!-- 1. Stuurfactoren: versheid, dekking en databasis van het playbook -->
   <section class="panel" id="status">
-    <h2>Playbook-status &mdash; Competitor Intel &amp; Ad Playbook draait wekelijks ma 06:00, 2 uur voor de Build Factory</h2>
+    <h2>Playbook-status &mdash; Playbook Distiller draait wekelijks ma 08:00, na de harvesters en de reviews</h2>
     <div class="stats"><div class="loading" style="grid-column:1/-1">Laden&hellip;</div></div>
     <div class="banner" id="fallback-banner"></div>
   </section>
@@ -162,7 +162,7 @@
       <div id="comp-table"><div class="loading">Laden&hellip;</div></div>
     </section>
     <section class="panel" id="runs">
-      <h2>Run-historie &mdash; hoeveel concurrent-ads leverde elke scan?</h2>
+      <h2>Run-historie &mdash; Playbook Distiller, laatste 14 runs</h2>
       <div class="loading">Laden&hellip;</div>
     </section>
   </div>
@@ -200,13 +200,14 @@
 
   const [{data: pbRows, error: pbErr},{data: runRows},{data: compRows}] = await Promise.all([
     sb.from("ad_research_playbook").select("*").order("created_at",{ascending:false}).limit(60),
-    sb.from("runs").select("*").ilike("workflow_name","%Ad%Playbook%").order("created_at",{ascending:false}).limit(14),
+    sb.from("runs").select("*").ilike("workflow_name","%Playbook Distiller%").order("created_at",{ascending:false}).limit(14),
     sb.from("competitors").select("*").order("fit_score",{ascending:false,nullsFirst:false}).order("serp_hits",{ascending:false}).limit(200)
   ]);
 
   // ---- laatste snapshot: per taal x segment de nieuwste rij ----
   const latest = {};
-  (pbRows||[]).forEach(r=>{
+  // alleen ES/PT x product/lifestyle: rijen als language=multi/segment=blog tellen niet mee
+  (pbRows||[]).filter(r => LANG_LABEL[r.language] && SEG_LABEL[r.segment]).forEach(r=>{
     const k = r.language + "/" + r.segment;
     if(!latest[k]) latest[k] = r; // rows come newest-first
   });
@@ -218,9 +219,12 @@
   const lastRun = (runRows||[])[0] || null;
   const adsInRun = r => { const m = /(\d+)\s+concurrent-ads/.exec(r && r.summary || ""); return m ? Number(m[1]) : null; };
   const lastAds = lastRun ? adsInRun(lastRun) : null;
+  // Distiller-summary bevat geen "N concurrent-ads" maar wel "Gemeten bronnen: a, b, c."
+  const sourcesInRun = r => { const m = /Gemeten bronnen:\s*([^.]+)/i.exec(r && r.summary || ""); return m ? m[1].split(",").map(x=>x.trim()).filter(Boolean) : null; };
+  const lastSources = lastRun ? sourcesInRun(lastRun) : null;
   const webOnly = newest && /No competitor ad data/i.test(newest.source_notes||"") || lastAds === 0;
 
-  let freshCls = "bad", freshTxt = "Geen snapshot", freshSub = "Wacht op eerste run (ma 06:00)";
+  let freshCls = "bad", freshTxt = "Geen snapshot", freshSub = "Wacht op eerste run (ma 08:00)";
   if(newest){
     const vu = newest.valid_until ? new Date(newest.valid_until + "T23:59:59") : null;
     const daysLeft = vu ? Math.ceil((vu - Date.now())/86400000) : null;
@@ -233,9 +237,9 @@
   const expectedCombos = 4; // es/pt x product/lifestyle
   const covCls = combos.length >= expectedCombos ? "ok" : (combos.length ? "warn" : "bad");
 
-  const basisCls = webOnly ? "warn" : (lastAds != null ? "ok" : "info");
-  const basisTxt = webOnly ? "Web research" : (lastAds != null ? lastAds + " concurrent-ads" : "\u2014");
-  const basisSub = webOnly ? "Ad Library leverde 0 ads \u2014 fallback actief" : "Bewijs uit actieve concurrent-ads (Ad Library)";
+  const basisCls = webOnly ? "warn" : ((lastAds != null || lastSources) ? "ok" : "info");
+  const basisTxt = webOnly ? "Web research" : (lastAds != null ? lastAds + " concurrent-ads" : (lastSources ? lastSources.length + " bronnen" : "\u2014"));
+  const basisSub = webOnly ? "Ad Library leverde 0 ads \u2014 fallback actief" : (lastAds != null ? "Bewijs uit actieve concurrent-ads (Ad Library)" : (lastSources ? "Gemeten: " + lastSources.join(", ") : "Geen bronvermelding in de laatste run"));
 
   const runCls = lastRun ? (lastRun.success ? "ok" : "bad") : "bad";
   const runTxt = lastRun ? (lastRun.success ? "Geslaagd" : "Mislukt") : "Geen runs";
@@ -243,7 +247,7 @@
 
   statsEl.innerHTML =
     "<div class='stat'><div class='lbl'>Playbook geldig</div><div class='val "+freshCls+"'>"+esc(freshTxt)+"</div><div class='sub'>"+esc(freshSub)+"</div></div>"+
-    "<div class='stat'><div class='lbl'>Snapshot van</div><div class='val info'>"+(newest?fmtD(newest.created_at):"\u2014")+"</div><div class='sub'>Ververst elke maandag 06:00</div></div>"+
+    "<div class='stat'><div class='lbl'>Snapshot van</div><div class='val info'>"+(newest?fmtD(newest.created_at):"\u2014")+"</div><div class='sub'>Ververst elke maandag 08:00</div></div>"+
     "<div class='stat'><div class='lbl'>Dekking taal &times; segment</div><div class='val "+covCls+"'>"+combos.length+" / "+expectedCombos+"</div><div class='sub'>ES + PT &times; product + lifestyle</div></div>"+
     "<div class='stat'><div class='lbl'>Databasis laatste scan</div><div class='val "+basisCls+"'>"+esc(basisTxt)+"</div><div class='sub'>"+esc(basisSub)+"</div></div>"+
     "<div class='stat'><div class='lbl'>Laatste run</div><div class='val "+runCls+"'>"+esc(runTxt)+"</div><div class='sub'>"+esc(runSub)+"</div></div>";
@@ -251,7 +255,7 @@
   const banner = document.getElementById("fallback-banner");
   if(webOnly){
     banner.style.display = "block";
-    banner.innerHTML = "<b>Let op:</b> de laatste scan haalde geen concurrent-ads op uit de Meta Ad Library; het playbook draait volledig op web research. Controleer het Meta-token (Ad Library-permissie) in de node <span class='mono'>Fetch Ad Library ES+PT</span>, anders sturen we op algemene best practice in plaats van op wat concurrenten bewezen laten draaien.";
+    banner.innerHTML = "<b>Let op:</b> de laatste scan haalde geen concurrent-ads op uit de Meta Ad Library; het playbook draait volledig op web research. Controleer het Meta-token (Ad Library-permissie) van de <span class='mono'>Meta Ad Harvester</span> (R6q7NP99Y5cPzWV7), anders sturen we op algemene best practice in plaats van op wat concurrenten bewezen laten draaien.";
   } else if(lastRun && !lastRun.success){
     banner.style.display = "block";
     banner.className = "banner bad";
@@ -280,7 +284,7 @@
     hint.className = "crit-hint";
     hint.textContent = combos.length
       ? "Klik op een combinatie om de panelen hieronder te filteren; klik nogmaals om alles te tonen."
-      : "Nog geen playbook-snapshot. De eerste verschijnt na de run van maandag 06:00.";
+      : "Nog geen playbook-snapshot. De eerste verschijnt na de run van maandag 08:00.";
     filterPad.appendChild(hint);
   }
 
@@ -389,11 +393,12 @@
   const runs = runRows || [];
   if(runs.length){
     const maxAds = Math.max(1, ...runs.map(r => adsInRun(r) ?? 0));
-    runsEl.outerHTML = "<table><thead><tr><th>Wanneer</th><th>Status</th><th>Concurrent-ads</th><th>Samenvatting</th></tr></thead><tbody>"+
+    runsEl.outerHTML = "<table><thead><tr><th>Wanneer</th><th>Status</th><th>Concurrent-ads / bronnen</th><th>Samenvatting</th></tr></thead><tbody>"+
       runs.map(r=>{
         const n = adsInRun(r);
         const pct = n == null ? 0 : Math.round(n / maxAds * 100);
-        const adsCell = n == null ? "<span class='note'>\u2014</span>"
+        const srcs = sourcesInRun(r);
+        const adsCell = n == null ? (srcs ? "<span class='note'>" + esc(srcs.join(", ")) + "</span>" : "<span class='note'>\u2014</span>")
           : "<span class='bar-wrap'><span class='bar' style='width:"+pct+"%"+(n===0?";background:var(--amber)":"")+"'></span></span><span class='mono'>"+n+"</span>";
         return "<tr>"+
           "<td class='mono'>"+fmtDT(r.created_at)+"</td>"+
@@ -403,7 +408,7 @@
         "</tr>";
       }).join("")+"</tbody></table>";
   } else {
-    runsEl.textContent = "Nog geen runs gelogd voor de Competitor Intel & Ad Playbook-workflow.";
+    runsEl.textContent = "Nog geen runs gelogd voor de Playbook Distiller.";
   }
   // ---- 2b. organische hashtag-pool: vaste basis (dewi_config) + researched (hashtag_pool, Social Scout) ----
   try {
