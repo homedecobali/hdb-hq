@@ -60,6 +60,7 @@
     { id: "systeem", label: "Systeem", items: [
       { id: "org",           label: "Organisatie",  pane: "org",           url: "organisation.html",  ic: "\u2261", c: "#a37bff", kw: "organigram agents afdelingen alarm" },
       { id: "office",        label: "Office 3D",    url: "office.html",        ic: "\u25C6", c: "#a37bff", kw: "office kantoor 3d dashboard isometrisch afdelingen agents status tools vloer" },
+      { id: "office2",       label: "Office v2",    url: "office-v2.html",     ic: "\u25C7", c: "#a37bff", kw: "office v2 kantoor brain pijpen bureaus zoom gerenderd isometrisch afdelingen agents" },
       { id: "agents",        label: "Agents",       pane: "agents",        url: "agents.html",        ic: "\u2699", c: "#a37bff", kw: "pipeline runs" },
       { id: "constellation", label: "Constellation", pane: "constellation", url: "constellation.html", ic: "\u2735", c: "#a37bff", kw: "swarm" },
       { id: "creds",         label: "Credentials",  pane: "creds",         url: "credentials.html",   ic: "\u26BF", c: "#a37bff", kw: "keys connectors tokens" },
