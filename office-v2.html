@@ -73,9 +73,15 @@
     border:1px solid var(--line);background:rgba(0,0,0,.3);font:600 12px var(--mono);color:var(--text);
     transition:border-color .12s,background .12s,color .12s}
   /* per tool een eigen tegeltje in zijn merkkleur — monogram, geen nagetekend logo */
-  .tool .ic{width:17px;height:17px;border-radius:5px;flex:none;display:inline-flex;align-items:center;justify-content:center;
-    font:800 8.5px var(--mono);letter-spacing:0;color:#06101a;background:var(--tc,#7590a3);
+  .tool .ic{position:relative;width:17px;height:17px;border-radius:5px;flex:none;display:inline-flex;align-items:center;justify-content:center;
+    font:800 8.5px var(--mono);letter-spacing:0;color:#06101a;background:var(--tc,#7590a3);overflow:hidden;
     box-shadow:0 0 0 1px rgba(0,0,0,.35) inset,0 0 7px -1px var(--tc,#7590a3)}
+  /* Ligt er een bestand office-v2-assets/tool-<naam>.svg|png, dan vervangt dat het monogram. */
+  .tool .ic img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;padding:1.5px;display:none}
+  .tool .ic.has-img{background:#0d1520;box-shadow:0 0 0 1px rgba(255,255,255,.07) inset,0 0 7px -2px var(--tc,#7590a3)}
+  .tool .ic.has-img b{display:none}
+  .tool .ic.has-img img{display:block}
+  .tool.on .ic.has-img{background:rgba(0,0,0,.65)}
   .tool i{font-style:normal;font-weight:700;font-size:11px;color:var(--dim);font-variant-numeric:tabular-nums}
   .tool:hover,.tool.pre{border-color:var(--cyan)}
   .tool.has{border-color:var(--tc,var(--cyan));color:var(--tc,var(--cyan))}
@@ -341,6 +347,42 @@
   var BRAIN_W = 340, BRAIN_H = BRAIN_W * 553 / 768 * 0.87;  /* 0.87 = 30°-iso naar 2:1 persen */
   var BRAIN_AY = 0.70;
   var PROPS = [["prop-rack",521],["prop-cabinet",371],["prop-plant",361],["prop-board",429],["prop-lens",160]];
+  /* Toolkleur + monogram. Merkkleur ter herkenning; géén nagetekend logo.
+     Onbekende tool -> grijs tegeltje met de eerste twee letters. */
+  var TOOL_META = {
+    supabase:["#3ECF8E","Sb"], shopify:["#95BF47","Sh"], http:["#7590a3","{ }"], anthropic:["#D97757","An"],
+    brevo:["#0B996E","Bv"], meta:["#0866FF","Mt"], cloudinary:["#3448C5","Cl"], n8n:["#EA4B71","n8"],
+    apify:["#FF9013","Ap"], drive:["#1FA463","Dr"], "google-ads":["#4285F4","Ad"], pdfshift:["#5A67D8","Pdf"],
+    fal:["#8B5CF6","fal"], telegram:["#29A9EB","Tg"], ga4:["#E8710A","GA"], pinterest:["#E60023","Pt"],
+    github:["#9AA7B4","Gh"], gmail:["#EA4335","Gm"], openai:["#10A37F","Ai"]
+  };
+  function toolMeta(t) {
+    var m = TOOL_META[String(t).toLowerCase()];
+    return m || ["#7590a3", String(t).slice(0, 2).replace(/^./, function (c) { return c.toUpperCase(); })];
+  }
+  /* Echte logo-bestanden. Staat een tool hier niet in, dan blijft het gekleurde monogram staan en
+     wordt er niets opgehaald (geen 404's in de console). Toevoegen = bestand in office-v2-assets/
+     zetten als tool-<naam>.<ext> en hier de regel bijzetten. */
+  var TOOL_ICONS = {
+    /* supabase: "svg", shopify: "svg", meta: "svg", … */
+  };
+  function toolChip(t, count, extra) {
+    var m = toolMeta(t), key = String(t).toLowerCase(), ext = TOOL_ICONS[key];
+    return '<button type="button" class="tool" data-tool="' + esc(t) + '" style="--tc:' + m[0] + '"'
+      + (extra || "") + '><span class="ic"><b>' + esc(m[1]) + '</b>'
+      + (ext ? '<img alt="" src="' + esc(ASSETS + "tool-" + key + "." + ext) + '">' : "")
+      + "</span>" + esc(t) + (count ? "<i>" + count + "</i>" : "") + "</button>";
+  }
+  /* Laadt een logo, dan neemt het de tegel over; ontbreekt het bestand toch, dan valt hij terug. */
+  function wireToolIcons(root) {
+    Array.prototype.forEach.call(root.querySelectorAll(".tool .ic img:not([data-wired])"), function (im) {
+      im.setAttribute("data-wired", "1");
+      var ok = function () { if (im.naturalWidth) im.parentNode.classList.add("has-img"); };
+      if (im.complete) ok();
+      im.addEventListener("load", ok);
+      im.addEventListener("error", function () { im.remove(); });
+    });
+  }
   var PROP_LANE = 1.0;                  /* vrije strook rechts op het platform, alleen voor props */
   var STAGES = ["SCOUT", "COMPILE", "BUILD", "PUBLISH", "REVIEW"];
   var REDUCED = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -594,7 +636,16 @@
     d.agents.forEach(function (a) { runs += Number(a.runs_24h) || 0; });
     return { c: c, runs: runs };
   }
-  function cardWidth(d) { return Math.max(150, String(d.name).length * 6.6 + 48); }
+  function cardStats(d) {
+    var s = deptStats(d), p = [d.agents.length + " agents"];
+    p.push(s.c.working ? s.c.working + " bezig" : s.runs + " runs 24u");
+    if (s.c.error) p.push(s.c.error + " fout"); else if (s.c.silent) p.push(s.c.silent + " stil");
+    return { parts: p, counts: s.c, runs: s.runs };
+  }
+  function cardWidth(d) {
+    var st = cardStats(d), txt = st.parts.join(" · ");
+    return Math.max(150, String(d.name).length * 6.6 + 48, 70 + txt.length * 5.35 + 24);
+  }
   function cardInner(d) {
     var s = deptStats(d), W = cardWidth(d), H = CARD_H;
     var h = '<rect class="bg" x="' + f1(-W / 2) + '" y="' + (-H) + '" width="' + f1(W) + '" height="' + H + '" rx="7"/>'
@@ -605,10 +656,8 @@
     d.agents.slice(0, 6).forEach(function (a, i) {
       h += '<circle class="av" cx="' + f1(ax + i * 9) + '" cy="' + (-H + 28) + '" r="3.6" fill="' + stColor(st(a)) + '"/>';
     });
-    var parts = '<tspan>' + d.agents.length + " agents</tspan> · ";
-    parts += s.c.working ? '<tspan class="w">' + s.c.working + " bezig</tspan>" : "<tspan>" + s.runs + " runs 24u</tspan>";
-    if (s.c.error) parts += ' · <tspan class="e">' + s.c.error + " fout</tspan>";
-    else if (s.c.silent) parts += ' · <tspan class="s">' + s.c.silent + " stil</tspan>";
+    var cs = cardStats(d), cls = ["", s.c.working ? "w" : "", s.c.error ? "e" : "s"];
+    var parts = cs.parts.map(function (t, i) { return '<tspan class="' + (cls[i] || "") + '">' + esc(t) + "</tspan>"; }).join(" · ");
     h += '<text class="st" x="' + f1(ax + 58) + '" y="' + (-H + 31) + '">' + parts + "</text>";
     /* statusbalk onderin */
     var bx = -W / 2 + 10, bw = W - 20, acc = 0, tot = d.agents.length || 1;
@@ -660,7 +709,7 @@
     for (t = 0.15; t <= 0.9; t += 0.2) cand.push([d.x + PAD + t * (d.w - PAD * 2), d.y + d.d - PAD * 0.45]);               /* voorrand */
     var hsh = hash(d.name), used = [];
     for (i = 0; i < cand.length && out.length < 2; i++) {
-      var p = PROPS[(hsh >>> (out.length * 5 + 1)) % PROPS.length], hh = w * p[1] / 256;
+      var p = PROPS[((hsh >>> (out.length * 5 + 1)) + out.length * 3) % PROPS.length], hh = w * p[1] / 256;
       var q = iso(cand[i][0], cand[i][1], SLAB);
       var r = [q[0] - w / 2, q[1] - hh * 0.88, q[0] + w / 2, q[1] + hh * 0.12];
       var clash = boxes.concat(used).some(function (b) { return r[0] < b[2] && b[0] < r[2] && r[1] < b[3] && b[1] < r[3]; });
@@ -912,12 +961,13 @@
       h += '<span class="note">Nog geen tool-koppelingen. De Workflow Backup vult ze elke nacht om 02:30.</span>';
     } else {
       S.tools.forEach(function (t) {
-        h += '<button type="button" class="tool" data-tool="' + esc(t.tool) + '" aria-pressed="false" title="' + t.ids.length + ' agents gebruiken ' + esc(t.tool) + '">' + esc(t.tool) + "<i>" + t.ids.length + "</i></button>";
+        h += toolChip(t.tool, t.ids.length, ' aria-pressed="false" title="' + t.ids.length + ' agents gebruiken ' + esc(t.tool) + '"');
       });
       var covered = Object.keys(S.toolsByWf).length;
       if (covered < S.agents.length * 0.5) h += '<span class="note">Koppelingen bekend voor ' + covered + " van " + S.agents.length + " agents; de rest volgt na de Workflow Backup van 02:30.</span>";
     }
     elTools.innerHTML = h;
+    wireToolIcons(elTools);
   }
   function toolByName(n) { for (var i = 0; i < S.tools.length; i++) if (S.tools[i].tool === n) return S.tools[i]; return null; }
   function chipEl(n) { return elTools.querySelector('.tool[data-tool="' + CSS.escape(n) + '"]'); }
@@ -1018,7 +1068,7 @@
   function toolsHtml(list) {
     if (!list.length) return "";
     var h = '<div class="ptools">';
-    list.forEach(function (t) { h += '<button type="button" class="tool" data-tool="' + esc(t.tool) + '">' + esc(t.tool) + (t.n > 1 ? "<i>" + t.n + "</i>" : "") + "</button>"; });
+    list.forEach(function (t) { h += toolChip(t.tool, t.n > 1 ? t.n : 0, ""); });
     return h + "</div>";
   }
 
@@ -1167,6 +1217,7 @@
     else if (f && f.type === "state") h = panelState(f.key);
     else h = panelOverview();
     elPanel.innerHTML = h;
+    wireToolIcons(elPanel);
     elPanel.scrollTop = key === S.panelKey ? keep : 0;
     S.panelKey = key;
   }
