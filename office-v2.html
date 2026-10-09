@@ -66,26 +66,27 @@
   .stage{position:relative;min-width:0;min-height:0;display:flex;flex-direction:column;overflow:hidden}
 
   /* tools-balk ("verbonden met") */
-  .tools{display:flex;align-items:center;gap:7px;flex-wrap:wrap;padding:8px 16px;min-height:46px;border-bottom:1px solid var(--line);position:relative}
+  .tools{display:flex;align-items:center;gap:9px;flex-wrap:wrap;padding:9px 16px;min-height:56px;border-bottom:1px solid var(--line);position:relative}
   .tools .lbl{font:700 10px var(--mono);letter-spacing:.16em;color:var(--dim);margin-right:4px;text-transform:uppercase}
   .tools .note{color:var(--dim);font-size:11.5px;margin-left:6px}
   /* Icoonstrip: alleen het beeldmerk. De naam staat in aria-label en verschijnt bij hover. */
-  .tool{position:relative;appearance:none;cursor:pointer;width:30px;height:30px;padding:0;border:0;background:none;flex:none;
+  .tool{position:relative;appearance:none;cursor:pointer;width:38px;height:38px;padding:0;border:0;background:none;flex:none;
     display:inline-flex;align-items:center;justify-content:center}
-  .tool .ic{position:relative;width:30px;height:30px;border-radius:9px;display:flex;align-items:center;justify-content:center;
-    font:800 11px var(--mono);letter-spacing:0;color:var(--tc,#7590a3);background:#0e1725;overflow:hidden;
-    box-shadow:0 0 0 1px rgba(255,255,255,.09) inset,0 2px 6px rgba(0,0,0,.45);
+  .tool .ic{position:relative;width:38px;height:38px;border-radius:11px;display:flex;align-items:center;justify-content:center;
+    font:800 13px var(--mono);letter-spacing:0;color:var(--tc,#44607A);background:#fff;overflow:hidden;
+    box-shadow:0 0 0 1px rgba(0,0,0,.25) inset,0 2px 7px rgba(0,0,0,.5);
     transition:transform .12s,box-shadow .12s,background .12s}
-  .tool .ic .lg{width:19px;height:19px;display:block;color:var(--tc,#7590a3);overflow:visible}
-  .tool i{position:absolute;right:-4px;bottom:-4px;font-style:normal;font:700 9px var(--mono);font-variant-numeric:tabular-nums;
-    color:var(--dim);background:#0a0f18;border:1px solid var(--line);border-radius:7px;padding:0 3px;line-height:13px;min-width:13px;text-align:center}
-  .tool:hover .ic,.tool:focus-visible .ic,.tool.pre .ic{transform:translateY(-2px);
-    box-shadow:0 0 0 1px var(--tc,#7590a3) inset,0 0 12px -2px var(--tc,#7590a3),0 4px 8px rgba(0,0,0,.5)}
-  .tool.has .ic{box-shadow:0 0 0 1.5px var(--tc,var(--cyan)) inset,0 0 11px -3px var(--tc,var(--cyan))}
-  .tool.on .ic{background:var(--tc,var(--cyan));color:#06101a;box-shadow:0 0 0 1px rgba(0,0,0,.4) inset,0 0 14px -2px var(--tc,var(--cyan))}
-  .tool.on .ic .lg{color:#06101a}
+  .tool .ic .lg{width:25px;height:25px;display:block;color:var(--tc,#44607A);overflow:visible}
+  .tool i{position:absolute;right:-5px;bottom:-5px;font-style:normal;font:700 9.5px var(--mono);font-variant-numeric:tabular-nums;
+    color:var(--text);background:#0a0f18;border:1px solid var(--line);border-radius:7px;padding:0 3.5px;line-height:14px;min-width:14px;text-align:center}
+  .tool:hover .ic,.tool:focus-visible .ic,.tool.pre .ic{transform:translateY(-3px);
+    box-shadow:0 0 0 2px var(--tc,#44607A),0 0 16px -2px var(--tc,#44607A),0 5px 10px rgba(0,0,0,.55)}
+  .tool.has .ic{box-shadow:0 0 0 2px var(--tc,var(--cyan)),0 0 14px -3px var(--tc,var(--cyan)),0 2px 7px rgba(0,0,0,.5)}
+  .tool.on .ic{background:var(--tc,var(--cyan));color:#fff;
+    box-shadow:0 0 0 1.5px rgba(255,255,255,.85),0 0 20px -2px var(--tc,var(--cyan)),0 2px 8px rgba(0,0,0,.55)}
+  .tool.on .ic .lg{color:#fff}
   .tool.on i{color:var(--text);border-color:var(--tc,var(--cyan))}
-  .tool::after{content:attr(data-name);position:absolute;top:34px;left:50%;transform:translateX(-50%);z-index:7;
+  .tool::after{content:attr(data-name);position:absolute;top:43px;left:50%;transform:translateX(-50%);z-index:7;
     background:#0b1220;border:1px solid var(--line);border-radius:7px;padding:3px 8px;white-space:nowrap;
     font:600 11px var(--mono);color:var(--text);pointer-events:none;opacity:0;transition:opacity .1s;
     box-shadow:0 6px 16px rgba(0,0,0,.55)}
@@ -264,9 +265,12 @@
     #app{height:auto;min-height:100%}
     main{display:block}
     .stage{height:66vh;min-height:400px}
-    .tools{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}
+    .tools{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;gap:7px}
     .tools::-webkit-scrollbar{display:none}
     .tools .tool,.tools .lbl,.tools .note{flex:none;white-space:nowrap}
+    .tools .tool,.tools .tool .ic{width:31px;height:31px}
+    .tools .tool .ic .lg{width:20px;height:20px}
+    .tools .tool::after{display:none}
     .panel{border-left:0;border-top:1px solid var(--line);padding-bottom:84px}
     .metrics{gap:13px} .upd{display:none}
     .hint{display:none}
@@ -355,11 +359,11 @@
   /* Toolkleur + monogram. Merkkleur ter herkenning; géén nagetekend logo.
      Onbekende tool -> grijs tegeltje met de eerste twee letters. */
   var TOOL_META = {
-    supabase:["#3FCF8E","Sb"], shopify:["#7AB55C","Sh"], http:["#7590a3","{ }"], anthropic:["#D97757","An"],
-    brevo:["#0B996E","Bv"], meta:["#0866FF","Mt"], cloudinary:["#5A72E8","Cl"], n8n:["#EA4B71","n8"],
-    apify:["#FF9013","Ap"], drive:["#34A853","Dr"], "google-ads":["#4285F4","Ad"], pdfshift:["#7C8CF8","Pdf"],
-    fal:["#8B5CF6","fal"], telegram:["#26A5E4","Tg"], ga4:["#E37400","GA"], pinterest:["#E60023","Pt"],
-    github:["#E6EDF3","Gh"], gmail:["#EA4335","Gm"], openai:["#10A37F","Ai"]
+    supabase:["#2BB673","Sb"], shopify:["#5E8E3E","Sh"], http:["#44607A","{ }"], anthropic:["#C1572F","An"],
+    brevo:["#0B996E","Bv"], meta:["#0866FF","Mt"], cloudinary:["#3448C5","Cl"], n8n:["#EA4B71","n8"],
+    apify:["#E07000","Ap"], drive:["#1E8E3E","Dr"], "google-ads":["#3367D6","Ad"], pdfshift:["#4C5BD4","Pdf"],
+    fal:["#7C3AED","fal"], telegram:["#1E96D1","Tg"], ga4:["#E37400","GA"], pinterest:["#E60023","Pt"],
+    github:["#181717","Gh"], gmail:["#EA4335","Gm"], openai:["#0F7A62","Ai"]
   };
   function toolMeta(t) {
     var m = TOOL_META[String(t).toLowerCase()];
@@ -382,7 +386,7 @@
     drive: '<path fill="currentColor" d="M12.01 1.485c-2.082 0-3.754.02-3.743.047.01.02 1.708 3.001 3.774 6.62l3.76 6.574h3.76c2.081 0 3.753-.02 3.742-.047-.005-.02-1.708-3.001-3.775-6.62l-3.76-6.574zm-4.76 1.73a789.828 789.861 0 0 0-3.63 6.319L0 15.868l1.89 3.298 1.885 3.297 3.62-6.335 3.618-6.33-1.88-3.287C8.1 4.704 7.255 3.22 7.25 3.214zm2.259 12.653-.203.348c-.114.198-.96 1.672-1.88 3.287a423.93 423.948 0 0 1-1.698 2.97c-.01.026 3.24.042 7.222.042h7.244l1.796-3.157c.992-1.734 1.85-3.23 1.906-3.323l.104-.167h-7.249z"/>',
     "google-ads": '<path fill="currentColor" d="M3.9998 22.9291C1.7908 22.9291 0 21.1383 0 18.9293s1.7908-3.9998 3.9998-3.9998 3.9998 1.7908 3.9998 3.9998-1.7908 3.9998-3.9998 3.9998zm19.4643-6.0004L15.4632 3.072C14.3586 1.1587 11.9121.5028 9.9988 1.6074S7.4295 5.1585 8.5341 7.0718l8.0009 13.8567c1.1046 1.9133 3.5511 2.5679 5.4644 1.4646 1.9134-1.1046 2.568-3.5511 1.4647-5.4644zM7.5137 4.8438L1.5645 15.1484A4.5 4.5 0 0 1 4 14.4297c2.5597-.0075 4.6248 2.1585 4.4941 4.7148l3.2168-5.5723-3.6094-6.25c-.4499-.7793-.6322-1.6394-.5878-2.4784z"/>',
     pdfshift: '<g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"><path d="M5 2.5h9l5 5v14H5z"/><path d="M14 2.5v5h5"/><path d="M7.2 15.8h9.6M12 11.8v8M9 17l3 3 3-3"/></g><path fill="currentColor" d="M7 9.2h1.7c1.5 0 2.3.7 2.3 1.9S10.2 13 8.7 13H8v1H7zm1 1v1.8h.6c.8 0 1.3-.3 1.3-.9s-.5-.9-1.3-.9z"/>',
-    fal: '<path fill="currentColor" d="M12 1.7 22 7.4v9.2l-10 5.7L2 16.6V7.4z"/><path fill="#0d1520" d="M12 5.3 18.3 9v6L12 18.7 5.7 15V9z"/><path fill="currentColor" d="M10.4 8.4h5.2v2h-3.1v1.4h2.8v1.9h-2.8v2.1h-2.1z"/>',
+    fal: '<path fill="currentColor" d="M12 1.7 22 7.4v9.2l-10 5.7L2 16.6V7.4z"/><path fill="#ffffff" d="M12 5.3 18.3 9v6L12 18.7 5.7 15V9z"/><path fill="currentColor" d="M10.4 8.4h5.2v2h-3.1v1.4h2.8v1.9h-2.8v2.1h-2.1z"/>',
     telegram: '<path fill="currentColor" d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/>',
     ga4: '<path fill="currentColor" d="M22.84 2.9982v17.9987c.0086 1.6473-1.3197 2.9897-2.967 2.9984a2.9808 2.9808 0 01-.3677-.0208c-1.528-.226-2.6477-1.5558-2.6105-3.1V3.1204c-.0369-1.5458 1.0856-2.8762 2.6157-3.1 1.6361-.1915 3.1178.9796 3.3093 2.6158.014.1201.0208.241.0202.3619zM4.1326 18.0548c-1.6417 0-2.9726 1.331-2.9726 2.9726C1.16 22.6691 2.4909 24 4.1326 24s2.9726-1.3309 2.9726-2.9726-1.331-2.9726-2.9726-2.9726zm7.8728-9.0098c-.0171 0-.0342 0-.0513.0003-1.6495.0904-2.9293 1.474-2.891 3.1256v7.9846c0 2.167.9535 3.4825 2.3505 3.763 1.6118.3266 3.1832-.7152 3.5098-2.327.04-.1974.06-.3983.0593-.5998v-8.9585c.003-1.6474-1.33-2.9852-2.9773-2.9882z"/>',
     pinterest: '<path fill="currentColor" d="M12.017 0C5.396 0 .029 5.367.029 11.987c0 5.079 3.158 9.417 7.618 11.162-.105-.949-.199-2.403.041-3.439.219-.937 1.406-5.957 1.406-5.957s-.359-.72-.359-1.781c0-1.663.967-2.911 2.168-2.911 1.024 0 1.518.769 1.518 1.688 0 1.029-.653 2.567-.992 3.992-.285 1.193.6 2.165 1.775 2.165 2.128 0 3.768-2.245 3.768-5.487 0-2.861-2.063-4.869-5.008-4.869-3.41 0-5.409 2.562-5.409 5.199 0 1.033.394 2.143.889 2.741.099.12.112.225.085.345-.09.375-.293 1.199-.334 1.363-.053.225-.172.271-.401.165-1.495-.69-2.433-2.878-2.433-4.646 0-3.776 2.748-7.252 7.92-7.252 4.158 0 7.392 2.967 7.392 6.923 0 4.135-2.607 7.462-6.233 7.462-1.214 0-2.354-.629-2.758-1.379l-.749 2.848c-.269 1.045-1.004 2.352-1.498 3.146 1.123.345 2.306.535 3.55.535 6.607 0 11.985-5.365 11.985-11.987C23.97 5.39 18.592.026 11.985.026L12.017 0z"/>',
