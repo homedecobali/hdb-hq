@@ -10,7 +10,11 @@
       v_office_agents       agents + status (working / ok / error / silent / paused / idle)
       v_office_tools        tool -> workflows (uit dewi_agent_tools, gevuld door Workflow Backup 02:30)
       v_office_agent_loops  open loops per workflow (alleen bij een gekozen agent)
-      dewi_runs_public      laatste runs (alleen bij een gekozen agent)
+      v_office_links        wie roept wie aan (uit dewi_agent_links, gevuld door Workflow Backup 02:30)
+      dewi_runs_public      laatste runs van een gekozen agent + alle runs van de laatste 48 uur
+  Samenwerking: staat er een koppeling A -> B in v_office_links en liepen A en B binnen 3 minuten van elkaar,
+  dan staat A op van zijn kruk, loopt naar B, overlegt en loopt terug. Nieuwe gezamenlijke runs worden direct
+  gespeeld ("Nu"); daartussen worden die van de laatste 48 uur herhaald. Knop linksonder zet het lopen uit.
   Geen bibliotheken: de scene is SVG, de projectie is 2:1 isometrisch (zie iso()).
   Indeling per afdeling: GRP = rij (pijplijn SCOUT > COMPILE > BUILD > PUBLISH > REVIEW, daarna
   overige groepen op agent_sort); binnen een rij op grp_step, dan agent_sort.
@@ -94,32 +98,59 @@
   .count{font-weight:600;font-size:8.5px;fill:color-mix(in srgb,var(--c) 40%,#cfe2ec)}
   .lane{font-weight:700;font-size:7.6px;letter-spacing:.09em;fill:color-mix(in srgb,var(--c) 50%,#b9cbd8)}
 
-  /* agents */
+  /* agents: vaste plek (ring + kruk) met een zittende figuur; lopers staan in een eigen laag bovenop */
   .ag{cursor:pointer;outline:none;transition:opacity .2s;--s:var(--green)}
   .ag .hit{fill:transparent}
   .ag .ring{fill:var(--s);fill-opacity:.14;stroke:var(--s);stroke-width:1.4}
-  .ag .body{fill:var(--c)}
-  .ag .shade{fill:#000;fill-opacity:.22}
-  .ag .head{fill:color-mix(in srgb,var(--c) 60%,#fff)}
+  .stool-t{fill:#33465f} .stool-l{fill:#202d40} .stool-r{fill:#172131}
+  .fig .torso{fill:var(--c)}
+  .fig .arm{stroke:color-mix(in srgb,var(--c) 70%,#000);stroke-width:2.4;stroke-linecap:round}
+  .fig .leg{fill:none;stroke:#aebdcd;stroke-width:2.8;stroke-linecap:round;stroke-linejoin:round}
+  .fig .leg.far{stroke:#8e9fb2}
+  .fig .head{fill:var(--skin,#e0ac84)}
+  .fig .hair{fill:var(--hair,#2a211b)}
   .ag .loop{fill:var(--violet);stroke:#0a0f18;stroke-width:.8}
-  .ag.s-working{--s:var(--cyan)} .ag.s-error{--s:var(--red)} .ag.s-silent{--s:var(--amber)}
-  .ag.s-paused{--s:var(--grey)} .ag.s-idle{--s:var(--dim)}
+  .ag.s-working,.walker.s-working{--s:var(--cyan)} .ag.s-error,.walker.s-error{--s:var(--red)}
+  .ag.s-silent,.walker.s-silent{--s:var(--amber)} .ag.s-paused,.walker.s-paused{--s:var(--grey)} .ag.s-idle,.walker.s-idle{--s:var(--dim)}
   .ag.s-silent .ring,.ag.s-idle .ring{stroke-dasharray:3 2.4}
-  .ag.s-silent .fig{opacity:.5}
-  .ag.s-paused .body,.ag.s-paused .head{fill:#56667a}
-  .ag.s-idle .body,.ag.s-idle .head{fill:none;stroke:var(--c);stroke-width:1.2}
-  .ag.s-idle .shade{display:none}
+  .s-silent .fig{opacity:.5}
+  .s-idle .fig{opacity:.32}
+  .s-paused .fig .torso{fill:#56667a} .s-paused .fig .head{fill:#8a99aa} .s-paused .fig .hair{fill:#56667a} .s-paused .fig .arm{stroke:#414f61} .s-paused .fig .leg{stroke:#77879a}
   .ag .badge circle{fill:var(--s);stroke:#0a0f18;stroke-width:1}
   .ag .badge text{font-weight:800;font-size:8px;fill:#06101a}
   .ag .pulse{fill:none;stroke:var(--cyan);stroke-width:1.4;transform-box:fill-box;transform-origin:center;animation:pulse 1.9s ease-out infinite}
   @keyframes pulse{from{transform:scale(1);opacity:.9}to{transform:scale(2.2);opacity:0}}
+  .ag.s-working .fig .up{animation:busy .8s ease-in-out infinite}
+  @keyframes busy{50%{transform:translateY(-1.1px)}}
   .ag.s-error .ring{animation:blink 1.1s steps(2,jump-none) infinite}
   @keyframes blink{from{fill-opacity:.14}to{fill-opacity:.6}}
   .ag:hover .ring,.ag:focus-visible .ring{stroke-width:2.4;fill-opacity:.32}
   .ag:focus-visible .hit{stroke:#fff;stroke-width:1;stroke-dasharray:2 2}
   .ag.sel .ring{stroke:#fff;stroke-width:2.4;fill-opacity:.4}
-  #floor.has-hl .ag:not(.hl){opacity:.13}
+  .ag.away .fig,.ag.away .badge,.ag.away .pulse{display:none}
+  .ag.away .ring{fill-opacity:.04;stroke-opacity:.55;stroke-dasharray:2 3}
+  .bubble{display:none}
+  .ag.talk .bubble,.walker.talk .bubble{display:block}
+  .bubble rect,.bubble path{fill:#e8eff7}
+  .bubble circle{fill:#0a0f18;animation:dots 1s infinite}
+  .bubble circle:nth-of-type(2){animation-delay:.16s} .bubble circle:nth-of-type(3){animation-delay:.32s}
+  @keyframes dots{0%,60%,100%{opacity:.2}30%{opacity:1}}
+  .walker{cursor:pointer;transition:opacity .2s}
+  .walker .shadow{fill:#000;fill-opacity:.38}
+  .walker.sel .shadow{fill:#fff;fill-opacity:.5}
+  #floor.has-hl .ag:not(.hl),#floor.has-hl .walker:not(.hl){opacity:.13}
   #floor.has-hl .dept:not(.hl-d) .slab{opacity:.4}
+
+  .walkbar{position:absolute;left:66px;right:16px;bottom:16px;z-index:4;display:flex;align-items:center;gap:10px;pointer-events:none}
+  .walkbar button{pointer-events:auto;appearance:none;cursor:pointer;flex:none;border:1px solid var(--line);background:rgba(7,11,18,.86);
+    border-radius:999px;padding:5px 12px;font-size:12px;font-weight:600;color:var(--text)}
+  .walkbar button:hover{border-color:var(--cyan)}
+  .walkbar button[aria-pressed="false"]{color:var(--cyan);border-color:var(--cyan)}
+  #cap{min-width:0;color:var(--text);font-size:12px;background:rgba(7,11,18,.86);border:1px solid var(--line);border-radius:999px;
+    padding:5px 12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  #cap:empty{display:none}
+  #cap b{font-weight:700;color:var(--cyan)}
+  #cap .muted{color:var(--dim)}
 
   #tip{position:absolute;z-index:5;pointer-events:none;display:none;transform:translate(-50%,-100%);white-space:nowrap;
     background:#0b1220;border:1px solid var(--line);border-radius:8px;padding:5px 9px;font-size:12px;box-shadow:0 6px 18px rgba(0,0,0,.5)}
@@ -180,10 +211,11 @@
     .tools::-webkit-scrollbar{display:none}
     .tools .tool,.tools .lbl,.tools .note{flex:none;white-space:nowrap}
     .panel{border-left:0;border-top:1px solid var(--line);padding-bottom:84px}
+    .walkbar{left:12px;right:12px;bottom:10px}
     .metrics{gap:13px} .upd{display:none}
   }
   @media (prefers-reduced-motion:reduce){
-    #floor.intro .dept,.ag .pulse,.ag.s-error .ring,#wires path{animation:none}
+    #floor.intro .dept,.ag .pulse,.ag.s-error .ring,#wires path,.ag.s-working .fig .up,.bubble circle{animation:none}
     #wires path{stroke-dashoffset:0}
     .ag .pulse{opacity:.5;transform:scale(1.5)}
   }
@@ -205,6 +237,7 @@
         <div id="loading">Kantoor wordt opgebouwd…</div>
       </div>
       <svg id="wires" aria-hidden="true"></svg>
+      <div class="walkbar"><button type="button" id="walkBtn" aria-pressed="true">Pauzeer</button><span id="cap"></span></div>
       <div id="tip" role="tooltip"></div>
       <div id="msg" role="alert"></div>
     </section>
@@ -230,6 +263,12 @@
   var MIN_SCALE = 0.85;                 /* kleiner dan dit: niet verder krimpen maar laten scrollen */
   var STAGES = ["SCOUT", "COMPILE", "BUILD", "PUBLISH", "REVIEW"];
 
+  var WINDOW_H = 48;                    /* herhaling: gezamenlijke runs van de laatste 48 uur */
+  var PAIR_MS = 180000;                 /* A en B "werkten samen" als hun runs binnen 3 minuten van elkaar liggen */
+  var LIVE_MS = 900000;                 /* bij het openen telt alles van de laatste 15 minuten als "nu" */
+  var WALK_SPEED = 74, STRIDE = 34, TALK_MS = 2400, MAX_WALKERS = 3;
+  var SVGNS = "http://www.w3.org/2000/svg";
+
   var STATES = {
     error:   { l: "Fout",               g: "!" },
     silent:  { l: "Stil",               g: "z" },
@@ -241,11 +280,18 @@
   var STATE_ORDER = ["error", "silent", "working", "ok", "paused", "idle"];
 
   var S = { depts: [], agents: [], tools: [], byId: {}, byWf: {}, toolsByWf: {}, sig: "",
-            focus: null, hoverTool: null, runs: {}, loops: {}, loadedAt: null, first: true };
+            focus: null, hoverTool: null, runs: {}, loops: {}, loadedAt: null, first: true,
+            links: [], linksOut: {}, linksIn: {}, pairLast: {}, hl: null };
+  /* lopers + afspeellijst */
+  var W = { on: true, list: [], raf: 0, last: 0, timer: 0, started: false, trips: [], idx: 0, live: [], played: {},
+            runs: [], seen: {}, lastRaw: "", liveCut: 0, linksKnown: false };
+  var REDUCED = !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+  try { var pref = localStorage.getItem("dewi_office_walk"); W.on = pref === null ? !REDUCED : pref === "1"; } catch (e0) { W.on = !REDUCED; }
 
   var $ = function (id) { return document.getElementById(id); };
   var elFloor = $("floor"), elStage = $("stage"), elScene = $("scene"), elTools = $("tools"),
-      elWires = $("wires"), elTip = $("tip"), elMsg = $("msg"), elPanel = $("panel");
+      elWires = $("wires"), elTip = $("tip"), elMsg = $("msg"), elPanel = $("panel"),
+      elCap = $("cap"), elWalkBtn = $("walkBtn");
 
   /* --------------------------------------------------------------- helpers */
   function esc(s) {
@@ -265,6 +311,7 @@
     return Math.round(s / 86400) + " d geleden";
   }
   var fmtAbs = new Intl.DateTimeFormat("nl-NL", { timeZone: "Europe/Madrid", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
+  var fmtDay = new Intl.DateTimeFormat("nl-NL", { timeZone: "Europe/Madrid", weekday: "short", hour: "2-digit", minute: "2-digit" });
   var fmtClock = new Intl.DateTimeFormat("nl-NL", { timeZone: "Europe/Madrid", hour: "2-digit", minute: "2-digit", second: "2-digit" });
   function abs(isoStr) { return isoStr ? fmtAbs.format(new Date(isoStr)) : "—"; }
   function shortWf(n) { var p = String(n || "").split("·"); return (p[p.length - 1] || "").trim(); }
@@ -283,7 +330,10 @@
     return Promise.all([
       settle(rest("v_office_depts?select=dept_name,dept_color,dept_icon,dept_sort&order=dept_sort")),
       settle(rest("v_office_agents?select=*")),
-      settle(rest("v_office_tools?select=tool,workflows"))
+      settle(rest("v_office_tools?select=tool,workflows")),
+      settle(rest("v_office_links?select=from_agent,to_agent,kind")),
+      settle(rest("dewi_runs_public?select=workflow,run_at&run_at=" + (W.lastRaw ? "gt." + encodeURIComponent(W.lastRaw)
+        : "gte." + encodeURIComponent(new Date(Date.now() - WINDOW_H * 3600000).toISOString())) + "&order=run_at.desc&limit=1000"))
     ]).then(function (res) {
       if (!res[0].ok || !res[1].ok) {
         var e = (res[1].ok ? res[0].e : res[1].e) || {};
@@ -294,6 +344,7 @@
       showMsg("");
       $("live").style.background = ""; $("live").style.boxShadow = "";
       ingest(res[0].v || [], res[1].v || [], res[2].ok ? (res[2].v || []) : null);
+      ingestWork(res[3].ok ? (res[3].v || []) : null, res[4].ok ? (res[4].v || []) : null);
     });
   }
 
@@ -302,6 +353,8 @@
     agents.forEach(function (a) { S.byId[a.agent_id] = a; S.byWf[a.workflow_name] = a; });
 
     /* afdelingen: volgorde/kleur uit v_office_depts; een afdeling die daar ontbreekt komt uit de agents zelf */
+    var oldPos = {};
+    S.depts.forEach(function (d) { oldPos[d.name] = [d.x, d.y]; });
     var seen = {};
     S.depts = depts.map(function (d) { seen[d.dept_name] = 1; return { name: d.dept_name, color: d.dept_color || "#8aa0b5", icon: d.dept_icon || "", sort: d.dept_sort }; });
     agents.forEach(function (a) {
@@ -332,7 +385,17 @@
 
     var sig = agents.map(function (a) { return [a.agent_id, a.dept_name, a.grp, a.grp_step, a.agent_sort].join("|"); }).sort().join(";")
             + "#" + S.depts.map(function (d) { return d.name + d.color + d.icon; }).join(";");
-    if (sig !== S.sig) { S.sig = sig; layout(); renderFloor(); } else { patchAgents(); }
+    if (sig !== S.sig) { S.sig = sig; layout(); renderFloor(); }
+    else {
+      /* zelfde indeling, maar S.depts en S.agents zijn nieuwe objecten: rijen, posities en tekenvolgorde opnieuw zetten */
+      var byName = {};
+      S.depts.forEach(function (d) {
+        planDept(d); d.x = oldPos[d.name][0]; d.y = oldPos[d.name][1]; byName[d.name] = d;
+        d.agents.forEach(function (a) { a._p = iso(d.x + a._lx, d.y + a._ly, SLAB); });
+      });
+      S.paint = S.paint.map(function (d) { return byName[d.name]; });
+      patchAgents();
+    }
 
     S.loadedAt = new Date();
     renderHeader(); renderTools(); renderPanel(); applyFocus();
@@ -453,16 +516,40 @@
   }
 
   /* ---------------------------------------------------------------- tekenen */
+  /* Figuur met voeten op (0,0). Staand recht van voren; zittend driekwart op een kruk (bovenlijf 3,6 px lager,
+     knieen naar rechts). Huid- en haarkleur komen per agent uit look(); het shirt heeft de afdelingskleur. */
+  var FIG_UP = '<line class="arm l" x1="-4.9" y1="-18.6" x2="-5.7" y2="-11.6"/><rect class="torso" x="-4.2" y="-20.6" width="8.4" height="11.6" rx="3"/>'
+    + '<line class="arm r" x1="4.9" y1="-18.6" x2="5.7" y2="-11.6"/><circle class="head" cy="-24.6" r="4.3"/>'
+    + '<path class="hair" d="M-4.4,-24.9a4.4,4.4 0 0 1 8.8,0q-4.4,-2.3 -8.8,0z"/>';
+  var FIG_SIT = '<g class="fig"><path class="leg far" d="M-2.8,-7.2L2.4,-6.2L2.8,-.8"/>'
+    + '<g transform="translate(-1.5,3.6)"><g class="up">' + FIG_UP + "</g></g>"
+    + '<path class="leg" d="M-.4,-6.1L4.9,-5.1L5.3,.3"/></g>';
+  var FIG_STAND = '<g class="fig"><line class="leg l" x1="-2.1" y1="-10" x2="-2.3" y2="-.6"/><line class="leg r" x1="2.1" y1="-10" x2="2.3" y2="-.6"/>'
+    + '<g class="up">' + FIG_UP + "</g></g>";
+  var STOOL = '<polygon class="stool-l" points="-8.2,-6.4 -1.5,-3.3 -1.5,1.3 -8.2,-1.8"/><polygon class="stool-r" points="5.2,-6.4 -1.5,-3.3 -1.5,1.3 5.2,-1.8"/>'
+    + '<polygon class="stool-t" points="-8.2,-6.4 -1.5,-9.5 5.2,-6.4 -1.5,-3.3"/>';
+  var SKIN = ["#f3cfae", "#e6b48c", "#cf9466", "#a9714b", "#7d4e30"], HAIR = ["#1d1a17", "#3b2a1c", "#6d4b2b", "#b38b53", "#8d8f98", "#2a2f3a"];
+  function look(a) {
+    var id = String(a.agent_id), n = 0;
+    for (var i = 0; i < id.length; i++) n = (n * 31 + id.charCodeAt(i)) >>> 0;
+    return "--skin:" + SKIN[n % SKIN.length] + ";--hair:" + HAIR[(n >>> 3) % HAIR.length];
+  }
+  function bubble(y) {
+    return '<g class="bubble" transform="translate(4,' + y + ')"><rect width="15" height="9" rx="4.5"/><path d="M2.6,8.2l-1.8,3.6l5.2,-3.4Z"/>'
+      + '<circle cx="4" cy="4.5" r="1.15"/><circle cx="7.5" cy="4.5" r="1.15"/><circle cx="11" cy="4.5" r="1.15"/></g>';
+  }
   function agentInner(a) {
     var s = st(a), g = STATES[s].g;
     return '<rect class="hit" x="-13" y="-36" width="26" height="45" rx="6"/>'
       + '<ellipse class="ring" rx="11" ry="5.5"/>'
       + (s === "working" ? '<ellipse class="pulse" rx="11" ry="5.5"/>' : "")
-      + '<g class="fig"><path class="body" d="M-6.2,-1.5C-6.2,-9 -4,-14.5 0,-14.5C4,-14.5 6.2,-9 6.2,-1.5C6.2,.6 3.4,1.8 0,1.8C-3.4,1.8 -6.2,.6 -6.2,-1.5Z"/>'
-      + '<path class="shade" d="M0,-14.5C4,-14.5 6.2,-9 6.2,-1.5C6.2,.6 3.4,1.8 0,1.8Z"/>'
-      + '<circle class="head" cy="-18.5" r="4.6"/></g>'
-      + (g ? '<g class="badge" transform="translate(0,-30)"><circle r="5.2"/><text y="2.9" text-anchor="middle">' + esc(g) + "</text></g>" : "")
-      + (Number(a.open_loops) > 0 ? '<path class="loop" d="M9,-23l3.2,3.2l-3.2,3.2l-3.2,-3.2Z"/>' : "");
+      + STOOL + FIG_SIT
+      + (g ? '<g class="badge" transform="translate(0,-32.5)"><circle r="5.2"/><text y="2.9" text-anchor="middle">' + esc(g) + "</text></g>" : "")
+      + (Number(a.open_loops) > 0 ? '<path class="loop" d="M9.5,-21l3.2,3.2l-3.2,3.2l-3.2,-3.2Z"/>' : "")
+      + bubble(-39);
+  }
+  function walkerInner() {
+    return '<ellipse class="shadow" rx="6.4" ry="2.7"/><g class="flip">' + FIG_STAND + "</g>" + bubble(-42);
   }
   function agentLabel(a) { return a.agent_name + ", " + STATES[st(a)].l.toLowerCase() + ", afdeling " + a.dept_name; }
 
@@ -498,14 +585,16 @@
       }
       h += "</g>";
       d.agents.slice().sort(function (p, q) { return (p._lx + p._ly) - (q._lx + q._ly); }).forEach(function (ag) {
-        h += '<g class="ag s-' + st(ag) + '" data-id="' + esc(ag.agent_id) + '" tabindex="0" role="button" aria-label="' + esc(agentLabel(ag)) +
+        h += '<g class="ag s-' + st(ag) + '" data-id="' + esc(ag.agent_id) + '" style="' + look(ag) + '" tabindex="0" role="button" aria-label="' + esc(agentLabel(ag)) +
              '" transform="translate(' + ag._p[0].toFixed(1) + "," + ag._p[1].toFixed(1) + ')">' + agentInner(ag) + "</g>";
       });
       h += "</g>";
     });
 
+    h += '<g id="walk-layer"></g>';
     S.vb = [S.bb[0] - 16, S.bb[1] - 14, S.bb[2] - S.bb[0] + 32, S.bb[3] - S.bb[1] + 30];
     elFloor.setAttribute("viewBox", S.vb.map(function (n) { return n.toFixed(1); }).join(" "));
+    clearWalkers();
     elFloor.innerHTML = h;
     $("loading").style.display = "none";
     fit(true);
@@ -524,10 +613,14 @@
   function patchAgents() {
     S.agents.forEach(function (a) {
       var el = agentEl(a.agent_id); if (!el) return;
-      var keep = el.classList.contains("sel");
-      el.setAttribute("class", "ag s-" + st(a) + (keep ? " sel" : ""));
+      var keep = ["sel", "hl", "away", "talk"].filter(function (c) { return el.classList.contains(c); }).join(" ");
+      el.setAttribute("class", "ag s-" + st(a) + (keep ? " " + keep : ""));
       el.setAttribute("aria-label", agentLabel(a));
       el.innerHTML = agentInner(a);
+    });
+    W.list.forEach(function (w) {
+      var a = S.byId[w.id]; if (!a) return;
+      STATE_ORDER.forEach(function (k) { w.el.classList.toggle("s-" + k, st(a) === k); });
     });
   }
 
@@ -573,7 +666,7 @@
   }
   function applyFocus() {
     var f = S.focus, hl = null, pairs = [], toolName = S.hoverTool || (f && f.type === "tool" ? f.name : null);
-    Array.prototype.forEach.call(elFloor.querySelectorAll(".ag.sel,.ag.hl"), function (e) { e.classList.remove("sel", "hl"); });
+    Array.prototype.forEach.call(elFloor.querySelectorAll(".ag.sel,.ag.hl,.walker.sel,.walker.hl"), function (e) { e.classList.remove("sel", "hl"); });
     Array.prototype.forEach.call(elFloor.querySelectorAll(".dept.hl-d,.dept.cur"), function (e) { e.classList.remove("hl-d", "cur"); });
     Array.prototype.forEach.call(elTools.querySelectorAll(".tool"), function (e) { e.classList.remove("on", "has", "pre"); e.setAttribute("aria-pressed", "false"); });
 
@@ -606,6 +699,11 @@
       var e = agentEl(id); if (!e) return;
       e.classList.add("hl"); if (e.parentNode) e.parentNode.classList.add("hl-d");
     });
+    S.hl = hl;
+    W.list.forEach(function (w) {
+      if (hl && hl.indexOf(w.id) >= 0) w.el.classList.add("hl");
+      if (f && f.type === "agent" && f.id === w.id) w.el.classList.add("sel");
+    });
     S.pairs = pairs; drawWires();
   }
   function drawWires() {
@@ -614,7 +712,7 @@
       var sr = elStage.getBoundingClientRect();
       elWires.setAttribute("viewBox", "0 0 " + sr.width + " " + sr.height);
       pairs.forEach(function (p) {
-        var c = p[0].getBoundingClientRect(), hd = p[1].querySelector(".head"); if (!hd) return;
+        var c = p[0].getBoundingClientRect(), hd = p[1].querySelector(p[1].classList.contains("away") ? ".ring" : ".head"); if (!hd) return;
         var a = hd.getBoundingClientRect();
         var x1 = c.left + c.width / 2 - sr.left, y1 = c.bottom - sr.top + 1, x2 = a.left + a.width / 2 - sr.left, y2 = a.top - sr.top - 3;
         var k = Math.max(26, (y2 - y1) * 0.5);
@@ -718,10 +816,30 @@
     h += "<h3>Tools</h3>";
     if (tools.length) { h += '<div class="ptools">'; tools.forEach(function (t) { h += '<button type="button" class="tool" data-tool="' + esc(t) + '">' + esc(t) + "</button>"; }); h += "</div>"; }
     else h += '<p class="muted">' + (S.tools.length ? "Nog geen koppelingen bekend voor deze agent." : "Nog niet gevuld; volgt na de Workflow Backup van 02:30.") + "</p>";
+    h += "<h3>Werkt samen met</h3>" + linksHtml(a);
     if (Number(a.open_loops) > 0) h += '<h3>Open loops</h3><div id="p-loops">' + loopsHtml(a) + "</div>";
     h += '<h3>Laatste runs</h3><div id="p-runs">' + runsHtml(a) + "</div>";
     h += '<div class="links">' + (a.n8n_workflow_id ? '<a href="' + N8N + encodeURIComponent(a.n8n_workflow_id) + '" target="_blank" rel="noopener">Open in n8n</a>' : "")
       + '<a href="organisation.html?agent=' + encodeURIComponent(a.agent_id) + '">Bekijk in organigram</a></div>';
+    return h;
+  }
+  function linksHtml(a) {
+    var out = S.linksOut[a.agent_id] || [], inn = S.linksIn[a.agent_id] || [], h = "";
+    if (!out.length && !inn.length) {
+      return '<p class="muted">' + (W.linksKnown && S.links.length ? "Roept geen andere agents aan en wordt door geen andere agent aangeroepen."
+        : "Nog niet bekend; volgt na de Workflow Backup van 02:30.") + "</p>";
+    }
+    function rows(list, key, dir) {
+      var r = '<ul class="list">';
+      list.forEach(function (l) {
+        var o = S.byId[l[key]]; if (!o) return;
+        var last = S.pairLast[l.from + ">" + l.to];
+        r += agentRow(o, dir + (l.kind === "webhook" ? " via webhook" : " als sub-workflow") + (last ? " — laatst samen " + fmtDay.format(new Date(last)) : ""));
+      });
+      return r + "</ul>";
+    }
+    if (out.length) h += rows(out, "to", "roept deze aan");
+    if (inn.length) h += rows(inn, "from", "wordt hierdoor aangeroepen");
     return h;
   }
   function runsHtml(a) {
@@ -775,7 +893,7 @@
   function showMsg(t) { elMsg.textContent = t; elMsg.style.display = t ? "block" : "none"; }
   function tipFor(el) {
     var a = S.byId[el.getAttribute("data-id")]; if (!a) return;
-    var r = el.querySelector(".hit").getBoundingClientRect(), sr = elStage.getBoundingClientRect();
+    var r = (el.querySelector(".hit") || el).getBoundingClientRect(), sr = elStage.getBoundingClientRect();
     elTip.innerHTML = "<b>" + esc(a.agent_name) + "</b><span>" + esc(STATES[st(a)].l + (a.schedule_human ? " · " + a.schedule_human : "")) + "</span>";
     elTip.style.display = "block";
     var half = elTip.offsetWidth / 2, x = r.left + r.width / 2 - sr.left;
@@ -787,7 +905,7 @@
   function same(f, type, v) { return f && f.type === type && (f.id === v || f.name === v || f.key === v); }
 
   elFloor.addEventListener("click", function (e) {
-    var ag = closest(e.target, ".ag");
+    var ag = closest(e.target, ".ag,.walker");
     if (ag) { if (!window.matchMedia("(hover: hover)").matches) hideTip(); var id = ag.getAttribute("data-id"); setFocus(same(S.focus, "agent", id) ? null : { type: "agent", id: id }); return; }
     var sl = closest(e.target, ".slab");
     if (sl) { var n = sl.parentNode.getAttribute("data-dept"); setFocus(same(S.focus, "dept", n) ? null : { type: "dept", name: n }); return; }
@@ -798,8 +916,8 @@
     var t = closest(e.target, ".ag,.slab"); if (!t) return;
     e.preventDefault(); t.dispatchEvent(new MouseEvent("click", { bubbles: true }));
   });
-  elFloor.addEventListener("pointerover", function (e) { var ag = closest(e.target, ".ag"); if (ag) tipFor(ag); });
-  elFloor.addEventListener("pointerout", function (e) { if (closest(e.target, ".ag")) hideTip(); });
+  elFloor.addEventListener("pointerover", function (e) { var ag = closest(e.target, ".ag,.walker"); if (ag) tipFor(ag); });
+  elFloor.addEventListener("pointerout", function (e) { if (closest(e.target, ".ag,.walker")) hideTip(); });
   elFloor.addEventListener("focusin", function (e) { var ag = closest(e.target, ".ag"); if (ag) tipFor(ag); });
   elFloor.addEventListener("focusout", hideTip);
 
@@ -848,7 +966,216 @@
     }, 220);
   });
 
+  /* ---------------------------------------------------------- samenwerking */
+  /* Koppelingen (wie roept wie aan) + runs van de laatste 48 uur -> tochten. Een tocht = agent A loopt langs
+     een of meer agents B waarmee hij rond hetzelfde moment draaide. */
+  function ingestWork(links, runs) {
+    if (links) {
+      W.linksKnown = true;
+      S.links = []; S.linksOut = {}; S.linksIn = {};
+      links.forEach(function (l) {
+        if (!S.byId[l.from_agent] || !S.byId[l.to_agent] || l.from_agent === l.to_agent) return;
+        var o = { from: l.from_agent, to: l.to_agent, kind: l.kind };
+        S.links.push(o);
+        (S.linksOut[o.from] = S.linksOut[o.from] || []).push(o);
+        (S.linksIn[o.to] = S.linksIn[o.to] || []).push(o);
+      });
+    }
+    var firstRuns = !W.lastRaw && !!runs;
+    var prevMax = 0;
+    W.runs.forEach(function (r) { if (r.t > prevMax) prevMax = r.t; });
+    if (runs) {
+      runs.forEach(function (r) {
+        var key = r.workflow + "|" + r.run_at; if (W.seen[key]) return;
+        W.seen[key] = 1;
+        W.runs.push({ wf: r.workflow, t: Date.parse(r.run_at) });
+        if (!W.lastRaw || r.run_at > W.lastRaw) W.lastRaw = r.run_at;
+      });
+      var cutoff = Date.now() - WINDOW_H * 3600000;
+      W.runs = W.runs.filter(function (r) { return r.t >= cutoff; });
+    }
+    if (firstRuns) W.liveCut = Date.now() - LIVE_MS; else if (prevMax) W.liveCut = Math.max(W.liveCut, prevMax);
+
+    var trips = buildTrips();
+    W.trips = trips;
+    if (W.idx > trips.length) W.idx = 0;
+    trips.forEach(function (tr) {
+      var key = tr.from + "|" + tr.t;
+      if (tr.tEnd > W.liveCut && !W.played[key]) { W.played[key] = 1; if (W.on) W.live.push(tr); }   /* staat lopen uit, dan niet opsparen */
+    });
+    if (S.focus && S.focus.type === "agent") renderPanel();
+    if (!W.started && S.agents.length) { W.started = true; schedule(1700); }
+    if (!W.on || (!W.list.length && !W.live.length)) idleCaption();
+  }
+  function buildTrips() {
+    var by = {}, ev = [], trips = [], perFrom = {};
+    W.runs.forEach(function (r) { (by[r.wf] = by[r.wf] || []).push(r.t); });
+    S.pairLast = {};
+    S.links.forEach(function (l) {
+      var ta = by[S.byId[l.from].workflow_name], tb = by[S.byId[l.to].workflow_name];
+      if (!ta || !tb) return;
+      ta.forEach(function (t) {
+        var m = null;
+        for (var i = 0; i < tb.length; i++) if (Math.abs(tb[i] - t) <= PAIR_MS && (m === null || Math.abs(tb[i] - t) < Math.abs(m - t))) m = tb[i];
+        if (m === null) return;
+        ev.push({ t: t, tm: Math.max(t, m), from: l.from, to: l.to });
+        var k = l.from + ">" + l.to; if (!S.pairLast[k] || t > S.pairLast[k]) S.pairLast[k] = t;
+      });
+    });
+    ev.sort(function (x, y) { return (x.t - y.t) || (x.from < y.from ? -1 : x.from > y.from ? 1 : 0); });
+    ev.forEach(function (e) {
+      var hit = null;
+      for (var i = trips.length - 1; i >= 0 && e.t - trips[i].tLast <= 300000; i--) if (trips[i].from === e.from) { hit = trips[i]; break; }
+      if (hit) { if (hit.stops.indexOf(e.to) < 0 && hit.stops.length < 4) hit.stops.push(e.to); hit.tLast = e.t; hit.tEnd = Math.max(hit.tEnd, e.tm); }
+      else trips.push({ t: e.t, tLast: e.t, tEnd: e.tm, from: e.from, stops: [e.to] });   /* tEnd = laatste run van het tweetal: bepaalt of het "nu" is */
+    });
+    /* een agent die elk kwartier samen met een ander draait mag de herhaling niet vullen: hooguit zijn 5 laatste tochten */
+    for (var j = trips.length - 1; j >= 0; j--) {
+      perFrom[trips[j].from] = (perFrom[trips[j].from] || 0) + 1;
+      if (perFrom[trips[j].from] > 5) trips.splice(j, 1);
+    }
+    return trips;
+  }
+
+  /* ----------------------------------------------------------------- lopers */
+  function walkerOf(id) { for (var i = 0; i < W.list.length; i++) if (W.list[i].id === id) return W.list[i]; return null; }
+  function busy(id) {                 /* loopt zelf, of krijgt net bezoek */
+    if (walkerOf(id)) return true;
+    for (var i = 0; i < W.list.length; i++) if (W.list[i].stops.indexOf(id) >= 0) return true;
+    return false;
+  }
+  function onPlatform(sx, sy) {       /* ligt dit punt (op platformhoogte) boven een platform? anders loopt hij over de vloer */
+    var a = sx / HW, b = (sy + SLAB) / HH, wx = (a + b) / 2, wy = (b - a) / 2;
+    for (var i = 0; i < S.depts.length; i++) {
+      var d = S.depts[i];
+      if (wx >= d.x - 0.08 && wx <= d.x + d.w + 0.08 && wy >= d.y - 0.08 && wy <= d.y + d.d + 0.08) return true;
+    }
+    return false;
+  }
+  function standPoint(id, fromX) {    /* plek naast de kruk van de ander, aan de kant waar de loper vandaan komt */
+    var p = S.byId[id]._p; return [p[0] + (fromX <= p[0] ? -13 : 13), p[1] + 5];
+  }
+  function names(ids) { return ids.map(function (id) { return S.byId[id] ? S.byId[id].agent_name : id; }).join(", "); }
+  function setCaption(tr, live) {
+    elCap.innerHTML = (live ? "<b>Nu</b> " : '<span class="muted">Herhaling ' + esc(fmtDay.format(new Date(tr.t))) + "</span> ")
+      + esc(names([tr.from])) + " → " + esc(names(tr.stops));
+  }
+  function idleCaption() {
+    if (!W.on) { elCap.innerHTML = '<span class="muted">Lopen staat uit</span>'; return; }
+    if (!W.linksKnown || !S.links.length) elCap.innerHTML = '<span class="muted">Nog geen samenwerking bekend; volgt na de Workflow Backup van 02:30</span>';
+    else if (!W.trips.length) elCap.innerHTML = '<span class="muted">Geen gezamenlijke runs in de laatste ' + WINDOW_H + " uur</span>";
+  }
+  function renderWalkBtn() {
+    elWalkBtn.textContent = W.on ? "Pauzeer" : "Laat lopen";
+    elWalkBtn.setAttribute("aria-pressed", W.on ? "true" : "false");
+    elWalkBtn.title = W.on ? "Lopen stilzetten" : "Agents weer laten lopen";
+  }
+  function schedule(ms) { clearTimeout(W.timer); W.timer = setTimeout(player, ms); }
+  function player() {
+    if (!W.on) return;
+    if (document.hidden || !S.agents.length) return schedule(2500);
+    var live = W.live.length > 0, tr = null;
+    if (live) tr = W.live[0];
+    else if (W.trips.length) {
+      if (W.idx >= W.trips.length) { W.idx = 0; return schedule(W.trips.length > 3 ? 5000 : 9000); }   /* adempauze tussen rondes */
+      tr = W.trips[W.idx];
+    }
+    if (!tr) { idleCaption(); return schedule(8000); }
+    var ids = [tr.from].concat(tr.stops);
+    if (W.list.length >= MAX_WALKERS || ids.some(busy)) return schedule(900);
+    if (live) W.live.shift(); else W.idx++;
+    startTrip(tr, live);
+    schedule(3600);
+  }
+  function startTrip(tr, live) {
+    var a = S.byId[tr.from], home = a && agentEl(tr.from), layer = elFloor.querySelector("#walk-layer");
+    if (!home || !layer) return;
+    var stops = tr.stops.filter(function (id) { return S.byId[id] && agentEl(id); });
+    if (!stops.length) return;
+    var g = document.createElementNS(SVGNS, "g");
+    g.setAttribute("class", "walker s-" + st(a) + (S.hl && S.hl.indexOf(a.agent_id) >= 0 ? " hl" : "") + (S.focus && S.focus.type === "agent" && S.focus.id === a.agent_id ? " sel" : ""));
+    g.setAttribute("data-id", a.agent_id);
+    g.setAttribute("style", "--c:" + (a.dept_color || "#8aa0b5") + ";" + look(a));
+    g.innerHTML = walkerInner();
+    layer.appendChild(g);
+    home.classList.add("away");
+    var w = { id: a.agent_id, el: g, x: a._p[0], y: a._p[1], hx: a._p[0], hy: a._p[1], drop: 0, phase: 0, face: 1,
+              stops: stops, i: 0, mode: "rise", wait: 260, target: standPoint(stops[0], a._p[0]),
+              legs: g.querySelectorAll(".leg"), arms: g.querySelectorAll(".arm"), up: g.querySelector(".up"), flip: g.querySelector(".flip") };
+    W.list.push(w);
+    setCaption({ t: tr.t, from: tr.from, stops: stops }, live);
+    draw(w, false);
+    if (S.pairs && S.pairs.length) drawWires();
+    if (!W.raf) { W.last = 0; W.raf = requestAnimationFrame(frame); }
+  }
+  function endTalk(w) {
+    w.el.classList.remove("talk");
+    var o = agentEl(w.stops[w.i]); if (o) o.classList.remove("talk");
+  }
+  function finish(w) {
+    if (w.mode === "talk") endTalk(w);
+    if (w.el.parentNode) w.el.parentNode.removeChild(w.el);
+    var home = agentEl(w.id); if (home) home.classList.remove("away");
+    var i = W.list.indexOf(w); if (i >= 0) W.list.splice(i, 1);
+  }
+  function clearWalkers() {
+    W.list.slice().forEach(finish);
+    Array.prototype.forEach.call(elFloor.querySelectorAll(".ag.away,.ag.talk"), function (e) { e.classList.remove("away", "talk"); });
+  }
+  function draw(w, moving) {
+    var sw = moving ? Math.sin(w.phase / STRIDE * 2 * Math.PI) : 0, a = sw * 27;
+    w.legs[0].setAttribute("transform", "rotate(" + a.toFixed(1) + " 0 -10)");
+    w.legs[1].setAttribute("transform", "rotate(" + (-a).toFixed(1) + " 0 -10)");
+    w.arms[0].setAttribute("transform", "rotate(" + (-a * 0.8).toFixed(1) + " -4.9 -18.6)");
+    w.arms[1].setAttribute("transform", "rotate(" + (a * 0.8).toFixed(1) + " 4.9 -18.6)");
+    w.up.setAttribute("transform", "translate(0," + (-Math.abs(sw) * 0.9).toFixed(2) + ")");
+    w.flip.setAttribute("transform", "scale(" + w.face + ",1)");
+    w.el.setAttribute("transform", "translate(" + w.x.toFixed(1) + "," + (w.y + w.drop).toFixed(1) + ")");
+  }
+  function step(w, dt) {
+    var moving = false;
+    if (w.mode === "rise" || w.mode === "talk") {
+      w.wait -= dt * 1000;
+      if (w.wait <= 0) {
+        if (w.mode === "talk") {
+          endTalk(w); w.i++;
+          if (w.i < w.stops.length) { w.target = standPoint(w.stops[w.i], w.x); w.mode = "walk"; }
+          else { w.target = [w.hx, w.hy]; w.mode = "home"; }
+        } else w.mode = "walk";
+      }
+    } else {
+      var dx = w.target[0] - w.x, dy = w.target[1] - w.y, dist = Math.sqrt(dx * dx + dy * dy), go = WALK_SPEED * dt;
+      if (dist <= go) {
+        w.x = w.target[0]; w.y = w.target[1];
+        if (w.mode === "home") { finish(w); if (S.pairs && S.pairs.length) drawWires(); return; }
+        var o = agentEl(w.stops[w.i]), op = S.byId[w.stops[w.i]];
+        if (op) w.face = op._p[0] >= w.x ? 1 : -1;
+        w.mode = "talk"; w.wait = TALK_MS; w.el.classList.add("talk"); if (o) o.classList.add("talk");
+      } else {
+        w.x += dx / dist * go; w.y += dy / dist * go; w.phase += go; moving = true;
+        if (Math.abs(dx) > 0.6) w.face = dx < 0 ? -1 : 1;
+      }
+    }
+    var want = onPlatform(w.x, w.y) ? 0 : SLAB;
+    w.drop += (want - w.drop) * Math.min(1, dt * 11);
+    draw(w, moving);
+  }
+  function frame(ts) {
+    var dt = W.last ? Math.min(0.05, (ts - W.last) / 1000) : 0.016;
+    W.last = ts;
+    W.list.slice().forEach(function (w) { step(w, dt); });
+    W.raf = W.list.length ? requestAnimationFrame(frame) : 0;
+  }
+  elWalkBtn.addEventListener("click", function () {
+    W.on = !W.on;
+    try { localStorage.setItem("dewi_office_walk", W.on ? "1" : "0"); } catch (e) {}
+    renderWalkBtn();
+    if (W.on) { W.started = true; elCap.innerHTML = ""; schedule(300); }
+    else { clearTimeout(W.timer); clearWalkers(); idleCaption(); if (S.pairs && S.pairs.length) drawWires(); }
+  });
+
   /* ----------------------------------------------------------------- start */
+  renderWalkBtn();
   if (!SB_KEY) { $("loading").style.display = "none"; showMsg("dewi-config.js is niet geladen: geen Supabase-sleutel gevonden."); return; }
   load();
   setInterval(function () { if (!document.hidden) load(); }, REFRESH_MS);
