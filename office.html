@@ -13,8 +13,13 @@
       v_office_links        wie roept wie aan (uit dewi_agent_links, gevuld door Workflow Backup 02:30)
       dewi_runs_public      laatste runs van een gekozen agent + alle runs van de laatste 48 uur
   Samenwerking: staat er een koppeling A -> B in v_office_links en liepen A en B binnen 3 minuten van elkaar,
-  dan staat A op van zijn kruk, loopt naar B, overlegt en loopt terug. Nieuwe gezamenlijke runs worden direct
-  gespeeld ("Nu"); daartussen worden die van de laatste 48 uur herhaald. Knop linksonder zet het lopen uit.
+  dan staat A op van zijn kruk, loopt via de gangpaden naar B, overlegt en loopt terug.
+  - Gebeurt er nu iets (nieuwe gezamenlijke run, of bij openen een van de laatste 15 minuten), dan wordt alleen
+    dat getoond ("Nu"); een lopende herhaling stopt.
+  - Gebeurt er niets, dan wordt de laatste samenwerking herhaald ("Herhaling <dag tijd>"), met een pauze ertussen.
+  Looproutes: raster van een kwart cel, alleen over de vloer tussen de platforms en over de gangpaden op een
+  platform (voor elke rij een, plus links en rechts langs de rand); zie buildNav() / route().
+  Knop linksonder zet het lopen uit.
   Geen bibliotheken: de scene is SVG, de projectie is 2:1 isometrisch (zie iso()).
   Indeling per afdeling: GRP = rij (pijplijn SCOUT > COMPILE > BUILD > PUBLISH > REVIEW, daarna
   overige groepen op agent_sort); binnen een rij op grp_step, dan agent_sort.
@@ -75,7 +80,7 @@
   .tool.on{background:var(--cyan);border-color:var(--cyan);color:#04101a}
   .tool.on i{color:#04101a}
 
-  .scene{flex:1;min-height:0;overflow:auto;position:relative;background:var(--ground)}
+  .scene{flex:1;min-height:0;overflow:auto;position:relative;background:var(--ground);padding-bottom:52px}
   #floor{display:block;width:100%;height:100%;font-family:var(--font)}
   #wires{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:hidden}
   #wires path{fill:none;stroke:var(--cyan);stroke-width:1.1;stroke-opacity:.5;stroke-dasharray:1;stroke-dashoffset:1;animation:draw .32s ease-out forwards}
@@ -93,53 +98,74 @@
   .slab-l{fill:color-mix(in srgb,var(--c) 30%,#0a0f18)}
   .slab-r{fill:color-mix(in srgb,var(--c) 15%,#0a0f18)}
   .slab:hover .slab-top,.slab:focus-visible .slab-top,.dept.cur .slab-top{stroke:var(--c);stroke-width:1.6}
-  .band{fill:#fff;fill-opacity:.03}
+  .band{fill:#162031}
   .plate{font-weight:700;font-size:10.5px;letter-spacing:.07em;fill:color-mix(in srgb,var(--c) 48%,#fff)}
   .count{font-weight:600;font-size:8.5px;fill:color-mix(in srgb,var(--c) 40%,#cfe2ec)}
   .lane{font-weight:700;font-size:7.6px;letter-spacing:.09em;fill:color-mix(in srgb,var(--c) 50%,#b9cbd8)}
 
-  /* agents: vaste plek (ring + kruk) met een zittende figuur; lopers staan in een eigen laag bovenop */
-  .ag{cursor:pointer;outline:none;transition:opacity .2s;--s:var(--green)}
+  /* agents: vaste plek (ring + kruk) met een zittende figuur; lopers worden op diepte tussen de anderen gezet.
+     Geen doorzichtigheid op figuren: gedempte toestanden zijn vaste, donkerdere kleuren; elke vorm heeft een
+     donkere contour zodat hij op klein formaat scherp blijft. */
+  .ag{cursor:pointer;outline:none;--s:var(--green)}
   .ag .hit{fill:transparent}
-  .ag .ring{fill:var(--s);fill-opacity:.14;stroke:var(--s);stroke-width:1.4}
-  .stool-t{fill:#33465f} .stool-l{fill:#202d40} .stool-r{fill:#172131}
-  .fig .torso{fill:var(--c)}
-  .fig .arm{stroke:color-mix(in srgb,var(--c) 70%,#000);stroke-width:2.4;stroke-linecap:round}
-  .fig .leg{fill:none;stroke:#aebdcd;stroke-width:2.8;stroke-linecap:round;stroke-linejoin:round}
-  .fig .leg.far{stroke:#8e9fb2}
-  .fig .head{fill:var(--skin,#e0ac84)}
-  .fig .hair{fill:var(--hair,#2a211b)}
+  .ag .ring{fill:color-mix(in srgb,var(--s) 16%,var(--slab));stroke:var(--s);stroke-width:1.6}
+  .stool-t{fill:#3a4e69;stroke:#0a0f18;stroke-width:.6;stroke-linejoin:round}
+  .stool-l{fill:#243247;stroke:#0a0f18;stroke-width:.6;stroke-linejoin:round}
+  .stool-r{fill:#1a2536;stroke:#0a0f18;stroke-width:.6;stroke-linejoin:round}
+  .fig path,.fig line{fill:none;stroke-linecap:round;stroke-linejoin:round}
+  .fig .ol{stroke:#0a0f18}
+  .fig .leg .ol{stroke-width:4.4} .fig .leg .ln{stroke-width:2.9;stroke:#c3cfdc}
+  .fig .leg.far .ln{stroke:#9aabbd}
+  .fig .arm .ol{stroke-width:4} .fig .arm .ln{stroke-width:2.5;stroke:color-mix(in srgb,var(--c) 70%,#000)}
+  .fig .torso{fill:var(--c);stroke:#0a0f18;stroke-width:.8}
+  .fig .head{fill:var(--skin,#e0ac84);stroke:#0a0f18;stroke-width:.8}
+  .fig path.hair{fill:var(--hair,#2a211b);stroke:none}
   .ag .loop{fill:var(--violet);stroke:#0a0f18;stroke-width:.8}
   .ag.s-working,.walker.s-working{--s:var(--cyan)} .ag.s-error,.walker.s-error{--s:var(--red)}
   .ag.s-silent,.walker.s-silent{--s:var(--amber)} .ag.s-paused,.walker.s-paused{--s:var(--grey)} .ag.s-idle,.walker.s-idle{--s:var(--dim)}
   .ag.s-silent .ring,.ag.s-idle .ring{stroke-dasharray:3 2.4}
-  .s-silent .fig{opacity:.5}
-  .s-idle .fig{opacity:.32}
-  .s-paused .fig .torso{fill:#56667a} .s-paused .fig .head{fill:#8a99aa} .s-paused .fig .hair{fill:#56667a} .s-paused .fig .arm{stroke:#414f61} .s-paused .fig .leg{stroke:#77879a}
+  /* stil: zelfde figuur, vaal */
+  .s-silent .fig .torso{fill:color-mix(in srgb,var(--c) 42%,#1b2431)}
+  .s-silent .fig .arm .ln{stroke:color-mix(in srgb,var(--c) 28%,#1b2431)}
+  .s-silent .fig .head{fill:color-mix(in srgb,var(--skin,#e0ac84) 55%,#1b2431)}
+  .s-silent .fig path.hair{fill:color-mix(in srgb,var(--hair,#2a211b) 60%,#1b2431)}
+  .s-silent .fig .leg .ln{stroke:#66758a}
+  /* gepauzeerd: grijs */
+  .s-paused .fig .torso{fill:#5b6b7f} .s-paused .fig .head{fill:#93a2b3} .s-paused .fig path.hair{fill:#4a586a}
+  .s-paused .fig .arm .ln{stroke:#445264} .s-paused .fig .leg .ln{stroke:#7d8da0}
+  /* nog nooit gedraaid, en alles wat niet bij de huidige selectie hoort: donker silhouet */
+  .s-idle .fig .torso,#floor.has-hl .ag:not(.hl) .fig .torso,#floor.has-hl .walker:not(.hl) .fig .torso{fill:#283342}
+  .s-idle .fig .head,#floor.has-hl .ag:not(.hl) .fig .head,#floor.has-hl .walker:not(.hl) .fig .head{fill:#364355}
+  .s-idle .fig path.hair,#floor.has-hl .ag:not(.hl) .fig path.hair,#floor.has-hl .walker:not(.hl) .fig path.hair{fill:#202a37}
+  .s-idle .fig .arm .ln,#floor.has-hl .ag:not(.hl) .fig .arm .ln,#floor.has-hl .walker:not(.hl) .fig .arm .ln{stroke:#202a37}
+  .s-idle .fig .leg .ln,#floor.has-hl .ag:not(.hl) .fig .leg .ln,#floor.has-hl .walker:not(.hl) .fig .leg .ln{stroke:#313d4e}
+  #floor.has-hl .ag:not(.hl) .ring{stroke:#283342;fill:var(--slab);animation:none}
+  #floor.has-hl .ag:not(.hl) .badge,#floor.has-hl .ag:not(.hl) .pulse,#floor.has-hl .ag:not(.hl) .loop{display:none}
+  #floor.has-hl .ag:not(.hl) .stool-t{fill:#222d3d} #floor.has-hl .ag:not(.hl) .stool-l{fill:#1a2331} #floor.has-hl .ag:not(.hl) .stool-r{fill:#151d29}
+  #floor.has-hl .dept:not(.hl-d) .slab{opacity:.4}
   .ag .badge circle{fill:var(--s);stroke:#0a0f18;stroke-width:1}
-  .ag .badge text{font-weight:800;font-size:8px;fill:#06101a}
+  .ag .badge text{font-weight:800;font-size:8.5px;fill:#06101a}
   .ag .pulse{fill:none;stroke:var(--cyan);stroke-width:1.4;transform-box:fill-box;transform-origin:center;animation:pulse 1.9s ease-out infinite}
   @keyframes pulse{from{transform:scale(1);opacity:.9}to{transform:scale(2.2);opacity:0}}
-  .ag.s-working .fig .up{animation:busy .8s ease-in-out infinite}
-  @keyframes busy{50%{transform:translateY(-1.1px)}}
+  .ag.s-working .fig .up{animation:busy .7s steps(2,jump-none) infinite}
+  @keyframes busy{from{transform:translateY(0)}to{transform:translateY(-1px)}}
   .ag.s-error .ring{animation:blink 1.1s steps(2,jump-none) infinite}
-  @keyframes blink{from{fill-opacity:.14}to{fill-opacity:.6}}
-  .ag:hover .ring,.ag:focus-visible .ring{stroke-width:2.4;fill-opacity:.32}
+  @keyframes blink{from{stroke-width:1.6}to{stroke-width:3.4}}
+  .ag:hover .ring,.ag:focus-visible .ring{stroke-width:2.8}
   .ag:focus-visible .hit{stroke:#fff;stroke-width:1;stroke-dasharray:2 2}
-  .ag.sel .ring{stroke:#fff;stroke-width:2.4;fill-opacity:.4}
+  .ag.sel .ring{stroke:#fff;stroke-width:2.8}
   .ag.away .fig,.ag.away .badge,.ag.away .pulse{display:none}
-  .ag.away .ring{fill-opacity:.04;stroke-opacity:.55;stroke-dasharray:2 3}
+  .ag.away .ring{fill:var(--slab);stroke-dasharray:2 3}
   .bubble{display:none}
   .ag.talk .bubble,.walker.talk .bubble{display:block}
-  .bubble rect,.bubble path{fill:#e8eff7}
-  .bubble circle{fill:#0a0f18;animation:dots 1s infinite}
-  .bubble circle:nth-of-type(2){animation-delay:.16s} .bubble circle:nth-of-type(3){animation-delay:.32s}
-  @keyframes dots{0%,60%,100%{opacity:.2}30%{opacity:1}}
-  .walker{cursor:pointer;transition:opacity .2s}
-  .walker .shadow{fill:#000;fill-opacity:.38}
-  .walker.sel .shadow{fill:#fff;fill-opacity:.5}
-  #floor.has-hl .ag:not(.hl),#floor.has-hl .walker:not(.hl){opacity:.13}
-  #floor.has-hl .dept:not(.hl-d) .slab{opacity:.4}
+  .bubble rect,.bubble path{fill:#f1f5fa;stroke:#0a0f18;stroke-width:.7;stroke-linejoin:round}
+  .bubble circle{fill:#0a0f18;animation:dots 1s steps(1) infinite}
+  .bubble circle:nth-of-type(2){animation-delay:.2s} .bubble circle:nth-of-type(3){animation-delay:.4s}
+  @keyframes dots{0%,100%{fill:#9aa7b5}40%{fill:#0a0f18}}
+  .walker{cursor:pointer}
+  .walker .shadow{fill:#05080d}
+  .walker.sel .shadow{fill:#fff}
+  .aisle{fill:none;stroke:#1f2b3d;stroke-width:1;stroke-dasharray:1.5 5;stroke-linecap:round}
 
   .walkbar{position:absolute;left:66px;right:16px;bottom:16px;z-index:4;display:flex;align-items:center;gap:10px;pointer-events:none}
   .walkbar button{pointer-events:auto;appearance:none;cursor:pointer;flex:none;border:1px solid var(--line);background:rgba(7,11,18,.86);
@@ -259,14 +285,19 @@
   var HW = 26, HH = 13;                 /* halve tegel: 1 cel = 52 x 26 px op het scherm */
   var SLAB = 18;                        /* dikte van een afdelingsplatform */
   var EDGE = Math.sqrt(HW * HW + HH * HH);
-  var PAD = 0.5, LANE_GAP = 0.3, MAX_COLS = 6, DEPT_GAP = 1.4;
+  var PAD = 0.5, LANE_GAP = 0.25, ROW = 1.25, MAX_COLS = 6, DEPT_GAP = 1.5;   /* alles veelvouden van 0,25: het looprooster */
+  var SEAT_Y = 0.4, AISLE_Y = 1.0;     /* binnen een rij: kruk op 0,4 en het gangpad ervoor op 1,0 */
+  var FIG = 1.15;                      /* schaal van de figuren */
+  var SCENE_PAD = 52;                   /* gelijk aan padding-bottom van .scene: plek voor knop en bijschrift */
   var MIN_SCALE = 0.85;                 /* kleiner dan dit: niet verder krimpen maar laten scrollen */
   var STAGES = ["SCOUT", "COMPILE", "BUILD", "PUBLISH", "REVIEW"];
 
-  var WINDOW_H = 48;                    /* herhaling: gezamenlijke runs van de laatste 48 uur */
+  var WINDOW_H = 168;                   /* zo ver terug zoeken naar de laatste samenwerking (max. 1000 runs) */
   var PAIR_MS = 180000;                 /* A en B "werkten samen" als hun runs binnen 3 minuten van elkaar liggen */
   var LIVE_MS = 900000;                 /* bij het openen telt alles van de laatste 15 minuten als "nu" */
-  var WALK_SPEED = 74, STRIDE = 34, TALK_MS = 2400, MAX_WALKERS = 3;
+  var WALK_SPEED = 88, STRIDE = 34, TALK_MS = 2400, MAX_WALKERS = 3;
+  var STAND_DX = 0.3;                   /* de loper stopt in het gangpad, iets links voor de kruk van de ander */
+  var REPLAY_PAUSE = 6000;              /* rust tussen twee herhalingen van de laatste samenwerking */
   var SVGNS = "http://www.w3.org/2000/svg";
 
   var STATES = {
@@ -281,10 +312,10 @@
 
   var S = { depts: [], agents: [], tools: [], byId: {}, byWf: {}, toolsByWf: {}, sig: "",
             focus: null, hoverTool: null, runs: {}, loops: {}, loadedAt: null, first: true,
-            links: [], linksOut: {}, linksIn: {}, pairLast: {}, hl: null };
+            links: [], linksOut: {}, linksIn: {}, pairLast: {}, hl: null, deptOf: {} };
   /* lopers + afspeellijst */
   var W = { on: true, list: [], raf: 0, last: 0, timer: 0, started: false, trips: [], idx: 0, live: [], played: {},
-            runs: [], seen: {}, lastRaw: "", liveCut: 0, linksKnown: false };
+            runs: [], seen: {}, lastRaw: "", liveCut: 0, linksKnown: false, rq: [], restAt: 0 };
   var REDUCED = !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
   try { var pref = localStorage.getItem("dewi_office_walk"); W.on = pref === null ? !REDUCED : pref === "1"; } catch (e0) { W.on = !REDUCED; }
 
@@ -395,6 +426,7 @@
       });
       S.paint = S.paint.map(function (d) { return byName[d.name]; });
       patchAgents();
+      bindDom();
     }
 
     S.loadedAt = new Date();
@@ -429,27 +461,29 @@
     });
     var gutter = maxLabel ? Math.min(3.6, Math.max(1.3, maxLabel * 5.7 / EDGE + 0.55)) : 0;
     var cols = 0, y = PAD;
+    d.aisles = [];
     lanes.forEach(function (l, i) {
       if (i) y += LANE_GAP;
       var n = l.agents.length, rows = Math.ceil(n / MAX_COLS), per = Math.ceil(n / rows);
-      l.y0 = y;
+      l.y0 = y; l.rows = [];
       for (var r = 0; r < rows; r++) {
         l.agents.slice(r * per, (r + 1) * per).forEach(function (a, c) {
-          a._lx = PAD + gutter + c + 0.5; a._ly = y + 0.5;
+          a._lx = PAD + gutter + c + 0.5; a._ly = y + SEAT_Y; a._ay = y + AISLE_Y;
           cols = Math.max(cols, c + 1);
         });
-        y += 1;
+        l.rows.push(y); d.aisles.push(y + AISLE_Y);
+        y += ROW;
       }
       l.y1 = y;
     });
     d.lanes = lanes; d.gutter = gutter;
     d.labelChars = Math.max(3, Math.floor((gutter - 0.5) * EDGE / 5.7));
-    d.w = Math.max(PAD * 2 + gutter + cols, (String(d.name).length * 7.3 + 40) / EDGE, 3);
-    d.d = y + PAD;
+    d.w = Math.ceil(Math.max(PAD * 2 + gutter + cols, (String(d.name).length * 7.3 + 40) / EDGE, 3) * 4) / 4;
+    d.d = y + 0.25;
   }
   /* Schermrechthoek van een platform op wereldpositie (x,y): [links, boven, rechts, onder]. */
   function screenBox(d, x, y) {
-    return [(x - (y + d.d)) * HW, (x + y) * HH - SLAB - 40, ((x + d.w) - y) * HW, (x + d.w + y + d.d) * HH];
+    return [(x - (y + d.d)) * HW, (x + y) * HH - SLAB - 50, ((x + d.w) - y) * HW, (x + d.w + y + d.d) * HH];
   }
   /* Platforms een voor een neerzetten op de plek die de hele scene het grootst in beeld laat (tw x th = beschikbare
      ruimte). Een wereld-rechthoek wordt op het scherm een ruit met lege hoeken; pakken op de schermmaat vult het beeld. */
@@ -485,7 +519,7 @@
   }
   function layout() {
     S.depts.forEach(planDept);
-    var tw = Math.max(300, elScene.clientWidth - 28), th = Math.max(240, elScene.clientHeight - 28);
+    var tw = Math.max(300, elScene.clientWidth - 28), th = Math.max(240, elScene.clientHeight - 28 - SCENE_PAD);
     S.sceneSize = [elScene.clientWidth, elScene.clientHeight];
     var orders = [
       S.depts.slice(),
@@ -513,43 +547,44 @@
       out.push(rest.splice(pick, 1)[0]);
     }
     S.paint = out;
+    buildNav();
   }
 
   /* ---------------------------------------------------------------- tekenen */
-  /* Figuur met voeten op (0,0). Staand recht van voren; zittend driekwart op een kruk (bovenlijf 3,6 px lager,
-     knieen naar rechts). Huid- en haarkleur komen per agent uit look(); het shirt heeft de afdelingskleur. */
-  var FIG_UP = '<line class="arm l" x1="-4.9" y1="-18.6" x2="-5.7" y2="-11.6"/><rect class="torso" x="-4.2" y="-20.6" width="8.4" height="11.6" rx="3"/>'
-    + '<line class="arm r" x1="4.9" y1="-18.6" x2="5.7" y2="-11.6"/><circle class="head" cy="-24.6" r="4.3"/>'
+  /* Figuur met voeten op (0,0), getekend op schaal FIG. Staand recht van voren (lopers); zittend driekwart op een
+     kruk, bovenlijf 3,6 lager, kijkrichting links. Elk ledemaat is een donkere onderlijn (.ol) plus kleurlijn (.ln).
+     Huid- en haarkleur komen per agent uit look(); het shirt heeft de afdelingskleur. */
+  function limb(cls, d) { return '<g class="' + cls + '"><path class="ol" d="' + d + '"/><path class="ln" d="' + d + '"/></g>'; }
+  var FIG_UP = limb("arm", "M-4.9,-18.6L-5.7,-11.6") + '<rect class="torso" x="-4.2" y="-20.6" width="8.4" height="11.6" rx="3"/>'
+    + limb("arm", "M4.9,-18.6L5.7,-11.6") + '<circle class="head" cy="-24.6" r="4.3"/>'
     + '<path class="hair" d="M-4.4,-24.9a4.4,4.4 0 0 1 8.8,0q-4.4,-2.3 -8.8,0z"/>';
-  var FIG_SIT = '<g class="fig"><path class="leg far" d="M-2.8,-7.2L2.4,-6.2L2.8,-.8"/>'
-    + '<g transform="translate(-1.5,3.6)"><g class="up">' + FIG_UP + "</g></g>"
-    + '<path class="leg" d="M-.4,-6.1L4.9,-5.1L5.3,.3"/></g>';
-  var FIG_STAND = '<g class="fig"><line class="leg l" x1="-2.1" y1="-10" x2="-2.3" y2="-.6"/><line class="leg r" x1="2.1" y1="-10" x2="2.3" y2="-.6"/>'
-    + '<g class="up">' + FIG_UP + "</g></g>";
+  var FIG_STAND = '<g class="fig">' + limb("leg", "M-2.1,-10L-2.3,-.6") + limb("leg", "M2.1,-10L2.3,-.6") + '<g class="up">' + FIG_UP + "</g></g>";
   var STOOL = '<polygon class="stool-l" points="-8.2,-6.4 -1.5,-3.3 -1.5,1.3 -8.2,-1.8"/><polygon class="stool-r" points="5.2,-6.4 -1.5,-3.3 -1.5,1.3 5.2,-1.8"/>'
     + '<polygon class="stool-t" points="-8.2,-6.4 -1.5,-9.5 5.2,-6.4 -1.5,-3.3"/>';
+  var SEATED = '<g transform="scale(' + (-FIG) + "," + FIG + ')">' + STOOL + '<g class="fig">' + limb("leg far", "M-2.8,-7.2L2.4,-6.2L2.8,-.8")
+    + '<g transform="translate(-1.5,3.6)"><g class="up">' + FIG_UP + "</g></g>" + limb("leg", "M-.4,-6.1L4.9,-5.1L5.3,.3") + "</g></g>";
   var SKIN = ["#f3cfae", "#e6b48c", "#cf9466", "#a9714b", "#7d4e30"], HAIR = ["#1d1a17", "#3b2a1c", "#6d4b2b", "#b38b53", "#8d8f98", "#2a2f3a"];
   function look(a) {
     var id = String(a.agent_id), n = 0;
     for (var i = 0; i < id.length; i++) n = (n * 31 + id.charCodeAt(i)) >>> 0;
     return "--skin:" + SKIN[n % SKIN.length] + ";--hair:" + HAIR[(n >>> 3) % HAIR.length];
   }
-  function bubble(y) {
-    return '<g class="bubble" transform="translate(4,' + y + ')"><rect width="15" height="9" rx="4.5"/><path d="M2.6,8.2l-1.8,3.6l5.2,-3.4Z"/>'
-      + '<circle cx="4" cy="4.5" r="1.15"/><circle cx="7.5" cy="4.5" r="1.15"/><circle cx="11" cy="4.5" r="1.15"/></g>';
+  function bubble(x, y) {
+    return '<g class="bubble" transform="translate(' + x + "," + y + ')"><rect width="16" height="10" rx="5"/><path d="M3,9.4l-1.6,3.6l5,-3.6Z"/>'
+      + '<circle cx="4.4" cy="5" r="1.2"/><circle cx="8" cy="5" r="1.2"/><circle cx="11.6" cy="5" r="1.2"/></g>';
   }
   function agentInner(a) {
     var s = st(a), g = STATES[s].g;
-    return '<rect class="hit" x="-13" y="-36" width="26" height="45" rx="6"/>'
-      + '<ellipse class="ring" rx="11" ry="5.5"/>'
-      + (s === "working" ? '<ellipse class="pulse" rx="11" ry="5.5"/>' : "")
-      + STOOL + FIG_SIT
-      + (g ? '<g class="badge" transform="translate(0,-32.5)"><circle r="5.2"/><text y="2.9" text-anchor="middle">' + esc(g) + "</text></g>" : "")
-      + (Number(a.open_loops) > 0 ? '<path class="loop" d="M9.5,-21l3.2,3.2l-3.2,3.2l-3.2,-3.2Z"/>' : "")
-      + bubble(-39);
+    return '<rect class="hit" x="-14" y="-41" width="28" height="51" rx="6"/>'
+      + '<ellipse class="ring" rx="12.5" ry="6.25"/>'
+      + (s === "working" ? '<ellipse class="pulse" rx="12.5" ry="6.25"/>' : "")
+      + SEATED
+      + (g ? '<g class="badge" transform="translate(1.5,-36.5)"><circle r="5.6"/><text y="3.1" text-anchor="middle">' + esc(g) + "</text></g>" : "")
+      + (Number(a.open_loops) > 0 ? '<path class="loop" d="M-9,-25l3.4,3.4l-3.4,3.4l-3.4,-3.4Z"/>' : "")
+      + bubble(5, -44);
   }
   function walkerInner() {
-    return '<ellipse class="shadow" rx="6.4" ry="2.7"/><g class="flip">' + FIG_STAND + "</g>" + bubble(-42);
+    return '<ellipse class="shadow" rx="7.2" ry="3"/><g class="flip" transform="scale(' + FIG + ')">' + FIG_STAND + "</g>" + bubble(3, -48);
   }
   function agentLabel(a) { return a.agent_name + ", " + STATES[st(a)].l.toLowerCase() + ", afdeling " + a.dept_name; }
 
@@ -568,11 +603,13 @@
       h += '<polygon class="slab-r" points="' + pts([iso(x1, y1, SLAB), iso(x1, y0, SLAB), iso(x1, y0), iso(x1, y1)]) + '"/>';
       h += '<polygon class="slab-top" points="' + pts([iso(x0, y0, SLAB), iso(x1, y0, SLAB), iso(x1, y1, SLAB), iso(x0, y1, SLAB)]) + '"/>';
       d.lanes.forEach(function (l) {
-        if (d.lanes.length > 1) {
-          h += '<polygon class="band" points="' + pts([iso(x0 + 0.22, y0 + l.y0 + 0.05, SLAB), iso(x1 - 0.22, y0 + l.y0 + 0.05, SLAB), iso(x1 - 0.22, y0 + l.y1 - 0.05, SLAB), iso(x0 + 0.22, y0 + l.y1 - 0.05, SLAB)]) + '"/>';
-        }
+        l.rows.forEach(function (ry) {      /* per rij een band voor de krukken; de donkere strook ervoor is het gangpad */
+          h += '<polygon class="band" points="' + pts([iso(x0 + 0.5, y0 + ry, SLAB), iso(x1 - 0.5, y0 + ry, SLAB), iso(x1 - 0.5, y0 + ry + 0.78, SLAB), iso(x0 + 0.5, y0 + ry + 0.78, SLAB)]) + '"/>';
+          var a0 = iso(x0 + 0.25, y0 + ry + AISLE_Y, SLAB), a1 = iso(x1 - 0.25, y0 + ry + AISLE_Y, SLAB);
+          h += '<line class="aisle" x1="' + a0[0].toFixed(1) + '" y1="' + a0[1].toFixed(1) + '" x2="' + a1[0].toFixed(1) + '" y2="' + a1[1].toFixed(1) + '"/>';
+        });
         if (l.name) {
-          var lp = iso(x0 + 0.42, y0 + l.y0 + 0.62, SLAB), nm = l.name.toUpperCase();
+          var lp = iso(x0 + 0.66, y0 + l.y0 + 0.53, SLAB), nm = l.name.toUpperCase();
           if (nm.length > d.labelChars) nm = nm.slice(0, d.labelChars - 1) + "…";
           h += '<text class="lane" transform="matrix(.894,.447,-.894,.447,' + lp[0].toFixed(1) + "," + lp[1].toFixed(1) + ')">' + esc(nm) + "</text>";
         }
@@ -596,6 +633,7 @@
     elFloor.setAttribute("viewBox", S.vb.map(function (n) { return n.toFixed(1); }).join(" "));
     clearWalkers();
     elFloor.innerHTML = h;
+    bindDom();
     $("loading").style.display = "none";
     fit(true);
     if (S.first) { elFloor.classList.add("intro"); setTimeout(function () { elFloor.classList.remove("intro"); }, 1400); }
@@ -603,7 +641,7 @@
   /* Past de scene in beeld; wordt hij daardoor te klein om te lezen, dan vaste schaal en scrollen. */
   function fit(center) {
     if (!S.vb) return;
-    var cw = elScene.clientWidth, ch = elScene.clientHeight, sc = Math.min(cw / S.vb[2], ch / S.vb[3]);
+    var cw = elScene.clientWidth, ch = elScene.clientHeight - SCENE_PAD, sc = Math.min(cw / S.vb[2], ch / S.vb[3]);
     if (sc < MIN_SCALE) {
       elFloor.style.width = Math.round(S.vb[2] * MIN_SCALE) + "px"; elFloor.style.height = Math.round(S.vb[3] * MIN_SCALE) + "px";
       if (center) { elScene.scrollLeft = (elScene.scrollWidth - cw) / 2; elScene.scrollTop = 0; }
@@ -967,8 +1005,8 @@
   });
 
   /* ---------------------------------------------------------- samenwerking */
-  /* Koppelingen (wie roept wie aan) + runs van de laatste 48 uur -> tochten. Een tocht = agent A loopt langs
-     een of meer agents B waarmee hij rond hetzelfde moment draaide. */
+  /* Koppelingen (wie roept wie aan) + recente runs -> tochten. Een tocht = agent A loopt langs een of meer
+     agents B waarmee hij rond hetzelfde moment draaide. */
   function ingestWork(links, runs) {
     if (links) {
       W.linksKnown = true;
@@ -996,19 +1034,18 @@
     }
     if (firstRuns) W.liveCut = Date.now() - LIVE_MS; else if (prevMax) W.liveCut = Math.max(W.liveCut, prevMax);
 
-    var trips = buildTrips();
-    W.trips = trips;
-    if (W.idx > trips.length) W.idx = 0;
-    trips.forEach(function (tr) {
+    W.trips = buildTrips();
+    W.trips.forEach(function (tr) {
       var key = tr.from + "|" + tr.t;
       if (tr.tEnd > W.liveCut && !W.played[key]) { W.played[key] = 1; if (W.on) W.live.push(tr); }   /* staat lopen uit, dan niet opsparen */
     });
     if (S.focus && S.focus.type === "agent") renderPanel();
     if (!W.started && S.agents.length) { W.started = true; schedule(1700); }
+    else if (W.live.length && W.on) schedule(50);            /* live gaat voor: niet wachten op de volgende tik */
     if (!W.on || (!W.list.length && !W.live.length)) idleCaption();
   }
   function buildTrips() {
-    var by = {}, ev = [], trips = [], perFrom = {};
+    var by = {}, ev = [], trips = [];
     W.runs.forEach(function (r) { (by[r.wf] = by[r.wf] || []).push(r.t); });
     S.pairLast = {};
     S.links.forEach(function (l) {
@@ -1029,12 +1066,139 @@
       if (hit) { if (hit.stops.indexOf(e.to) < 0 && hit.stops.length < 4) hit.stops.push(e.to); hit.tLast = e.t; hit.tEnd = Math.max(hit.tEnd, e.tm); }
       else trips.push({ t: e.t, tLast: e.t, tEnd: e.tm, from: e.from, stops: [e.to] });   /* tEnd = laatste run van het tweetal: bepaalt of het "nu" is */
     });
-    /* een agent die elk kwartier samen met een ander draait mag de herhaling niet vullen: hooguit zijn 5 laatste tochten */
-    for (var j = trips.length - 1; j >= 0; j--) {
-      perFrom[trips[j].from] = (perFrom[trips[j].from] || 0) + 1;
-      if (perFrom[trips[j].from] > 5) trips.splice(j, 1);
-    }
     return trips;
+  }
+  /* De laatste samenwerking = de jongste tocht plus alles wat binnen 3 minuten daarvoor bij hetzelfde moment hoort. */
+  function lastMoment() {
+    if (!W.trips.length) return [];
+    var last = 0;
+    W.trips.forEach(function (tr) { if (tr.t > last) last = tr.t; });
+    return W.trips.filter(function (tr) { return last - tr.t <= PAIR_MS; });
+  }
+
+  /* ------------------------------------------------------------- gangpaden */
+  /* Looproutes op een raster van een kwart cel. Begaanbaar: de vloer tussen de platforms, en op een platform alleen
+     de gangpaden (voor elke rij een, plus links en rechts langs de rand). Routes zijn recht-toe-recht-aan met zo min
+     mogelijk bochten; vlak langs een platformwand lopen kost extra, zodat lopers het midden van de gang houden. */
+  var GRID = 0.25, NAV = null;
+  function deptAt(x, y) {
+    for (var i = 0; i < S.depts.length; i++) {
+      var d = S.depts[i];
+      if (x >= d.x - 0.01 && x <= d.x + d.w + 0.01 && y >= d.y - 0.01 && y <= d.y + d.d + 0.01) return d;
+    }
+    return null;
+  }
+  function buildNav() {
+    var m = 2.5, wb = S.wb, ox = wb[0] - m, oy = wb[1] - m, e = 1e-6;
+    var nx = Math.round((wb[2] - wb[0] + 2 * m) / GRID) + 1, ny = Math.round((wb[3] - wb[1] + 2 * m) / GRID) + 1;
+    var cost = new Uint8Array(nx * ny);
+    for (var iy = 0; iy < ny; iy++) {
+      for (var ix = 0; ix < nx; ix++) {
+        var x = ox + ix * GRID, y = oy + iy * GRID, c = 1;
+        for (var k = 0; k < S.depts.length; k++) {
+          var d = S.depts[k], lx = x - d.x, ly = y - d.y;
+          if (lx > -e && lx < d.w + e && ly > -e && ly < d.d + e) {
+            var aisle = Math.abs(lx - 0.25) < e || Math.abs(lx - (d.w - 0.25)) < e;
+            for (var j = 0; j < d.aisles.length && !aisle; j++) aisle = Math.abs(ly - d.aisles[j]) < e;
+            c = aisle ? 1 : 0; break;
+          }
+          if (lx > -0.5 - e && lx < d.w + 0.5 + e && ly > -0.5 - e && ly < d.d + 0.5 + e) c = 3;
+        }
+        cost[iy * nx + ix] = c;
+      }
+    }
+    NAV = { ox: ox, oy: oy, nx: nx, ny: ny, cost: cost };
+  }
+  /* A* over (cel, looprichting); geeft de hoekpunten van de route in wereldcoordinaten, of null. */
+  function route(ax, ay, bx, by) {
+    var N = NAV, nx = N.nx, ny = N.ny, cost = N.cost, TURN = 5;
+    var sx = Math.round((ax - N.ox) / GRID), sy = Math.round((ay - N.oy) / GRID), tx = Math.round((bx - N.ox) / GRID), ty = Math.round((by - N.oy) / GRID);
+    if (sx < 0 || sy < 0 || tx < 0 || ty < 0 || sx >= nx || tx >= nx || sy >= ny || ty >= ny) return null;
+    if (!cost[sy * nx + sx] || !cost[ty * nx + tx]) return null;
+    var total = nx * ny * 4, g = new Float32Array(total), from = new Int32Array(total), hf = [], hs = [];
+    for (var z = 0; z < total; z++) { g[z] = 1e9; from[z] = -1; }
+    function push(f, s) {
+      var i = hf.length; hf.push(f); hs.push(s);
+      while (i > 0) { var p = (i - 1) >> 1; if (hf[p] <= f) break; hf[i] = hf[p]; hs[i] = hs[p]; i = p; }
+      hf[i] = f; hs[i] = s;
+    }
+    function pop() {
+      var top = hs[0], f = hf.pop(), s = hs.pop(), n = hf.length;
+      if (n) {
+        var i = 0;
+        for (;;) {
+          var l = 2 * i + 1, r = l + 1; if (l >= n) break;
+          var c = r < n && hf[r] < hf[l] ? r : l; if (hf[c] >= f) break;
+          hf[i] = hf[c]; hs[i] = hs[c]; i = c;
+        }
+        hf[i] = f; hs[i] = s;
+      }
+      return top;
+    }
+    var DX = [1, 0, -1, 0], DY = [0, 1, 0, -1], start = sy * nx + sx, goal = ty * nx + tx, end = -1;
+    for (var d0 = 0; d0 < 4; d0++) { g[start * 4 + d0] = 0; push(Math.abs(tx - sx) + Math.abs(ty - sy), start * 4 + d0); }
+    while (hf.length) {
+      var s = pop(), cell = s >> 2, dir = s & 3;
+      if (cell === goal) { end = s; break; }
+      var cx = cell % nx, cy = (cell - cx) / nx, gs = g[s];
+      for (var nd = 0; nd < 4; nd++) {
+        if (((nd + 2) & 3) === dir && cell !== start) continue;
+        var qx = cx + DX[nd], qy = cy + DY[nd];
+        if (qx < 0 || qy < 0 || qx >= nx || qy >= ny) continue;
+        var q = qy * nx + qx, cc = cost[q]; if (!cc) continue;
+        var ng = gs + cc + (nd !== dir ? TURN : 0), qs = q * 4 + nd;
+        if (ng < g[qs]) { g[qs] = ng; from[qs] = s; push(ng + Math.abs(tx - qx) + Math.abs(ty - qy), qs); }
+      }
+    }
+    if (end < 0) return null;
+    var pts = [], cur = end, lastDir = -1;
+    while (cur >= 0) {
+      var c2 = cur >> 2, x2 = c2 % nx, y2 = (c2 - x2) / nx, dd = cur & 3;
+      if (dd !== lastDir || from[cur] < 0) pts.push([N.ox + x2 * GRID, N.oy + y2 * GRID]);
+      lastDir = dd; cur = from[cur];
+    }
+    pts.reverse();
+    var first = [N.ox + sx * GRID, N.oy + sy * GRID];
+    if (!pts.length || Math.abs(pts[0][0] - first[0]) + Math.abs(pts[0][1] - first[1]) > 1e-6) pts.unshift(first);
+    return pts;
+  }
+  function seatOf(a) { var d = S.deptOf[a.agent_id]; return [d.x + a._lx, d.y + a._ly]; }
+  function aisleOf(a, dx) { var d = S.deptOf[a.agent_id]; return [d.x + a._lx + (dx || 0), d.y + a._ay]; }   /* punt in het gangpad voor zijn rij */
+  /* Route tussen twee punten die elk op een gangpadlijn liggen (x vrij, y op het raster). */
+  function legPath(p, q) {
+    var a = [Math.round((p[0] - NAV.ox) / GRID) * GRID + NAV.ox, p[1]], b = [Math.round((q[0] - NAV.ox) / GRID) * GRID + NAV.ox, q[1]];
+    var mid = route(a[0], a[1], b[0], b[1]) || [];
+    var out = [];
+    [p].concat(mid, [q]).forEach(function (pt) {
+      var l = out[out.length - 1];
+      if (!l || Math.abs(l[0] - pt[0]) + Math.abs(l[1] - pt[1]) > 1e-3) out.push(pt);
+    });
+    return out;
+  }
+  /* Na (her)tekenen: per afdeling het SVG-element en de agents op diepte, zodat een loper op de juiste plek tussen
+     de zittende figuren getekend wordt (wie dichterbij staat, dekt af). */
+  function bindDom() {
+    S.deptOf = {};
+    S.depts.forEach(function (d) {
+      d._g = elFloor.querySelector('.dept[data-dept="' + CSS.escape(d.name) + '"]');
+      d._order = d.agents.map(function (a) { S.deptOf[a.agent_id] = d; return { depth: a._lx + a._ly, el: agentEl(a.agent_id) }; })
+        .sort(function (p, q) { return p.depth - q.depth; });
+    });
+  }
+  function place(w) {
+    var d = deptAt(w.wx, w.wy), parent, before = null, i;
+    if (d && d._g) {
+      parent = d._g;
+      var dep = (w.wx - d.x) + (w.wy - d.y);
+      for (i = 0; i < d._order.length; i++) if (d._order[i].depth > dep + 0.01 && d._order[i].el && d._order[i].el.parentNode === parent) { before = d._order[i].el; break; }
+    } else {
+      parent = elFloor; before = elFloor.querySelector("#walk-layer");
+      for (i = 0; i < S.paint.length; i++) {
+        var r = S.paint[i];
+        if (r._g && ((w.wx <= r.x + 1e-9 && w.wy < r.y + r.d) || (w.wy <= r.y + 1e-9 && w.wx < r.x + r.w))) { before = r._g; break; }
+      }
+    }
+    if (w.parent !== parent || w.before !== before) { parent.insertBefore(w.el, before); w.parent = parent; w.before = before; }
   }
 
   /* ----------------------------------------------------------------- lopers */
@@ -1044,17 +1208,6 @@
     for (var i = 0; i < W.list.length; i++) if (W.list[i].stops.indexOf(id) >= 0) return true;
     return false;
   }
-  function onPlatform(sx, sy) {       /* ligt dit punt (op platformhoogte) boven een platform? anders loopt hij over de vloer */
-    var a = sx / HW, b = (sy + SLAB) / HH, wx = (a + b) / 2, wy = (b - a) / 2;
-    for (var i = 0; i < S.depts.length; i++) {
-      var d = S.depts[i];
-      if (wx >= d.x - 0.08 && wx <= d.x + d.w + 0.08 && wy >= d.y - 0.08 && wy <= d.y + d.d + 0.08) return true;
-    }
-    return false;
-  }
-  function standPoint(id, fromX) {    /* plek naast de kruk van de ander, aan de kant waar de loper vandaan komt */
-    var p = S.byId[id]._p; return [p[0] + (fromX <= p[0] ? -13 : 13), p[1] + 5];
-  }
   function names(ids) { return ids.map(function (id) { return S.byId[id] ? S.byId[id].agent_name : id; }).join(", "); }
   function setCaption(tr, live) {
     elCap.innerHTML = (live ? "<b>Nu</b> " : '<span class="muted">Herhaling ' + esc(fmtDay.format(new Date(tr.t))) + "</span> ")
@@ -1063,7 +1216,7 @@
   function idleCaption() {
     if (!W.on) { elCap.innerHTML = '<span class="muted">Lopen staat uit</span>'; return; }
     if (!W.linksKnown || !S.links.length) elCap.innerHTML = '<span class="muted">Nog geen samenwerking bekend; volgt na de Workflow Backup van 02:30</span>';
-    else if (!W.trips.length) elCap.innerHTML = '<span class="muted">Geen gezamenlijke runs in de laatste ' + WINDOW_H + " uur</span>";
+    else if (!W.trips.length) elCap.innerHTML = '<span class="muted">Geen gezamenlijke runs in de laatste ' + Math.round(WINDOW_H / 24) + " dagen</span>";
   }
   function renderWalkBtn() {
     elWalkBtn.textContent = W.on ? "Pauzeer" : "Laat lopen";
@@ -1071,36 +1224,52 @@
     elWalkBtn.title = W.on ? "Lopen stilzetten" : "Agents weer laten lopen";
   }
   function schedule(ms) { clearTimeout(W.timer); W.timer = setTimeout(player, ms); }
+  function liveWalking() { return W.list.some(function (w) { return w.live; }); }
+  /* Gebeurt er nu iets, dan alleen dat tonen. Anders de laatste samenwerking herhalen, met een pauze ertussen. */
   function player() {
     if (!W.on) return;
-    if (document.hidden || !S.agents.length) return schedule(2500);
-    var live = W.live.length > 0, tr = null;
-    if (live) tr = W.live[0];
-    else if (W.trips.length) {
-      if (W.idx >= W.trips.length) { W.idx = 0; return schedule(W.trips.length > 3 ? 5000 : 9000); }   /* adempauze tussen rondes */
-      tr = W.trips[W.idx];
+    if (document.hidden || !S.agents.length || !NAV) return schedule(2500);
+    var tr, ids;
+    if (W.live.length) {
+      W.rq = [];
+      W.list.slice().forEach(function (w) { if (!w.live) finish(w); });          /* herhaling maakt plaats */
+      tr = W.live[0]; ids = [tr.from].concat(tr.stops);
+      if (W.list.length >= MAX_WALKERS || ids.some(busy)) return schedule(600);
+      W.live.shift(); startTrip(tr, true);
+      return schedule(1500);
     }
-    if (!tr) { idleCaption(); return schedule(8000); }
-    var ids = [tr.from].concat(tr.stops);
-    if (W.list.length >= MAX_WALKERS || ids.some(busy)) return schedule(900);
-    if (live) W.live.shift(); else W.idx++;
-    startTrip(tr, live);
-    schedule(3600);
+    if (liveWalking()) return schedule(600);
+    if (W.rq.length) {
+      tr = W.rq[0]; ids = [tr.from].concat(tr.stops);
+      if (W.list.length >= MAX_WALKERS || ids.some(busy)) return schedule(600);
+      W.rq.shift(); startTrip(tr, false);
+      return schedule(1800);
+    }
+    if (W.list.length) return schedule(600);
+    if (Date.now() - W.restAt < REPLAY_PAUSE) return schedule(600);
+    W.rq = lastMoment();
+    if (!W.rq.length) { idleCaption(); return schedule(8000); }
+    schedule(50);
   }
   function startTrip(tr, live) {
-    var a = S.byId[tr.from], home = a && agentEl(tr.from), layer = elFloor.querySelector("#walk-layer");
-    if (!home || !layer) return;
-    var stops = tr.stops.filter(function (id) { return S.byId[id] && agentEl(id); });
+    var a = S.byId[tr.from], home = a && agentEl(tr.from);
+    if (!home || !S.deptOf[tr.from]) return;
+    var stops = tr.stops.filter(function (id) { return S.byId[id] && agentEl(id) && S.deptOf[id]; });
     if (!stops.length) return;
     var g = document.createElementNS(SVGNS, "g");
     g.setAttribute("class", "walker s-" + st(a) + (S.hl && S.hl.indexOf(a.agent_id) >= 0 ? " hl" : "") + (S.focus && S.focus.type === "agent" && S.focus.id === a.agent_id ? " sel" : ""));
     g.setAttribute("data-id", a.agent_id);
     g.setAttribute("style", "--c:" + (a.dept_color || "#8aa0b5") + ";" + look(a));
     g.innerHTML = walkerInner();
-    layer.appendChild(g);
     home.classList.add("away");
-    var w = { id: a.agent_id, el: g, x: a._p[0], y: a._p[1], hx: a._p[0], hy: a._p[1], drop: 0, phase: 0, face: 1,
-              stops: stops, i: 0, mode: "rise", wait: 260, target: standPoint(stops[0], a._p[0]),
+    var seat = seatOf(a), out = aisleOf(a);
+    /* route: kruk -> eigen gangpad -> ... -> naast elke andere agent -> ... -> eigen gangpad -> kruk */
+    var legs = [], at = out;
+    stops.forEach(function (id) { var to = aisleOf(S.byId[id], -STAND_DX); legs.push(legPath(at, to)); at = to; });
+    legs.push(legPath(at, out).concat([seat]));
+    legs[0] = [seat].concat(legs[0]);
+    var w = { id: a.agent_id, el: g, live: !!live, wx: seat[0], wy: seat[1], drop: 0, phase: 0, face: 1,
+              stops: stops, i: 0, legsPath: legs, path: legs[0], pi: 1, mode: "rise", wait: 260, parent: null, before: null,
               legs: g.querySelectorAll(".leg"), arms: g.querySelectorAll(".arm"), up: g.querySelector(".up"), flip: g.querySelector(".flip") };
     W.list.push(w);
     setCaption({ t: tr.t, from: tr.from, stops: stops }, live);
@@ -1117,46 +1286,52 @@
     if (w.el.parentNode) w.el.parentNode.removeChild(w.el);
     var home = agentEl(w.id); if (home) home.classList.remove("away");
     var i = W.list.indexOf(w); if (i >= 0) W.list.splice(i, 1);
+    if (!W.list.length) { W.restAt = Date.now(); if (w.live && !W.live.length) elCap.innerHTML = ""; }
   }
   function clearWalkers() {
     W.list.slice().forEach(finish);
+    W.rq = [];
     Array.prototype.forEach.call(elFloor.querySelectorAll(".ag.away,.ag.talk"), function (e) { e.classList.remove("away", "talk"); });
   }
   function draw(w, moving) {
-    var sw = moving ? Math.sin(w.phase / STRIDE * 2 * Math.PI) : 0, a = sw * 27;
+    var sw = moving ? Math.sin(w.phase / STRIDE * 2 * Math.PI) : 0, a = sw * 27, p = iso(w.wx, w.wy, SLAB);
     w.legs[0].setAttribute("transform", "rotate(" + a.toFixed(1) + " 0 -10)");
     w.legs[1].setAttribute("transform", "rotate(" + (-a).toFixed(1) + " 0 -10)");
     w.arms[0].setAttribute("transform", "rotate(" + (-a * 0.8).toFixed(1) + " -4.9 -18.6)");
     w.arms[1].setAttribute("transform", "rotate(" + (a * 0.8).toFixed(1) + " 4.9 -18.6)");
     w.up.setAttribute("transform", "translate(0," + (-Math.abs(sw) * 0.9).toFixed(2) + ")");
-    w.flip.setAttribute("transform", "scale(" + w.face + ",1)");
-    w.el.setAttribute("transform", "translate(" + w.x.toFixed(1) + "," + (w.y + w.drop).toFixed(1) + ")");
+    w.flip.setAttribute("transform", "scale(" + (w.face * FIG) + "," + FIG + ")");
+    w.el.setAttribute("transform", "translate(" + p[0].toFixed(1) + "," + (p[1] + w.drop).toFixed(1) + ")");
+    place(w);
   }
   function step(w, dt) {
     var moving = false;
     if (w.mode === "rise" || w.mode === "talk") {
       w.wait -= dt * 1000;
       if (w.wait <= 0) {
-        if (w.mode === "talk") {
-          endTalk(w); w.i++;
-          if (w.i < w.stops.length) { w.target = standPoint(w.stops[w.i], w.x); w.mode = "walk"; }
-          else { w.target = [w.hx, w.hy]; w.mode = "home"; }
-        } else w.mode = "walk";
+        if (w.mode === "talk") { endTalk(w); w.i++; w.path = w.legsPath[w.i]; w.pi = 1; }
+        w.mode = "walk";
       }
     } else {
-      var dx = w.target[0] - w.x, dy = w.target[1] - w.y, dist = Math.sqrt(dx * dx + dy * dy), go = WALK_SPEED * dt;
-      if (dist <= go) {
-        w.x = w.target[0]; w.y = w.target[1];
-        if (w.mode === "home") { finish(w); if (S.pairs && S.pairs.length) drawWires(); return; }
-        var o = agentEl(w.stops[w.i]), op = S.byId[w.stops[w.i]];
-        if (op) w.face = op._p[0] >= w.x ? 1 : -1;
+      var go = WALK_SPEED / EDGE * dt;                       /* snelheid in cellen per seconde */
+      while (go > 1e-9 && w.pi < w.path.length) {
+        var t = w.path[w.pi], dx = t[0] - w.wx, dy = t[1] - w.wy, dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist <= go) { w.wx = t[0]; w.wy = t[1]; go -= dist; w.phase += dist * EDGE; w.pi++; }
+        else {
+          w.wx += dx / dist * go; w.wy += dy / dist * go; w.phase += go * EDGE; go = 0;
+          var sdx = dx - dy; if (Math.abs(sdx) > 1e-6) w.face = sdx < 0 ? -1 : 1;
+        }
+        moving = true;
+      }
+      if (w.pi >= w.path.length) {
+        if (w.i >= w.stops.length) { finish(w); if (S.pairs && S.pairs.length) drawWires(); return; }
+        var o = agentEl(w.stops[w.i]);
+        w.face = 1;                                          /* de ander zit rechts van het sta-punt */
         w.mode = "talk"; w.wait = TALK_MS; w.el.classList.add("talk"); if (o) o.classList.add("talk");
-      } else {
-        w.x += dx / dist * go; w.y += dy / dist * go; w.phase += go; moving = true;
-        if (Math.abs(dx) > 0.6) w.face = dx < 0 ? -1 : 1;
+        moving = false;
       }
     }
-    var want = onPlatform(w.x, w.y) ? 0 : SLAB;
+    var want = deptAt(w.wx, w.wy) ? 0 : SLAB;
     w.drop += (want - w.drop) * Math.min(1, dt * 11);
     draw(w, moving);
   }
@@ -1170,11 +1345,12 @@
     W.on = !W.on;
     try { localStorage.setItem("dewi_office_walk", W.on ? "1" : "0"); } catch (e) {}
     renderWalkBtn();
-    if (W.on) { W.started = true; elCap.innerHTML = ""; schedule(300); }
-    else { clearTimeout(W.timer); clearWalkers(); idleCaption(); if (S.pairs && S.pairs.length) drawWires(); }
+    if (W.on) { W.started = true; W.restAt = 0; elCap.innerHTML = ""; schedule(300); }
+    else { clearTimeout(W.timer); W.live = []; clearWalkers(); idleCaption(); if (S.pairs && S.pairs.length) drawWires(); }
   });
 
   /* ----------------------------------------------------------------- start */
+  window.DEWI_OFFICE = { S: S, W: W };   /* alleen om in de console mee te kijken; de pagina gebruikt dit zelf niet */
   renderWalkBtn();
   if (!SB_KEY) { $("loading").style.display = "none"; showMsg("dewi-config.js is niet geladen: geen Supabase-sleutel gevonden."); return; }
   load();
