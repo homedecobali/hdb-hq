@@ -146,55 +146,36 @@
 
   /* Brain */
   .brain .core-glow{fill:url(#gBrainGlow)}
-  .brain .b-top{fill:#0a1220;stroke:var(--cyan);stroke-width:1.2;stroke-opacity:.8}
-  .brain .b-l{fill:#0a1a2a} .brain .b-r{fill:#07131f}
-  .brain .b-grid{stroke:var(--cyan);stroke-opacity:.18;stroke-width:.8}
-  .brain .pillar{fill:url(#gPillar);animation:breathe 3.2s ease-in-out infinite;transform-box:fill-box;transform-origin:bottom center}
-  .brain .pillar-core{fill:url(#gPillarCore)}
-  @keyframes breathe{0%,100%{opacity:.7;transform:scaleX(1)}50%{opacity:1;transform:scaleX(1.18)}}
-  .brain .orb{fill:#dffaff;filter:url(#fGlow)}
-  .brain .ring{fill:none;stroke:var(--cyan);stroke-width:1}
-  .brain .p{fill:var(--cyan);animation:riseP var(--d,4s) linear infinite;animation-delay:var(--o,0s)}
-  @keyframes riseP{0%{transform:translateY(0);opacity:0}15%{opacity:.9}100%{transform:translateY(-150px);opacity:0}}
+  .brain .halo{fill:url(#gBrainGlow);animation:breathe 3.6s ease-in-out infinite;transform-box:fill-box;transform-origin:center}
+  @keyframes breathe{0%,100%{opacity:.55;transform:scale(1)}50%{opacity:1;transform:scale(1.1)}}
   .brain .bt{font:700 11px var(--mono);letter-spacing:.26em;fill:var(--cyan);text-anchor:middle}
   .brain .bs{font:8.5px var(--mono);letter-spacing:.08em;fill:var(--dim);text-anchor:middle}
 
-  /* agents: bureau + monitor + stoel */
+  /* agents: gerenderd bureau + monitor + stoel (sprite), scherm ingekleurd naar status */
   .ag{cursor:pointer;outline:none;transition:opacity .2s;--s:var(--green)}
   .ag .hit{fill:transparent}
-  .ag .d-top{fill:color-mix(in srgb,var(--c) 22%,#1a2230)}
-  .ag .d-l{fill:#0e141e} .ag .d-r{fill:#141c28}
-  .ag .d-edge{fill:none;stroke:color-mix(in srgb,var(--c) 40%,transparent);stroke-width:.6}
-  .ag .m-frame{fill:#1b2432;stroke:#2a3545;stroke-width:.6}
-  .ag .m-stand{fill:#1b2432}
-  .ag .m-screen{fill:var(--s);fill-opacity:.9}
-  .ag .m-glow{fill:var(--s);fill-opacity:.22}
-  .ag .m-line{stroke:#06101a;stroke-opacity:.45;stroke-width:.7}
-  .ag .seat{fill:#1a2230;stroke:#2a3545;stroke-width:.6}
-  .ag .head{fill:color-mix(in srgb,var(--c) 70%,#fff);stroke:#06101a;stroke-width:.8}
-  .ag .shoulders{fill:var(--c);stroke:#06101a;stroke-width:.8}
+  .ag .sprite{image-rendering:auto}
+  .ag .m-screen{fill:var(--s);opacity:.62;mix-blend-mode:screen}
+  .ag .m-glow{fill:var(--s);opacity:.3;filter:url(#fSoft);mix-blend-mode:screen;pointer-events:none}
   .ag .loop{fill:var(--violet);stroke:#0a0f18;stroke-width:.8}
   .ag .badge circle{fill:var(--s);stroke:#0a0f18;stroke-width:1}
   .ag .badge text{font-weight:800;font-size:8px;fill:#06101a}
+  .ag .selring{fill:none;stroke:#fff;stroke-width:1.4;stroke-dasharray:3 2;display:none}
   .ag.s-working{--s:var(--cyan)} .ag.s-ok{--s:var(--green)} .ag.s-error{--s:var(--red)} .ag.s-silent{--s:var(--amber)}
   .ag.s-paused{--s:var(--grey)} .ag.s-idle{--s:#3a4a5c}
-  .ag.s-ok .m-screen{fill-opacity:.55} .ag.s-ok .m-glow{fill-opacity:.1}
-  .ag.s-idle .m-screen{fill-opacity:.35} .ag.s-idle .m-glow,.ag.s-paused .m-glow{display:none}
+  .ag.s-ok .m-screen{opacity:.26} .ag.s-ok .m-glow{opacity:.07}
+  .ag.s-idle .m-screen{opacity:.2} .ag.s-idle .m-glow,.ag.s-paused .m-glow{display:none}
+  .ag.s-paused .m-screen{opacity:.28}
   .ag.s-silent .m-screen{animation:dimflick 2.6s steps(2,jump-none) infinite}
-  @keyframes dimflick{from{fill-opacity:.9}to{fill-opacity:.45}}
+  @keyframes dimflick{from{opacity:.62}to{opacity:.3}}
   .ag.s-working .m-glow{animation:pulse 1.6s ease-in-out infinite}
-  @keyframes pulse{0%,100%{fill-opacity:.18}50%{fill-opacity:.5}}
-  .ag.s-working .scan{stroke:#fff;stroke-opacity:.6;stroke-width:.8;animation:scan 1.4s linear infinite}
-  @keyframes scan{from{transform:translateY(0)}to{transform:translateY(7px)}}
+  @keyframes pulse{0%,100%{opacity:.2}50%{opacity:.6}}
   .ag.s-error .m-screen{animation:blink 1.1s steps(2,jump-none) infinite}
-  @keyframes blink{from{fill-opacity:.9}to{fill-opacity:.3}}
-  .ag.s-paused .head,.ag.s-paused .shoulders{fill:#56667a}
-  .ag.s-silent .head,.ag.s-silent .shoulders{opacity:.6}
-  .ag:hover .m-frame,.ag:focus-visible .m-frame{stroke:#fff}
+  @keyframes blink{from{opacity:.75}to{opacity:.28}}
+  .ag.s-paused .sprite,.ag.s-idle .sprite{filter:grayscale(.55) brightness(.8)}
+  .ag:hover .m-screen,.ag:focus-visible .m-screen{opacity:1}
   .ag:focus-visible .hit{stroke:#fff;stroke-width:1;stroke-dasharray:2 2}
-  .ag.sel .m-frame{stroke:#fff;stroke-width:1.2}
-  .ag.sel .m-glow{fill:#fff;fill-opacity:.35}
-  .ag.sel .selring{fill:none;stroke:#fff;stroke-width:1.2;stroke-dasharray:3 2}
+  .ag.sel .selring{display:block}
   #floor.has-hl .ag:not(.hl){opacity:.14}
   #floor.has-hl .dept:not(.hl-d) .slab,#floor.has-hl .dept:not(.hl-d) .card,#floor.has-hl .dept:not(.hl-d) .pipe{opacity:.35}
 
@@ -276,10 +257,9 @@
     .hint{display:none}
   }
   @media (prefers-reduced-motion:reduce){
-    #floor.intro .dept,#floor.intro .brain,.pipe-flow,.brain .pillar,.brain .p,.ag .m-glow,.ag .scan,.ag.s-error .m-screen,.ag.s-silent .m-screen,#wires path,.cursor::after{animation:none}
+    #floor.intro .dept,#floor.intro .brain,.pipe-flow,.brain .halo,.ag .m-glow,.ag.s-error .m-screen,.ag.s-silent .m-screen,#wires path,.cursor::after{animation:none}
     #wires path{stroke-dashoffset:0}
-    .brain .p{opacity:.5}
-    .ag.s-working .m-glow{fill-opacity:.45}
+    .ag.s-working .m-glow{opacity:.45}
   }
 </style>
 </head>
@@ -297,10 +277,21 @@
       <div class="scene" id="scene">
         <svg id="floor" role="group" aria-label="Afdelingen en agents rond de Brain" preserveAspectRatio="xMidYMid meet">
           <defs>
-            <radialGradient id="gBrainGlow"><stop offset="0" stop-color="#00d4ff" stop-opacity=".35"/><stop offset=".5" stop-color="#00d4ff" stop-opacity=".08"/><stop offset="1" stop-color="#00d4ff" stop-opacity="0"/></radialGradient>
-            <linearGradient id="gPillar" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#9ff0ff" stop-opacity=".55"/><stop offset=".45" stop-color="#00d4ff" stop-opacity=".18"/><stop offset="1" stop-color="#00d4ff" stop-opacity="0"/></linearGradient>
-            <linearGradient id="gPillarCore" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#ffffff" stop-opacity=".9"/><stop offset=".6" stop-color="#9ff0ff" stop-opacity=".25"/><stop offset="1" stop-color="#9ff0ff" stop-opacity="0"/></linearGradient>
-            <filter id="fGlow" x="-100%" y="-100%" width="300%" height="300%"><feGaussianBlur stdDeviation="2.2"/></filter>
+            <radialGradient id="gBrainGlow"><stop offset="0" stop-color="#00d4ff" stop-opacity=".30"/><stop offset=".5" stop-color="#00d4ff" stop-opacity=".07"/><stop offset="1" stop-color="#00d4ff" stop-opacity="0"/></radialGradient>
+            <filter id="fSoft" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="2.4"/></filter>
+            <!-- gerenderde texturen, isometrisch gelegd: één tegel per 2 cellen -->
+            <pattern id="pTop" patternUnits="userSpaceOnUse" width="1" height="1"
+                     patternTransform="matrix(52,26,-52,26,0,0)">
+              <image href="office-v2-assets/tex-top.webp" x="0" y="0" width="1" height="1" preserveAspectRatio="none"/>
+            </pattern>
+            <pattern id="pGround" patternUnits="userSpaceOnUse" width="1" height="1"
+                     patternTransform="matrix(208,104,-208,104,0,0)">
+              <image href="office-v2-assets/floor.webp" x="0" y="0" width="1" height="1" preserveAspectRatio="none"/>
+            </pattern>
+            <!-- schermvlak van de bureausprite; schaalt mee met de rechthoek die hem gebruikt -->
+            <mask id="mScreen" maskContentUnits="objectBoundingBox">
+              <image href="office-v2-assets/screen.webp" x="0" y="0" width="1" height="1" preserveAspectRatio="none"/>
+            </mask>
           </defs>
           <g id="world"></g>
         </svg>
@@ -335,8 +326,17 @@
   var SLAB = 22;                        /* dikte van een afdelingsplatform */
   var EDGE = Math.sqrt(HW * HW + HH * HH);
   var PAD = 0.55, LANE_GAP = 0.3, MAX_COLS = 6, DEPT_GAP = 1.6;
-  var BRAIN = 3.2;                      /* zijde van het Brain-blok in cellen */
+  var BRAIN = 4.6;                      /* zijde van het Brain-blok in cellen */
   var CARD_H = 46;                      /* hoogte van het zwevende afdelingskaartje */
+
+  /* gerenderde sprites (map office-v2-assets/) — bron-renders staan in Cloudinary hdb/officev2assets */
+  var ASSETS = "office-v2-assets/";
+  var AGENT_DX = 1.55, AGENT_DY = 1.38; /* celafstand per agent: een bureau is breder dan één cel */
+  var DESK_W = 78, DESK_H = DESK_W * 622 / 512;   /* sprite 512x622 */
+  var DESK_AX = 0.50, DESK_AY = 0.88;             /* ankerpunt in de sprite (aandeel van b x h) */
+  var BRAIN_W = 340, BRAIN_H = BRAIN_W * 553 / 768 * 0.87;  /* 0.87 = 30°-iso naar 2:1 persen */
+  var BRAIN_AY = 0.70;
+  var PROPS = [["prop-rack",521],["prop-cabinet",371],["prop-plant",361],["prop-board",429],["prop-lens",160]];
   var STAGES = ["SCOUT", "COMPILE", "BUILD", "PUBLISH", "REVIEW"];
   var REDUCED = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   var IMG_RE = /https?:\/\/[^\s"'<>)]+?\.(?:png|jpe?g|webp|gif)(?:\?[^\s"'<>)]*)?|https?:\/\/res\.cloudinary\.com\/[^\s"'<>)]+/i;
@@ -491,16 +491,16 @@
       l.y0 = y;
       for (var r = 0; r < rows; r++) {
         l.agents.slice(r * per, (r + 1) * per).forEach(function (a, c) {
-          a._lx = PAD + gutter + c + 0.5; a._ly = y + 0.5;
+          a._lx = PAD + gutter + c * AGENT_DX + AGENT_DX / 2; a._ly = y + AGENT_DY / 2;
           cols = Math.max(cols, c + 1);
         });
-        y += 1;
+        y += AGENT_DY;
       }
       l.y1 = y;
     });
     d.lanes = lanes; d.gutter = gutter;
     d.labelChars = Math.max(3, Math.floor((gutter - 0.5) * EDGE / 5.7));
-    d.w = Math.max(PAD * 2 + gutter + cols, 3);
+    d.w = Math.max(PAD * 2 + gutter + cols * AGENT_DX, 3);
     d.d = y + PAD;
   }
   function overlaps(a, b, gap) {
@@ -560,36 +560,27 @@
   }
 
   /* ---------------------------------------------------------------- tekenen */
-  function deskInner(a) {
-    var s = st(a), g = STATES[s].g;
-    /* bureau: 0.74 x 0.46 cel, DH hoog; monitor achterop; stoel ervoor (naar de kijker toe) */
-    var DH = 7, hx = 0.37, hy = 0.23;
-    var t = [iso(-hx, -hy, DH), iso(hx, -hy, DH), iso(hx, hy, DH), iso(-hx, hy, DH)];
-    var b = [iso(-hx, hy, 0), iso(hx, hy, 0), iso(hx, -hy, 0)];
-    var h = '<rect class="hit" x="-18" y="-40" width="36" height="50" rx="6"/>'
-      + '<ellipse class="selring" cx="0" cy="2" rx="19" ry="9.5" style="display:none"/>'
-      + '<polygon class="d-l" points="' + pts([t[3], t[2], b[1], b[0]]) + '"/>'
-      + '<polygon class="d-r" points="' + pts([t[2], t[1], b[2], b[1]]) + '"/>'
-      + '<polygon class="d-top" points="' + pts(t) + '"/>'
-      + '<polygon class="d-edge" points="' + pts(t) + '"/>';
-    /* monitor: staand paneel langs de achterrand (x-as), breedte 0.42 cel */
-    var m0 = iso(-0.21, -0.12, DH), m1 = iso(0.21, -0.12, DH), MH = 11;
-    var sx0 = m0[0], sy0 = m0[1], sx1 = m1[0], sy1 = m1[1];
-    h += '<polygon class="m-glow" points="' + pts([[sx0 - 5, sy0 - MH - 4], [sx1 + 5, sy1 - MH - 4], [sx1 + 5, sy1 + 3], [sx0 - 5, sy0 + 3]]) + '"/>'
-      + '<rect class="m-stand" x="-1" y="' + f1((sy0 + sy1) / 2 - 3) + '" width="2" height="3"/>'
-      + '<polygon class="m-frame" points="' + pts([[sx0, sy0 - MH], [sx1, sy1 - MH], [sx1, sy1 - 2], [sx0, sy0 - 2]]) + '"/>'
-      + '<polygon class="m-screen" points="' + pts([[sx0 + 1.2, sy0 - MH + 1.2], [sx1 - 1.2, sy1 - MH + 1.2], [sx1 - 1.2, sy1 - 3.2], [sx0 + 1.2, sy0 - 3.2]]) + '"/>'
-      + '<line class="m-line" x1="' + f1(sx0 + 3) + '" y1="' + f1(sy0 - MH + 4) + '" x2="' + f1(sx1 - 3) + '" y2="' + f1(sy1 - MH + 4) + '"/>'
-      + '<line class="m-line" x1="' + f1(sx0 + 3) + '" y1="' + f1(sy0 - MH + 6.3) + '" x2="' + f1(sx0 + 8) + '" y2="' + f1(sy0 - MH + 6.3 + (sy1 - sy0) * 5 / (sx1 - sx0)) + '"/>';
-    if (s === "working") h += '<line class="scan" x1="' + f1(sx0 + 1.2) + '" y1="' + f1(sy0 - MH + 1.5) + '" x2="' + f1(sx1 - 1.2) + '" y2="' + f1(sy1 - MH + 1.5) + '"/>';
-    /* stoel + figuur, vóór het bureau */
-    var c = iso(0, 0.42, 0);
-    h += '<ellipse class="seat" cx="' + f1(c[0]) + '" cy="' + f1(c[1]) + '" rx="6" ry="3"/>'
-      + '<path class="shoulders" d="M' + f1(c[0] - 5) + "," + f1(c[1] - 1) + "c0,-5 10,-5 10,0c0,1.6 -2,2.4 -5,2.4c-3,0 -5,-.8 -5,-2.4Z\"/>"
-      + '<circle class="head" cx="' + f1(c[0]) + '" cy="' + f1(c[1] - 8.2) + '" r="3.4"/>';
-    if (g) h += '<g class="badge" transform="translate(' + f1(sx1 + 2) + "," + f1(sy1 - MH - 3) + ')"><circle r="5"/><text y="2.8" text-anchor="middle">' + esc(g) + "</text></g>";
-    if (Number(a.open_loops) > 0) h += '<path class="loop" transform="translate(' + f1(sx0 - 3) + "," + f1(sy0 - MH - 3) + ')" d="M0,-3.4l3.4,3.4l-3.4,3.4l-3.4,-3.4Z"/>';
+  /* Bureau = gerenderde sprite. Het scherm is in de render donker; de statuskleur komt er als
+     gemaskerde rechthoek overheen (mask #mScreen = het schermvlak uit diezelfde render). */
+  var DX0 = -DESK_W * DESK_AX, DY0 = -DESK_H * DESK_AY;
+  function deskSprite(a) {
+    var img = (st(a) === "paused" || st(a) === "idle") ? "desk-empty" : "desk";
+    var box = 'x="' + f1(DX0) + '" y="' + f1(DY0) + '" width="' + f1(DESK_W) + '" height="' + f1(DESK_H) + '"';
+    return '<image class="sprite" href="' + ASSETS + img + '.webp" ' + box + ' preserveAspectRatio="none"/>'
+      + '<rect class="m-glow" ' + box + ' mask="url(#mScreen)"/>'
+      + '<rect class="m-screen" ' + box + ' mask="url(#mScreen)"/>';
+  }
+  function deskMarks(a) {
+    var g = STATES[st(a)].g, h = "", mx = DX0 + DESK_W * 0.60, my = DY0 + DESK_H * 0.02;
+    if (g) h += '<g class="badge" transform="translate(' + f1(mx) + "," + f1(my) + ')"><circle r="5"/><text y="2.8" text-anchor="middle">' + esc(g) + "</text></g>";
+    if (Number(a.open_loops) > 0) h += '<path class="loop" transform="translate(' + f1(DX0 + DESK_W * 0.16) + "," + f1(my + 2) + ')" d="M0,-3.6l3.6,3.6l-3.6,3.6l-3.6,-3.6Z"/>';
     return h;
+  }
+  function deskInner(a) {
+    return '<rect class="hit" x="' + f1(DX0) + '" y="' + f1(DY0 + DESK_H * 0.18) + '" width="' + f1(DESK_W) + '" height="' + f1(DESK_H * 0.82) + '"/>'
+      + '<ellipse class="selring" cx="' + f1(DESK_W * 0.06) + '" cy="' + f1(-DESK_H * 0.07) + '" rx="' + f1(DESK_W * 0.46) + '" ry="' + f1(DESK_W * 0.23) + '"/>'
+      + '<g class="spr">' + deskSprite(a) + '</g>'
+      + '<g class="marks">' + deskMarks(a) + '</g>';
   }
   function agentLabel(a) { return a.agent_name + ", " + STATES[st(a)].l.toLowerCase() + ", afdeling " + a.dept_name; }
 
@@ -636,31 +627,28 @@
       + '<line class="pipe-flow' + (s.runs ? "" : " quiet") + '" style="--t:' + t.toFixed(1) + 's" ' + ln + "/>";
   }
 
+  /* Brain = gerenderde sprite; de ademende halo eromheen blijft code zodat hij leeft. */
   function brainInner() {
-    var B = BRAIN / 2, Z = SLAB + 4, h = "";
-    var c = iso(0, 0, 0);
-    h += '<ellipse class="core-glow" cx="' + f1(c[0]) + '" cy="' + f1(c[1]) + '" rx="150" ry="75"/>';
-    var t = [iso(-B, -B, Z), iso(B, -B, Z), iso(B, B, Z), iso(-B, B, Z)];
-    h += '<polygon class="b-l" points="' + pts([iso(-B, B, Z), iso(B, B, Z), iso(B, B, 0), iso(-B, B, 0)]) + '"/>'
-      + '<polygon class="b-r" points="' + pts([iso(B, B, Z), iso(B, -B, Z), iso(B, -B, 0), iso(B, B, 0)]) + '"/>'
-      + '<polygon class="b-top" points="' + pts(t) + '"/>';
-    for (var i = 1; i < 4; i++) {
-      var k = -B + i * (BRAIN / 4);
-      h += '<line class="b-grid" x1="' + f1(iso(k, -B, Z)[0]) + '" y1="' + f1(iso(k, -B, Z)[1]) + '" x2="' + f1(iso(k, B, Z)[0]) + '" y2="' + f1(iso(k, B, Z)[1]) + '"/>'
-        + '<line class="b-grid" x1="' + f1(iso(-B, k, Z)[0]) + '" y1="' + f1(iso(-B, k, Z)[1]) + '" x2="' + f1(iso(B, k, Z)[0]) + '" y2="' + f1(iso(B, k, Z)[1]) + '"/>';
+    var c = iso(0, 0, 0), bx = c[0] - BRAIN_W / 2, by = c[1] - BRAIN_H * BRAIN_AY;
+    var base = c[1] + BRAIN_H * (1 - BRAIN_AY) * 0.42;
+    return '<ellipse class="core-glow" cx="' + f1(c[0]) + '" cy="' + f1(c[1] - 6) + '" rx="' + f1(BRAIN_W * 0.95) + '" ry="' + f1(BRAIN_W * 0.48) + '"/>'
+      + '<ellipse class="halo" cx="' + f1(c[0]) + '" cy="' + f1(c[1] - 18) + '" rx="' + f1(BRAIN_W * 0.4) + '" ry="' + f1(BRAIN_W * 0.3) + '"/>'
+      + '<image class="sprite" href="' + ASSETS + 'brain.webp" x="' + f1(bx) + '" y="' + f1(by)
+      + '" width="' + f1(BRAIN_W) + '" height="' + f1(BRAIN_H) + '" preserveAspectRatio="none"/>'
+      + '<text class="bt" x="' + f1(c[0]) + '" y="' + f1(base + 22) + '">DEWI BRAIN</text>'
+      + '<text class="bs" id="brainSub" x="' + f1(c[0]) + '" y="' + f1(base + 34) + '"></text>';
+  }
+  /* Twee vaste props per afdeling, gekozen op de naam zodat ze niet rondspringen. */
+  function hash(s) { var h = 0; for (var i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0; return h; }
+  function propsInner(d) {
+    if (d.w < 3.2 || d.d < 1.8) return "";
+    var hsh = hash(d.name), h = "", spots = [[d.x + 0.42, d.y + 0.42], [d.x + d.w - 0.42, d.y + d.d - 0.42]];
+    for (var i = 0; i < 2; i++) {
+      var p = PROPS[(hsh >>> (i * 3 + 1)) % PROPS.length], w = 30, hh = w * p[1] / 256;
+      var q = iso(spots[i][0], spots[i][1], SLAB);
+      h += '<image class="prop" href="' + ASSETS + p[0] + '.webp" x="' + f1(q[0] - w / 2) + '" y="' + f1(q[1] - hh * 0.88)
+        + '" width="' + w + '" height="' + f1(hh) + '" preserveAspectRatio="none"/>';
     }
-    var top = iso(0, 0, Z);
-    h += '<ellipse class="ring" cx="' + f1(top[0]) + '" cy="' + f1(top[1]) + '" rx="22" ry="11" stroke-opacity=".5"/>'
-      + '<ellipse class="ring" cx="' + f1(top[0]) + '" cy="' + f1(top[1]) + '" rx="12" ry="6" stroke-opacity=".9"/>'
-      + '<rect class="pillar" x="' + f1(top[0] - 13) + '" y="' + f1(top[1] - 170) + '" width="26" height="170" rx="13"/>'
-      + '<rect class="pillar-core" x="' + f1(top[0] - 3) + '" y="' + f1(top[1] - 150) + '" width="6" height="150" rx="3"/>'
-      + '<circle class="orb" cx="' + f1(top[0]) + '" cy="' + f1(top[1]) + '" r="5"/>';
-    for (var p = 0; p < 14; p++) {
-      var px = top[0] + (Math.sin(p * 2.39) * 16), d = (3 + (p % 5) * 0.6).toFixed(1), o = (-(p * 0.43)).toFixed(2);
-      h += '<circle class="p" cx="' + f1(px) + '" cy="' + f1(top[1] - 4) + '" r="' + (1 + (p % 3) * 0.5) + '" style="--d:' + d + "s;--o:" + o + 's"/>';
-    }
-    h += '<text class="bt" x="' + f1(top[0]) + '" y="' + f1(top[1] + 20) + '">DEWI BRAIN</text>'
-      + '<text class="bs" id="brainSub" x="' + f1(top[0]) + '" y="' + f1(top[1] + 32) + '"></text>';
     return h;
   }
   function brainSub() {
@@ -674,7 +662,9 @@
     S.depts.forEach(function (d) { allx.push(d.x, d.x + d.w); ally.push(d.y, d.y + d.d); });
     var gx0 = Math.floor(Math.min.apply(null, allx)) - far, gx1 = Math.ceil(Math.max.apply(null, allx)) + far,
         gy0 = Math.floor(Math.min.apply(null, ally)) - far, gy1 = Math.ceil(Math.max.apply(null, ally)) + far, i, a, b;
-    h += '<polygon class="ground" points="' + pts([iso(gx0, gy0), iso(gx1, gy0), iso(gx1, gy1), iso(gx0, gy1)]) + '"/>';
+    var gpoly = pts([iso(gx0, gy0), iso(gx1, gy0), iso(gx1, gy1), iso(gx0, gy1)]);
+    h += '<polygon class="ground" points="' + gpoly + '"/>'
+      + '<polygon class="ground-tex" fill="url(#pGround)" points="' + gpoly + '"/>';
     for (i = gx0; i <= gx1; i += 2) { a = iso(i, gy0); b = iso(i, gy1); h += '<line class="grid" x1="' + f1(a[0]) + '" y1="' + f1(a[1]) + '" x2="' + f1(b[0]) + '" y2="' + f1(b[1]) + '"/>'; }
     for (i = gy0; i <= gy1; i += 2) { a = iso(gx0, i); b = iso(gx1, i); h += '<line class="grid" x1="' + f1(a[0]) + '" y1="' + f1(a[1]) + '" x2="' + f1(b[0]) + '" y2="' + f1(b[1]) + '"/>'; }
 
@@ -698,7 +688,9 @@
       h += '<g class="slab" tabindex="0" role="button" aria-label="Afdeling ' + esc(d.name) + ", " + d.agents.length + ' agents">';
       h += '<polygon class="slab-l" points="' + pts([iso(x0, y1, SLAB), iso(x1, y1, SLAB), iso(x1, y1), iso(x0, y1)]) + '"/>';
       h += '<polygon class="slab-r" points="' + pts([iso(x1, y1, SLAB), iso(x1, y0, SLAB), iso(x1, y0), iso(x1, y1)]) + '"/>';
-      h += '<polygon class="slab-top" points="' + pts([iso(x0, y0, SLAB), iso(x1, y0, SLAB), iso(x1, y1, SLAB), iso(x0, y1, SLAB)]) + '"/>';
+      var topPoly = pts([iso(x0, y0, SLAB), iso(x1, y0, SLAB), iso(x1, y1, SLAB), iso(x0, y1, SLAB)]);
+      h += '<polygon class="slab-tex" fill="url(#pTop)" points="' + topPoly + '"/>'
+        + '<polygon class="slab-top" fill="none" points="' + topPoly + '"/>';
       h += '<polyline class="slab-lip" points="' + pts([iso(x0, y1, SLAB), iso(x1, y1, SLAB), iso(x1, y0, SLAB)]) + '"/>';
       d.lanes.forEach(function (l) {
         if (d.lanes.length > 1) {
@@ -717,6 +709,7 @@
         h += '<g class="ag s-' + st(ag) + '" data-id="' + esc(ag.agent_id) + '" tabindex="0" role="button" aria-label="' + esc(agentLabel(ag)) +
              '" transform="translate(' + f1(ag._p[0]) + "," + f1(ag._p[1]) + ')">' + deskInner(ag) + "</g>";
       });
+      h += propsInner(d);
       /* zwevend kaartje boven de achterste hoek */
       var tp = iso(x0, y0, SLAB);
       h += '<g class="card" data-card="' + esc(d.name) + '" tabindex="0" role="button" aria-label="Afdeling ' + esc(d.name) + '" transform="translate(' + f1(tp[0]) + "," + f1(tp[1] - 26) + ')">'
@@ -751,7 +744,9 @@
       var keep = el.classList.contains("sel");
       el.setAttribute("class", "ag s-" + st(a) + (keep ? " sel" : ""));
       el.setAttribute("aria-label", agentLabel(a));
-      el.innerHTML = deskInner(a);
+      var spr = el.querySelector(".spr"), mk = el.querySelector(".marks");
+      if (spr) { var want = deskSprite(a); if (spr.innerHTML !== want) spr.innerHTML = want; }
+      if (mk) mk.innerHTML = deskMarks(a);
     });
   }
   function patchPipes() {
@@ -921,7 +916,7 @@
   function deptByName(n) { var d = null; S.depts.forEach(function (x) { if (x.name === n) d = x; }); return d; }
   function applyFocus() {
     var f = S.focus, hl = null, pairs = [], toolName = S.hoverTool || (f && f.type === "tool" ? f.name : null);
-    Array.prototype.forEach.call(elWorld.querySelectorAll(".ag.sel,.ag.hl"), function (e) { e.classList.remove("sel", "hl"); var r = e.querySelector(".selring"); if (r) r.style.display = "none"; });
+    Array.prototype.forEach.call(elWorld.querySelectorAll(".ag.sel,.ag.hl"), function (e) { e.classList.remove("sel", "hl"); });
     Array.prototype.forEach.call(elWorld.querySelectorAll(".dept.hl-d,.dept.cur"), function (e) { e.classList.remove("hl-d", "cur"); });
     Array.prototype.forEach.call(elTools.querySelectorAll(".tool"), function (e) { e.classList.remove("on", "has", "pre"); e.setAttribute("aria-pressed", "false"); });
 
@@ -941,7 +936,7 @@
     if (f && f.type === "agent" && S.byId[f.id]) {
       var el = agentEl(f.id);
       if (el) {
-        el.classList.add("sel"); var r = el.querySelector(".selring"); if (r) r.style.display = "";
+        el.classList.add("sel");
         if (!toolName) (S.toolsByWf[S.byId[f.id].workflow_name] || []).forEach(function (tn) {
           var c = chipEl(tn); if (c) { c.classList.add("has"); pairs.push([c, el]); }
         });
@@ -962,7 +957,7 @@
       var sr = elStage.getBoundingClientRect(), scr = elScene.getBoundingClientRect();
       elWires.setAttribute("viewBox", "0 0 " + sr.width + " " + sr.height);
       pairs.forEach(function (p) {
-        var c = p[0].getBoundingClientRect(), mf = p[1].querySelector(".m-frame"); if (!mf) return;
+        var c = p[0].getBoundingClientRect(), mf = p[1].querySelector(".m-screen"); if (!mf) return;
         var a = mf.getBoundingClientRect();
         if (a.bottom < scr.top || a.top > scr.bottom || a.right < scr.left || a.left > scr.right) return;
         var x1 = c.left + c.width / 2 - sr.left, y1 = c.bottom - sr.top + 1, x2 = a.left + a.width / 2 - sr.left, y2 = a.top - sr.top - 3;
