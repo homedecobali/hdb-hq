@@ -186,9 +186,17 @@
   .ag .sprite{image-rendering:auto}
   .ag .m-screen{fill:var(--s);opacity:.62;mix-blend-mode:screen}
   .ag .m-glow{fill:var(--s);opacity:.3;filter:url(#fSoft);mix-blend-mode:screen;pointer-events:none}
-  .ag .loop{fill:var(--violet);stroke:#0a0f18;stroke-width:.8}
-  .ag .badge circle{fill:var(--s);stroke:#0a0f18;stroke-width:1}
-  .ag .badge text{font-weight:800;font-size:8px;fill:#06101a}
+  .ag .loop{fill:var(--violet)}
+  .ag .m-code{pointer-events:none}
+  .ag .m-code rect{fill:#04222e;opacity:.78}
+  .ag .m-code rect.hi{fill:#d8fbff;opacity:.9}
+  .ag .m-code rect.bbx{fill:none}
+  .ag.s-working .m-screen{opacity:.5}
+  .ag .m-code .roll{animation:codeRoll 5s linear infinite}
+  @keyframes codeRoll{from{transform:translateY(0)}to{transform:translateY(-1px)}}
+  .ag .pin .plate{fill:#0c1320;stroke:var(--s);stroke-width:1;filter:url(#fPinSh)}
+  .ag .pin .stem{stroke:var(--s);stroke-width:1;opacity:.55}
+  .ag .pin .pg{font-weight:800;font-size:8px;fill:var(--s)}
   .ag .selring{fill:none;stroke:#fff;stroke-width:1.4;stroke-dasharray:3 2;display:none}
   .ag.s-working{--s:var(--cyan)} .ag.s-ok{--s:var(--green)} .ag.s-error{--s:var(--red)} .ag.s-silent{--s:var(--amber)}
   .ag.s-paused{--s:var(--grey)} .ag.s-idle{--s:#3a4a5c}
@@ -286,7 +294,7 @@
     .hint{display:none}
   }
   @media (prefers-reduced-motion:reduce){
-    #floor.intro .dept,#floor.intro .brain,.pipe-flow,.brain .halo,.ag .m-glow,.ag.s-error .m-screen,.ag.s-silent .m-screen,#wires path,.cursor::after{animation:none}
+    #floor.intro .dept,#floor.intro .brain,.pipe-flow,.brain .halo,.ag .m-glow,.ag.s-error .m-screen,.ag.s-silent .m-screen,#wires path,.cursor::after,.ag .m-code .roll{animation:none}
     .pcard{transition:none}
     .card:hover .pcard,.card:focus-visible .pcard,.dept.cur .card .pcard{transform:none}
     #wires path{stroke-dashoffset:0}
@@ -316,6 +324,11 @@
             <filter id="fPanelUp" x="-45%" y="-45%" width="190%" height="200%">
               <feDropShadow dx="0" dy="9" stdDeviation="8" flood-color="#000" flood-opacity=".55"/>
             </filter>
+            <filter id="fPinSh" x="-60%" y="-60%" width="220%" height="240%">
+              <feDropShadow dx="0" dy="1.5" stdDeviation="1.8" flood-color="#000" flood-opacity=".7"/>
+            </filter>
+            <!-- eenheidsvierkant: knipt de scrollende coderegels af op het schermvlak -->
+            <clipPath id="cUnit" clipPathUnits="userSpaceOnUse"><rect x="0" y="0" width="1" height="1"/></clipPath>
             <!-- gerenderde texturen, isometrisch gelegd: één tegel per 2 cellen -->
             <pattern id="pTop" patternUnits="userSpaceOnUse" width="1" height="1"
                      patternTransform="matrix(52,26,-52,26,0,0)">
@@ -600,7 +613,7 @@
   function screenBoxOf(d) {
     var a = iso(d.x, d.y + d.d, 0), b = iso(d.x + d.w, d.y, 0), t = iso(d.x, d.y, SLAB), u = iso(d.x + d.w, d.y + d.d, 0);
     var cw = cardWidth(d) / 2;
-    return [Math.min(a[0], t[0] - cw), t[1] - 26 - cardHeight(d), Math.max(b[0], t[0] + cw), u[1] + 8];
+    return [Math.min(a[0], t[0] - cw), t[1] - CARD_LIFT - cardHeight(d), Math.max(b[0], t[0] + cw), u[1] + 8];
   }
   function sOverlap(p, q, gap) { return p[0] < q[2] + gap && q[0] < p[2] + gap && p[1] < q[3] + gap && q[1] < p[3] + gap; }
   /* Radiaal: afdelingen op een schermellips rond de Brain (0,0), hoekbreedte naar schermbreedte;
@@ -653,18 +666,57 @@
   /* Bureau = gerenderde sprite. Het scherm is in de render donker; de statuskleur komt er als
      gemaskerde rechthoek overheen (mask #mScreen = het schermvlak uit diezelfde render). */
   var DX0 = -DESK_W * DESK_AX, DY0 = -DESK_H * DESK_AY;
+  /* Hoogte waarop het paneel boven de achter-linkerhoek van het dek hangt: zo hoog dat de
+     bovenkant van de achterste bureausprite er altijd onder blijft (anders ligt het op de agents). */
+  var CARD_LIFT = Math.max(26, -((PAD + AGENT_DX / 2) + (PAD + AGENT_DY / 2)) * 13 - DY0 + 14);
   function deskSprite(a) {
     var img = (st(a) === "paused" || st(a) === "idle") ? "desk-empty" : "desk";
     var box = 'x="' + f1(DX0) + '" y="' + f1(DY0) + '" width="' + f1(DESK_W) + '" height="' + f1(DESK_H) + '"';
     return '<image class="sprite" href="' + ASSETS + img + '.webp" ' + box + ' preserveAspectRatio="none"/>'
       + '<rect class="m-glow" ' + box + ' mask="url(#mScreen)"/>'
-      + '<rect class="m-screen" ' + box + ' mask="url(#mScreen)"/>';
+      + '<rect class="m-screen" ' + box + ' mask="url(#mScreen)"/>'
+      + (st(a) === "working" ? codeScreen(a) : "");
   }
+  /* Draaiende agent: regels "code" die over het scherm omhoog scrollen.
+     Het schermvlak van de sprite is een parallellogram; SCR zet de eenheidsvierkant
+     (0..1, 0..1) precies op dat vlak, iets ingezet zodat er een rand overblijft. */
+  var SX = DESK_W / 512, SY = DESK_H / 622;
+  var SCR = [186.5 * SX, -84.0 * SY, 0, 141.7 * SY, DX0 + 115.5 * SX, DY0 + 117.7 * SY];
+  var CODE_ROWS = 11;
+  function codeScreen(a) {
+    var hsh = 0, s = String(a.agent_id || a.agent_name || "");
+    for (var i = 0; i < s.length; i++) hsh = (hsh * 31 + s.charCodeAt(i)) >>> 0;
+    var tile = "", y, w, x;
+    for (i = 0; i < CODE_ROWS; i++) {
+      var r = ((hsh >>> (i % 11)) ^ (i * 2654435761)) >>> 0;
+      y = i / CODE_ROWS; x = 0.04 + ((r >>> 3) % 7) * 0.012; w = 0.22 + ((r >>> 9) % 60) / 100;
+      if (x + w > 0.95) w = 0.95 - x;
+      tile += '<rect x="' + x.toFixed(3) + '" y="' + (y + 0.022).toFixed(3) + '" width="' + w.toFixed(3) + '" height="0.034"/>';
+      if ((r >>> 17) % 3 === 0)
+        tile += '<rect class="hi" x="' + (x + w + 0.035).toFixed(3) + '" y="' + (y + 0.022).toFixed(3) + '" width="' + Math.max(0.03, Math.min(0.15, 0.93 - x - w)).toFixed(3) + '" height="0.034"/>';
+    }
+    /* De onzichtbare bureaurechthoek houdt de bbox van deze groep gelijk aan die van de sprite,
+       zodat #mScreen (objectBoundingBox) er precies overheen valt — inclusief het uitgeknipte figuur. */
+    return '<g class="m-code" mask="url(#mScreen)">'
+      + '<rect class="bbx" x="' + f1(DX0) + '" y="' + f1(DY0) + '" width="' + f1(DESK_W) + '" height="' + f1(DESK_H) + '"/>'
+      + '<g transform="matrix(' + SCR.map(f1).join(",") + ')" clip-path="url(#cUnit)">'
+      + '<g class="roll" style="animation-duration:' + (4.2 + (hsh % 23) / 10).toFixed(1) + 's">'
+      + '<g>' + tile + '</g><g transform="translate(0,1)">' + tile + "</g></g></g></g>";
+  }
+  /* Eén duidelijke speld boven het bureau in plaats van losse tekentjes op de sprite.
+     Alleen als er iets te melden is: fout, stil, gepauzeerd of een open loop. */
   function deskMarks(a) {
-    var g = STATES[st(a)].g, h = "", mx = DX0 + DESK_W * 0.60, my = DY0 + DESK_H * 0.02;
-    if (g) h += '<g class="badge" transform="translate(' + f1(mx) + "," + f1(my) + ')"><circle r="5"/><text y="2.8" text-anchor="middle">' + esc(g) + "</text></g>";
-    if (Number(a.open_loops) > 0) h += '<path class="loop" transform="translate(' + f1(DX0 + DESK_W * 0.16) + "," + f1(my + 2) + ')" d="M0,-3.6l3.6,3.6l-3.6,3.6l-3.6,-3.6Z"/>';
-    return h;
+    var g = STATES[st(a)].g, lp = Number(a.open_loops) > 0;
+    if (!g && !lp) return "";
+    var w = (g && lp) ? 22 : 14, px = DX0 + DESK_W * 0.5 - w / 2, py = DY0 - 15;
+    var tip = g ? STATES[st(a)].l : "";
+    if (lp) tip = (tip ? tip + " · " : "") + a.open_loops + " open loop" + (a.open_loops > 1 ? "s" : "");
+    var h = '<g class="pin" transform="translate(' + f1(px) + "," + f1(py) + ')"><title>' + esc(tip) + "</title>"
+      + '<line class="stem" x1="' + f1(w / 2) + '" y1="11" x2="' + f1(w / 2) + '" y2="17"/>'
+      + '<rect class="plate" x="0" y="0" rx="4" ry="4" width="' + f1(w) + '" height="11"/>';
+    if (g) h += '<text class="pg" x="' + f1(lp ? 7 : w / 2) + '" y="7.9" text-anchor="middle">' + esc(g) + "</text>";
+    if (lp) h += '<path class="loop" transform="translate(' + f1(g ? 15.5 : w / 2) + ',5.5)" d="M0,-3.2l3.2,3.2l-3.2,3.2l-3.2,-3.2Z"/>';
+    return h + "</g>";
   }
   function deskInner(a) {
     return '<rect class="hit" x="' + f1(DX0) + '" y="' + f1(DY0 + DESK_H * 0.18) + '" width="' + f1(DESK_W) + '" height="' + f1(DESK_H * 0.82) + '"/>'
@@ -854,7 +906,7 @@
       layer.sort(function (p, q) { return p.k - q.k; }).forEach(function (o) { h += o.h; });
       /* zwevend kaartje boven de achterste hoek */
       var tp = iso(x0, y0, SLAB);
-      h += '<g class="card" data-card="' + esc(d.name) + '" tabindex="0" role="button" aria-label="Afdeling ' + esc(d.name) + '" transform="translate(' + f1(tp[0]) + "," + f1(tp[1] - 26) + ')">'
+      h += '<g class="card" data-card="' + esc(d.name) + '" tabindex="0" role="button" aria-label="Afdeling ' + esc(d.name) + '" transform="translate(' + f1(tp[0]) + "," + f1(tp[1] - CARD_LIFT) + ')">'
         + '<line class="stem" x1="0" y1="0" x2="0" y2="26"/><circle class="pin" r="2" cy="26"/>' + cardInner(d) + "</g>";
       h += "</g>";
     });
@@ -910,7 +962,7 @@
     S.depts.forEach(function (d) {
       [iso(d.x, d.y, SLAB), iso(d.x + d.w, d.y, SLAB), iso(d.x + d.w, d.y + d.d, 0), iso(d.x, d.y + d.d, 0)].forEach(function (p) { xs.push(p[0]); ys.push(p[1]); });
       var tp = iso(d.x, d.y, SLAB), cw = cardWidth(d) / 2 + 6;
-      xs.push(tp[0] - cw, tp[0] + cw); ys.push(tp[1] - 26 - cardHeight(d) - 8);
+      xs.push(tp[0] - cw, tp[0] + cw); ys.push(tp[1] - CARD_LIFT - cardHeight(d) - 8);
     });
     var top = iso(0, 0, SLAB + 4); ys.push(top[1] - 150);
     var x0 = Math.min.apply(null, xs), x1 = Math.max.apply(null, xs), y0 = Math.min.apply(null, ys), y1 = Math.max.apply(null, ys);
@@ -960,7 +1012,7 @@
   function zoomToDept(d, instant) {
     var p = [iso(d.x, d.y, SLAB), iso(d.x + d.w, d.y, SLAB), iso(d.x + d.w, d.y + d.d, 0), iso(d.x, d.y + d.d, 0)];
     var tp = iso(d.x, d.y, SLAB), cw = cardWidth(d) / 2 + 6;
-    p.push([tp[0] - cw, tp[1] - 26 - cardHeight(d) - 10], [tp[0] + cw, tp[1] - 26 - cardHeight(d) - 10]);
+    p.push([tp[0] - cw, tp[1] - CARD_LIFT - cardHeight(d) - 10], [tp[0] + cw, tp[1] - CARD_LIFT - cardHeight(d) - 10]);
     setCam(boxFor(p, 40), !instant);
   }
   function zoomToAgent(a, instant) {
