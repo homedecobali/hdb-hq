@@ -139,24 +139,25 @@
 
   /* zwevend afdelingskaartje */
   /* Afdelingspaneel: witte kaart boven het platform. Bij hover komt hij op en valt de slagschaduw dieper. */
-  .card{cursor:pointer}
+  .card{cursor:pointer;color:var(--c)}
   .card .stem{stroke:color-mix(in srgb,var(--c) 45%,transparent);stroke-width:1;stroke-dasharray:2 2}
   .card .pin{fill:var(--c)}
-  .pcard{filter:url(#fPanel);transition:transform .14s ease,filter .14s ease}
-  .card:hover .pcard,.card:focus-visible .pcard,.dept.cur .card .pcard{filter:url(#fPanelUp);transform:translateY(-4px)}
-  .card .bg{fill:#fff}
+  .pcard{transition:transform .16s ease,filter .16s ease}
+  .card:hover .pcard,.card:focus-visible .pcard,.dept.cur .card .pcard{transform:translateY(-4px)}
+  .card .bg{fill:#111a29;fill-opacity:.94}
+  .card .edge{fill:none;stroke:var(--c);stroke-opacity:.5;stroke-width:1.1}
+  .card:hover .edge,.dept.cur .card .edge{stroke-opacity:.95;stroke-width:1.5}
   .card .ring{fill:none;stroke:var(--c);stroke-width:0;opacity:0;transition:stroke-width .14s,opacity .14s}
-  .card:hover .ring,.dept.cur .card .ring{stroke-width:2;opacity:1}
-  .card .tt{font:700 9.3px "Segoe UI",system-ui,sans-serif;letter-spacing:.13em;fill:#15181d}
+  .card .tt{font:700 9.3px "Segoe UI",system-ui,sans-serif;letter-spacing:.13em;fill:#f2f6fb}
   .card .dot2{fill:var(--c)}
-  .card .num{font:300 26px "Segoe UI",system-ui,sans-serif;letter-spacing:-.02em;fill:#15181d}
-  .card .numl{font:700 7.4px "Segoe UI",system-ui,sans-serif;letter-spacing:.14em;fill:#8c93a0}
-  .card .lb{font:600 7.6px "Segoe UI",system-ui,sans-serif;letter-spacing:.09em;fill:#8c93a0}
-  .card .vl{font:700 10.6px "Segoe UI",system-ui,sans-serif;fill:#15181d;text-anchor:end;font-variant-numeric:tabular-nums}
-  .card .lead{stroke:#e3e6ea;stroke-width:1;stroke-dasharray:1 2.6}
-  .card .sep{stroke:#ebedf0;stroke-width:1}
-  .card .fl{font:700 7.3px "Segoe UI",system-ui,sans-serif;letter-spacing:.11em;fill:#8c93a0}
-  .card .fv{font:700 10px "Segoe UI",system-ui,sans-serif;fill:#15181d;font-variant-numeric:tabular-nums}
+  .card .num{font:300 26px "Segoe UI",system-ui,sans-serif;letter-spacing:-.02em;fill:#fff}
+  .card .numl{font:700 7.4px "Segoe UI",system-ui,sans-serif;letter-spacing:.14em;fill:#8d9cb4}
+  .card .lb{font:600 7.6px "Segoe UI",system-ui,sans-serif;letter-spacing:.09em;fill:#93a2b8}
+  .card .vl{font:700 10.6px "Segoe UI",system-ui,sans-serif;fill:#fff;text-anchor:end;font-variant-numeric:tabular-nums}
+  .card .lead{stroke:#46566d;stroke-opacity:.75;stroke-width:1;stroke-dasharray:1 2.6}
+  .card .sep{stroke:#fff;stroke-opacity:.14;stroke-width:1}
+  .card .fl{font:700 7.3px "Segoe UI",system-ui,sans-serif;letter-spacing:.11em;fill:#8d9cb4}
+  .card .fv{font:700 10px "Segoe UI",system-ui,sans-serif;fill:#fff;font-variant-numeric:tabular-nums}
   .card .fv.d{fill:var(--c)}
 
   /* datapijpen Brain -> afdeling */
@@ -301,6 +302,7 @@
     .ag.s-working .m-glow{opacity:.45}
   }
 </style>
+  <style id="glowCss"></style>
 </head>
 <body>
 <div id="app">
@@ -342,6 +344,7 @@
             <mask id="mScreen" maskContentUnits="objectBoundingBox">
               <image href="office-v2-assets/screen.webp" x="0" y="0" width="1" height="1" preserveAspectRatio="none"/>
             </mask>
+            <g id="glowDefs"></g>
           </defs>
           <g id="world"></g>
         </svg>
@@ -765,7 +768,7 @@
     var L = -W / 2, T = -H, h = "";
     h += '<g class="pcard">'
       + '<rect class="bg" x="' + f1(L) + '" y="' + f1(T) + '" width="' + f1(W) + '" height="' + f1(H) + '" rx="11"/>'
-      + '<rect class="ring" x="' + f1(L) + '" y="' + f1(T) + '" width="' + f1(W) + '" height="' + f1(H) + '" rx="11"/>'
+      + '<rect class="edge" x="' + f1(L + 0.6) + '" y="' + f1(T + 0.6) + '" width="' + f1(W - 1.2) + '" height="' + f1(H - 1.2) + '" rx="10.6"/>'
       /* kop: stip + naam */
       + '<circle class="dot2" cx="' + f1(L + P_PAD + 3.5) + '" cy="' + f1(T + P_HEAD - 3.2) + '" r="3.5"/>'
       + '<text class="tt" x="' + f1(L + P_PAD + 13) + '" y="' + f1(T + P_HEAD) + '">' + esc(String(d.name).toUpperCase()) + "</text>"
@@ -861,6 +864,8 @@
     for (i = gx0; i <= gx1; i += 2) { a = iso(i, gy0); b = iso(i, gy1); h += '<line class="grid" x1="' + f1(a[0]) + '" y1="' + f1(a[1]) + '" x2="' + f1(b[0]) + '" y2="' + f1(b[1]) + '"/>'; }
     for (i = gy0; i <= gy1; i += 2) { a = iso(gx0, i); b = iso(gx1, i); h += '<line class="grid" x1="' + f1(a[0]) + '" y1="' + f1(a[1]) + '" x2="' + f1(b[0]) + '" y2="' + f1(b[1]) + '"/>'; }
 
+    buildGlows();
+
     /* laag 1: pijpen op de vloer (onder alles) */
     S.depts.forEach(function (d) {
       h += '<g class="pipe" data-pipe="' + esc(d.name) + '" style="--c:' + esc(d.color) + '">' + pipeInner(d) + "</g>";
@@ -906,7 +911,7 @@
       layer.sort(function (p, q) { return p.k - q.k; }).forEach(function (o) { h += o.h; });
       /* zwevend kaartje boven de achterste hoek */
       var tp = iso(x0, y0, SLAB);
-      h += '<g class="card" data-card="' + esc(d.name) + '" tabindex="0" role="button" aria-label="Afdeling ' + esc(d.name) + '" transform="translate(' + f1(tp[0]) + "," + f1(tp[1] - CARD_LIFT) + ')">'
+      h += '<g class="card pf' + (d._gi || 0) + '" data-card="' + esc(d.name) + '" tabindex="0" role="button" aria-label="Afdeling ' + esc(d.name) + '" transform="translate(' + f1(tp[0]) + "," + f1(tp[1] - CARD_LIFT) + ')">'
         + '<line class="stem" x1="0" y1="0" x2="0" y2="26"/><circle class="pin" r="2" cy="26"/>' + cardInner(d) + "</g>";
       h += "</g>";
     });
@@ -919,6 +924,26 @@
     computeFit();
     setCam(S.fitBox, false);
     if (S.first) { elFloor.classList.add("intro"); setTimeout(function () { elFloor.classList.remove("intro"); }, 1600); }
+  }
+  /* Per afdeling een eigen gekleurde gloed: zwarte diepteschaduw plus een halo in de
+     afdelingskleur, zwaarder bij hover. Een filter kan geen var(--c) lezen, dus we zetten
+     voor elke afdeling een eigen filter en de bijbehorende CSS-regel klaar. */
+  function buildGlows() {
+    var defs = "", css = "";
+    S.depts.forEach(function (d, i) {
+      d._gi = i;
+      var c = d.color || "#8aa0b5";
+      defs += '<filter id="fG' + i + '" x="-65%" y="-65%" width="230%" height="230%">'
+        + '<feDropShadow dx="0" dy="4" stdDeviation="4" flood-color="#000" flood-opacity=".55"/>'
+        + '<feDropShadow dx="0" dy="0" stdDeviation="7" flood-color="' + c + '" flood-opacity=".34"/></filter>'
+        + '<filter id="fGu' + i + '" x="-85%" y="-85%" width="270%" height="270%">'
+        + '<feDropShadow dx="0" dy="9" stdDeviation="8" flood-color="#000" flood-opacity=".6"/>'
+        + '<feDropShadow dx="0" dy="0" stdDeviation="12" flood-color="' + c + '" flood-opacity=".8"/></filter>';
+      css += ".pf" + i + " .pcard{filter:url(#fG" + i + ")}"
+        + ".pf" + i + ":hover .pcard,.pf" + i + ":focus-visible .pcard,.dept.cur .pf" + i + " .pcard{filter:url(#fGu" + i + ")}";
+    });
+    $("glowDefs").innerHTML = defs;
+    $("glowCss").textContent = css;
   }
   function linksInner() {
     var h = "";
