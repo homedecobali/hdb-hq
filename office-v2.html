@@ -138,16 +138,26 @@
   .plate{font:700 10.5px var(--mono);letter-spacing:.08em;fill:color-mix(in srgb,var(--c) 55%,#fff)}
 
   /* zwevend afdelingskaartje */
+  /* Afdelingspaneel: witte kaart boven het platform. Bij hover komt hij op en valt de slagschaduw dieper. */
   .card{cursor:pointer}
-  .card .bg{fill:rgba(8,12,20,.92);stroke:color-mix(in srgb,var(--c) 45%,transparent);stroke-width:1}
-  .card .tt{font:700 9.5px var(--mono);letter-spacing:.1em;fill:#e6f1f7}
-  .card .ic{font-size:10px}
-  .card .st{font:8.5px var(--mono);letter-spacing:.04em;fill:var(--dim)}
-  .card .st tspan.w{fill:var(--cyan)} .card .st tspan.e{fill:var(--red)} .card .st tspan.s{fill:var(--amber)}
   .card .stem{stroke:color-mix(in srgb,var(--c) 45%,transparent);stroke-width:1;stroke-dasharray:2 2}
-  .card .av{stroke:#0a0f18;stroke-width:.7}
   .card .pin{fill:var(--c)}
-  .card:hover .bg,.dept.cur .card .bg{stroke:var(--c)}
+  .pcard{filter:url(#fPanel);transition:transform .14s ease,filter .14s ease}
+  .card:hover .pcard,.card:focus-visible .pcard,.dept.cur .card .pcard{filter:url(#fPanelUp);transform:translateY(-4px)}
+  .card .bg{fill:#fff}
+  .card .ring{fill:none;stroke:var(--c);stroke-width:0;opacity:0;transition:stroke-width .14s,opacity .14s}
+  .card:hover .ring,.dept.cur .card .ring{stroke-width:2;opacity:1}
+  .card .tt{font:700 9.3px "Segoe UI",system-ui,sans-serif;letter-spacing:.13em;fill:#15181d}
+  .card .dot2{fill:var(--c)}
+  .card .num{font:300 26px "Segoe UI",system-ui,sans-serif;letter-spacing:-.02em;fill:#15181d}
+  .card .numl{font:700 7.4px "Segoe UI",system-ui,sans-serif;letter-spacing:.14em;fill:#8c93a0}
+  .card .lb{font:600 7.6px "Segoe UI",system-ui,sans-serif;letter-spacing:.09em;fill:#8c93a0}
+  .card .vl{font:700 10.6px "Segoe UI",system-ui,sans-serif;fill:#15181d;text-anchor:end;font-variant-numeric:tabular-nums}
+  .card .lead{stroke:#e3e6ea;stroke-width:1;stroke-dasharray:1 2.6}
+  .card .sep{stroke:#ebedf0;stroke-width:1}
+  .card .fl{font:700 7.3px "Segoe UI",system-ui,sans-serif;letter-spacing:.11em;fill:#8c93a0}
+  .card .fv{font:700 10px "Segoe UI",system-ui,sans-serif;fill:#15181d;font-variant-numeric:tabular-nums}
+  .card .fv.d{fill:var(--c)}
 
   /* datapijpen Brain -> afdeling */
   .pipe-base{fill:none;stroke:#0d1522;stroke-width:7;stroke-linecap:round}
@@ -277,6 +287,8 @@
   }
   @media (prefers-reduced-motion:reduce){
     #floor.intro .dept,#floor.intro .brain,.pipe-flow,.brain .halo,.ag .m-glow,.ag.s-error .m-screen,.ag.s-silent .m-screen,#wires path,.cursor::after{animation:none}
+    .pcard{transition:none}
+    .card:hover .pcard,.card:focus-visible .pcard,.dept.cur .card .pcard{transform:none}
     #wires path{stroke-dashoffset:0}
     .ag.s-working .m-glow{opacity:.45}
   }
@@ -298,6 +310,12 @@
           <defs>
             <radialGradient id="gBrainGlow"><stop offset="0" stop-color="#00d4ff" stop-opacity=".30"/><stop offset=".5" stop-color="#00d4ff" stop-opacity=".07"/><stop offset="1" stop-color="#00d4ff" stop-opacity="0"/></radialGradient>
             <filter id="fSoft" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="2.4"/></filter>
+            <filter id="fPanel" x="-35%" y="-35%" width="170%" height="180%">
+              <feDropShadow dx="0" dy="3" stdDeviation="3.5" flood-color="#000" flood-opacity=".42"/>
+            </filter>
+            <filter id="fPanelUp" x="-45%" y="-45%" width="190%" height="200%">
+              <feDropShadow dx="0" dy="9" stdDeviation="8" flood-color="#000" flood-opacity=".55"/>
+            </filter>
             <!-- gerenderde texturen, isometrisch gelegd: één tegel per 2 cellen -->
             <pattern id="pTop" patternUnits="userSpaceOnUse" width="1" height="1"
                      patternTransform="matrix(52,26,-52,26,0,0)">
@@ -346,7 +364,7 @@
   var EDGE = Math.sqrt(HW * HW + HH * HH);
   var PAD = 0.55, LANE_GAP = 0.3, MAX_COLS = 6, DEPT_GAP = 1.6;
   var BRAIN = 4.6;                      /* zijde van het Brain-blok in cellen */
-  var CARD_H = 46;                      /* hoogte van het zwevende afdelingskaartje */
+  var CARD_H = 112;                     /* ruimte die een afdelingspaneel boven het platform inneemt */
 
   /* gerenderde sprites (map office-v2-assets/) — bron-renders staan in Cloudinary hdb/officev2assets */
   var ASSETS = "office-v2-assets/";
@@ -419,7 +437,7 @@
   };
   var STATE_ORDER = ["error", "silent", "working", "ok", "paused", "idle"];
 
-  var S = { depts: [], agents: [], tools: [], links: [], byId: {}, byWf: {}, toolsByWf: {}, sig: "",
+  var S = { depts: [], agents: [], tools: [], links: [], panels: {}, byId: {}, byWf: {}, toolsByWf: {}, sig: "",
             focus: null, hoverTool: null, runs: {}, loops: {}, loadedAt: null, first: true, cam: null, fitBox: null };
 
   var $ = function (id) { return document.getElementById(id); };
@@ -466,7 +484,8 @@
       settle(rest("v_office_depts?select=dept_name,dept_color,dept_icon,dept_sort&order=dept_sort")),
       settle(rest("v_office_agents?select=*")),
       settle(rest("v_office_tools?select=tool,workflows")),
-      settle(rest("v_office_links?select=from_agent,to_agent,kind,via"))
+      settle(rest("v_office_links?select=from_agent,to_agent,kind,via")),
+      settle(rest("v_office_panels?select=dept_name,agents,doing,next,done,labels,waarden"))
     ]).then(function (res) {
       if (!res[0].ok || !res[1].ok) {
         var e = (res[1].ok ? res[0].e : res[1].e) || {};
@@ -476,6 +495,8 @@
       }
       showMsg("");
       $("live").style.background = ""; $("live").style.boxShadow = "";
+      S.panels = {};
+      if (res[4] && res[4].ok) (res[4].v || []).forEach(function (r) { S.panels[r.dept_name] = r; });
       ingest(res[0].v || [], res[1].v || [], res[2].ok ? (res[2].v || []) : null, res[3].ok ? (res[3].v || []) : []);
     });
   }
@@ -514,7 +535,8 @@
 
     var sig = agents.map(function (a) { return [a.agent_id, a.dept_name, a.grp, a.grp_step, a.agent_sort].join("|"); }).sort().join(";")
             + "#" + S.depts.map(function (d) { return d.name + d.color + d.icon; }).join(";")
-            + "#" + S.links.map(function (l) { return l.from_agent + ">" + l.to_agent; }).sort().join(";");
+            + "#" + S.links.map(function (l) { return l.from_agent + ">" + l.to_agent; }).sort().join(";")
+            + "#" + S.depts.map(function (d) { return d.name + ":" + panelRows(d).length; }).join(";");
     if (sig !== S.sig) { S.sig = sig; layout(); renderFloor(); } else { patchAgents(); patchPipes(); patchCards(); }
 
     S.loadedAt = new Date();
@@ -578,7 +600,7 @@
   function screenBoxOf(d) {
     var a = iso(d.x, d.y + d.d, 0), b = iso(d.x + d.w, d.y, 0), t = iso(d.x, d.y, SLAB), u = iso(d.x + d.w, d.y + d.d, 0);
     var cw = cardWidth(d) / 2;
-    return [Math.min(a[0], t[0] - cw), t[1] - 26 - CARD_H, Math.max(b[0], t[0] + cw), u[1] + 8];
+    return [Math.min(a[0], t[0] - cw), t[1] - 26 - cardHeight(d), Math.max(b[0], t[0] + cw), u[1] + 8];
   }
   function sOverlap(p, q, gap) { return p[0] < q[2] + gap && q[0] < p[2] + gap && p[1] < q[3] + gap && q[1] < p[3] + gap; }
   /* Radiaal: afdelingen op een schermellips rond de Brain (0,0), hoekbreedte naar schermbreedte;
@@ -657,38 +679,66 @@
     d.agents.forEach(function (a) { runs += Number(a.runs_24h) || 0; });
     return { c: c, runs: runs };
   }
-  function cardStats(d) {
-    var s = deptStats(d), p = [d.agents.length + " agents"];
-    p.push(s.c.working ? s.c.working + " bezig" : s.runs + " runs 24u");
-    if (s.c.error) p.push(s.c.error + " fout"); else if (s.c.silent) p.push(s.c.silent + " stil");
-    return { parts: p, counts: s.c, runs: s.runs };
+  /* ---- Afdelingspaneel ------------------------------------------------------
+     Twee of drie resultaatregels per afdeling komen live uit v_office_panels
+     (SECURITY DEFINER-view, anon-select). Ontbreekt de view of een waarde, dan
+     toont de regel een streepje en blijven agents/doing/next/done werken op de
+     gegevens die de pagina toch al heeft. */
+  var P_PAD = 12, P_ROW = 13.6, P_HEAD = 17, P_BIG = 47;
+  function panelRows(d) {
+    var r = S.panels[d.name];
+    if (!r || !r.labels) return [];
+    return r.labels.map(function (lb, i) {
+      var v = (r.waarden || [])[i];
+      return [lb, (v === null || v === undefined || v === "") ? "\u2014" : String(v)];
+    }).slice(0, 3);
+  }
+  function panelFoot(d) {
+    var r = S.panels[d.name], c = counts(d.agents);
+    if (r) return [Number(r.doing) || 0, Number(r.next) || 0, Number(r.done) || 0];
+    var runs = 0; d.agents.forEach(function (a) { runs += Number(a.runs_24h) || 0; });
+    return [c.working, null, runs];          /* terugval zonder de view */
   }
   function cardWidth(d) {
-    var st = cardStats(d), txt = st.parts.join(" · ");
-    return Math.max(150, String(d.name).length * 6.6 + 48, 70 + txt.length * 5.35 + 24);
+    var rows = panelRows(d), need = 176;
+    rows.forEach(function (r) { need = Math.max(need, P_PAD * 2 + r[0].length * 4.5 + String(r[1]).length * 6.6 + 26); });
+    return Math.max(need, P_PAD * 2 + 14 + String(d.name).length * 6.5);
+  }
+  function cardHeight(d) {
+    var nrows = panelRows(d).length;
+    return P_BIG + (nrows ? nrows * P_ROW + 6 : 2) + 22;
   }
   function cardInner(d) {
-    var s = deptStats(d), W = cardWidth(d), H = CARD_H;
-    var h = '<rect class="bg" x="' + f1(-W / 2) + '" y="' + (-H) + '" width="' + f1(W) + '" height="' + H + '" rx="7"/>'
-      + '<text class="tt" x="' + f1(-W / 2 + 10) + '" y="' + (-H + 16) + '">' + esc(String(d.name).toUpperCase()) + "</text>";
-    if (d.icon) h += '<text class="ic" x="' + f1(W / 2 - 18) + '" y="' + (-H + 16) + '">' + esc(d.icon) + "</text>";
-    /* avatars: eerste 6 agents, kleur = status */
-    var ax = -W / 2 + 12;
-    d.agents.slice(0, 6).forEach(function (a, i) {
-      h += '<circle class="av" cx="' + f1(ax + i * 9) + '" cy="' + (-H + 28) + '" r="3.6" fill="' + stColor(st(a)) + '"/>';
+    var W = cardWidth(d), H = cardHeight(d), rows = panelRows(d), ft = panelFoot(d);
+    var L = -W / 2, T = -H, h = "";
+    h += '<g class="pcard">'
+      + '<rect class="bg" x="' + f1(L) + '" y="' + f1(T) + '" width="' + f1(W) + '" height="' + f1(H) + '" rx="11"/>'
+      + '<rect class="ring" x="' + f1(L) + '" y="' + f1(T) + '" width="' + f1(W) + '" height="' + f1(H) + '" rx="11"/>'
+      /* kop: stip + naam */
+      + '<circle class="dot2" cx="' + f1(L + P_PAD + 3.5) + '" cy="' + f1(T + P_HEAD - 3.2) + '" r="3.5"/>'
+      + '<text class="tt" x="' + f1(L + P_PAD + 13) + '" y="' + f1(T + P_HEAD) + '">' + esc(String(d.name).toUpperCase()) + "</text>"
+      /* aantal agents groot */
+      + '<text class="num" x="' + f1(L + P_PAD) + '" y="' + f1(T + P_BIG - 6) + '">' + d.agents.length + "</text>"
+      + '<text class="numl" x="' + f1(L + P_PAD + String(d.agents.length).length * 15 + 6) + '" y="' + f1(T + P_BIG - 7) + '">AGENTS</text>';
+    /* resultaatregels met stippellijn ertussen */
+    rows.forEach(function (r, i) {
+      var y = T + P_BIG + 10 + i * P_ROW;
+      h += '<text class="lb" x="' + f1(L + P_PAD) + '" y="' + f1(y) + '">' + esc(r[0]) + "</text>"
+        + '<line class="lead" x1="' + f1(L + P_PAD + r[0].length * 4.5 + 6) + '" y1="' + f1(y - 2.6)
+        + '" x2="' + f1(-L - P_PAD - String(r[1]).length * 6.6 - 5) + '" y2="' + f1(y - 2.6) + '"/>'
+        + '<text class="vl" x="' + f1(-L - P_PAD) + '" y="' + f1(y + 0.6) + '">' + esc(r[1]) + "</text>";
     });
-    var cs = cardStats(d), cls = ["", s.c.working ? "w" : "", s.c.error ? "e" : "s"];
-    var parts = cs.parts.map(function (t, i) { return '<tspan class="' + (cls[i] || "") + '">' + esc(t) + "</tspan>"; }).join(" · ");
-    h += '<text class="st" x="' + f1(ax + 58) + '" y="' + (-H + 31) + '">' + parts + "</text>";
-    /* statusbalk onderin */
-    var bx = -W / 2 + 10, bw = W - 20, acc = 0, tot = d.agents.length || 1;
-    STATE_ORDER.forEach(function (k) {
-      if (!s.c[k]) return;
-      var w = bw * s.c[k] / tot;
-      h += '<rect x="' + f1(bx + acc) + '" y="' + (-H + 38) + '" width="' + f1(Math.max(w, 1)) + '" height="2.4" fill="' + stColor(k) + '"/>';
-      acc += w;
+    /* voet: doing / next / done */
+    var fy = T + H - 20;
+    h += '<line class="sep" x1="' + f1(L + P_PAD) + '" y1="' + f1(fy) + '" x2="' + f1(-L - P_PAD) + '" y2="' + f1(fy) + '"/>';
+    var fx = L + P_PAD, names = ["DOING", "NEXT", "DONE"];
+    ft.forEach(function (v, i) {
+      h += '<text class="fl" x="' + f1(fx) + '" y="' + f1(fy + 13) + '">' + names[i] + "</text>"
+        + '<text class="fv' + (i === 0 ? " d" : "") + '" x="' + f1(fx + names[i].length * 5.4 + 5) + '" y="' + f1(fy + 13.4) + '">'
+        + (v === null ? "\u2014" : v) + "</text>";
+      fx += names[i].length * 5.4 + 5 + String(v === null ? 1 : v).length * 6.2 + 12;
     });
-    return h;
+    return h + "</g>";
   }
   function stColor(k) { return { working: "#00d4ff", ok: "#3ee08f", error: "#ff5d5d", silent: "#ffb547", paused: "#8aa0b5", idle: "#3a4a5c" }[k] || "#8aa0b5"; }
 
@@ -859,7 +909,8 @@
     var xs = [], ys = [];
     S.depts.forEach(function (d) {
       [iso(d.x, d.y, SLAB), iso(d.x + d.w, d.y, SLAB), iso(d.x + d.w, d.y + d.d, 0), iso(d.x, d.y + d.d, 0)].forEach(function (p) { xs.push(p[0]); ys.push(p[1]); });
-      var tp = iso(d.x, d.y, SLAB); xs.push(tp[0] - 90, tp[0] + 90); ys.push(tp[1] - 76);
+      var tp = iso(d.x, d.y, SLAB), cw = cardWidth(d) / 2 + 6;
+      xs.push(tp[0] - cw, tp[0] + cw); ys.push(tp[1] - 26 - cardHeight(d) - 8);
     });
     var top = iso(0, 0, SLAB + 4); ys.push(top[1] - 150);
     var x0 = Math.min.apply(null, xs), x1 = Math.max.apply(null, xs), y0 = Math.min.apply(null, ys), y1 = Math.max.apply(null, ys);
@@ -908,7 +959,8 @@
   }
   function zoomToDept(d, instant) {
     var p = [iso(d.x, d.y, SLAB), iso(d.x + d.w, d.y, SLAB), iso(d.x + d.w, d.y + d.d, 0), iso(d.x, d.y + d.d, 0)];
-    var tp = iso(d.x, d.y, SLAB); p.push([tp[0], tp[1] - 76]);
+    var tp = iso(d.x, d.y, SLAB), cw = cardWidth(d) / 2 + 6;
+    p.push([tp[0] - cw, tp[1] - 26 - cardHeight(d) - 10], [tp[0] + cw, tp[1] - 26 - cardHeight(d) - 10]);
     setCam(boxFor(p, 40), !instant);
   }
   function zoomToAgent(a, instant) {
