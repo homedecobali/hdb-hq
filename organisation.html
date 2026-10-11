@@ -82,7 +82,9 @@
   /* deeplink-highlight */
   .agent-card.flash{animation:flash 1.6s ease-out 2}
   @keyframes flash{0%{box-shadow:0 0 0 2px var(--cyan),0 0 26px var(--cyan)}100%{box-shadow:none}}
-  #view-org{flex:1;min-height:0;overflow:auto;padding:22px 22px 30px}
+  #view-org{flex:1;min-height:0;overflow:auto;padding:22px 22px 30px;cursor:grab}
+  #view-org.org-grabbing{cursor:grabbing;user-select:none}
+  #view-org.org-grabbing *{cursor:grabbing !important}
   #view-org::-webkit-scrollbar{height:10px;width:10px}
   #view-org::-webkit-scrollbar-thumb{background:#1b2638;border-radius:8px}
 
@@ -365,6 +367,42 @@
   </div>
 </div>
 
+<script>
+/* === SLEEP-PANNEN (muis) ==============================================
+   Grijp #view-org en sleep links/rechts (en op/neer) om het organigram te
+   pannen. Alleen muis — touch scrollt al native. Een bewegingsdrempel houdt
+   slepen en klikken (kaart openen / afdeling in-uitklappen) uit elkaar. */
+(function(){
+  var host=document.getElementById("view-org"); if(!host) return;
+  var down=false, moved=false, sx=0, sy=0, sl=0, st=0, pid=null, TH=6;
+  host.addEventListener("pointerdown",function(e){
+    if(e.button!==0) return;                    // alleen linkermuisknop
+    if(e.pointerType && e.pointerType!=="mouse") return; // touch/pen = native scroll
+    if(e.target.closest("input,textarea,select,a,button")) return;
+    down=true; moved=false; sx=e.clientX; sy=e.clientY;
+    sl=host.scrollLeft; st=host.scrollTop; pid=e.pointerId;
+  });
+  window.addEventListener("pointermove",function(e){
+    if(!down) return;
+    var dx=e.clientX-sx, dy=e.clientY-sy;
+    if(!moved && (Math.abs(dx)>TH || Math.abs(dy)>TH)){
+      moved=true; host.classList.add("org-grabbing");
+      try{ host.setPointerCapture(pid); }catch(_){}
+    }
+    if(moved){ host.scrollLeft=sl-dx; host.scrollTop=st-dy; e.preventDefault(); }
+  },{passive:false});
+  window.addEventListener("pointerup",function(){
+    if(!down) return; down=false;
+    if(moved){
+      host.classList.remove("org-grabbing");
+      try{ host.releasePointerCapture(pid); }catch(_){}
+      var kill=function(ev){ ev.stopPropagation(); ev.preventDefault(); };
+      host.addEventListener("click",kill,{capture:true,once:true});   // sleep ≠ klik
+      setTimeout(function(){ host.removeEventListener("click",kill,{capture:true}); },0);
+    }
+  });
+})();
+</script>
 <script src="dewi-agents.js"></script><!-- één bron van waarheid voor agent-tellingen -->
 <script src="dewi-swarm.js" defer></script><!-- bewegende avatars + CREW-knop -->
 <script src="dewi-frame.js"></script><!-- uniforme paneel-toggle -->
