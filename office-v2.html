@@ -24,6 +24,11 @@
   10 s naadloze loop, zwarte achtergrond). Het is een HTML-<video> over de SVG met mix-blend-mode:screen
   (zwart valt weg) die via placeBrainLive() de onzichtbare .live-anchor in de scene volgt bij zoom/pan/resize.
   Reduced motion: alleen de stilstaande poster (brain-core.webp).
+  Powerballen (12-10): een agent die de Brain aanspreekt (= zijn workflow heeft een AI-tool, anthropic/openai,
+  volgens v_office_tools) stuurt bij elke NIEUWE run (last_run_at veranderd sinds de vorige verversing) een
+  gloeiende bal in de afdelingskleur: bureau -> platformrand -> datapijp -> lichtpilaar -> brein, met een
+  flits bij aankomst. Zolang zo'n agent 'working' is volgt er elke ~7 s een bal. Runs uit de afgelopen
+  minuut worden over de minuut uitgesmeerd. Niet bij reduced motion of een verborgen tab.
 -->
 <html lang="nl">
 <head>
@@ -191,6 +196,12 @@
   .brain-live{position:absolute;left:0;top:0;width:600px;height:540px;z-index:1;pointer-events:none;
     mix-blend-mode:screen;transform-origin:0 0;will-change:transform;opacity:0;transition:opacity .8s ease;background:#000}
   .brain-live.on{opacity:1}
+  /* powerballen afdeling -> brein */
+  #ballLayer{pointer-events:none}
+  #ballLayer .pb-glow{fill:var(--c);opacity:.55;filter:url(#fSoft)}
+  #ballLayer .pb-core{fill:color-mix(in srgb,var(--c) 35%,#fff)}
+  #ballLayer .pb-trail{fill:var(--c);opacity:.35}
+  #ballLayer .pb-hit{fill:none;stroke:var(--c);stroke-width:2}
 
   /* agents: gerenderd bureau + monitor + stoel (sprite), scherm ingekleurd naar status */
   .ag{cursor:pointer;outline:none;transition:opacity .2s;--s:var(--green)}
@@ -537,6 +548,8 @@
   }
 
   function ingest(depts, agents, tools, links) {
+    var prevRun = S.prevRun || null; S.prevRun = {};
+    agents.forEach(function (a) { S.prevRun[a.agent_id] = a.last_run_at || ""; });
     S.agents = agents; S.byId = {}; S.byWf = {};
     agents.forEach(function (a) { S.byId[a.agent_id] = a; S.byWf[a.workflow_name] = a; });
 
@@ -575,6 +588,7 @@
     if (sig !== S.sig) { S.sig = sig; layout(); renderFloor(); } else { patchAgents(); patchPipes(); patchCards(); }
 
     S.loadedAt = new Date();
+    queueBalls(prevRun);
     renderHeader(); renderTools(); renderPanel(); applyFocus();
     if (S.focus && S.focus.type === "agent") loadRuns(S.byId[S.focus.id]);
     if (S.first) {
@@ -1051,6 +1065,79 @@
     }
   }
   if (window.ResizeObserver) new ResizeObserver(function () { placeBrainLive(); }).observe(elScene);
+
+  /* ------------------------------------------------------------ powerballen */
+  var AI_TOOLS = { anthropic: 1, openai: 1 };
+  function usesBrain(a) {
+    return (S.toolsByWf && S.toolsByWf[a.workflow_name] || []).some(function (t) { return AI_TOOLS[t]; });
+  }
+  function deptOf(a) { for (var i = 0; i < S.depts.length; i++) if (S.depts[i].name === a.dept_name) return S.depts[i]; return null; }
+  var ballTimers = [];
+  function queueBalls(prevRun) {
+    if (REDUCED) return;
+    ballTimers.forEach(clearTimeout); ballTimers = [];
+    S.agents.forEach(function (a) {
+      if (!usesBrain(a)) return;
+      var fresh = prevRun && a.last_run_at && a.last_run_at !== (prevRun[a.agent_id] || "");
+      var working = st(a) === "working";
+      if (!fresh && !working) return;
+      /* nieuwe run: één bal op een willekeurig moment in de komende minuut (direct als hij nu draait) */
+      var t = working ? 300 + Math.random() * 1500 : Math.random() * (REFRESH_MS - 8000);
+      ballTimers.push(setTimeout(function () { fireBall(a.agent_id); }, t));
+      if (working) for (var k = t + 7000; k < REFRESH_MS - 2000; k += 6000 + Math.random() * 2500)
+        ballTimers.push(setTimeout(function () { var x = S.byId[a.agent_id]; if (x && st(x) === "working") fireBall(a.agent_id); }, k));
+    });
+  }
+  function ballLayer() {
+    var g = $("ballLayer");
+    if (!g) { g = document.createElementNS("http://www.w3.org/2000/svg", "g"); g.id = "ballLayer"; elWorld.appendChild(g); }
+    return g;
+  }
+  function fireBall(id) {
+    if (document.hidden) return;
+    var a = S.byId[id], d = a && deptOf(a); if (!a || !d || !a._p || !d._port) return;
+    var c = iso(0, 0, 0), ps = iso(d._port[0], d._port[1], SLAB), pf = iso(d._port[0], d._port[1], 0);
+    var pts = [[a._p[0], a._p[1] - 30], [a._p[0], a._p[1] - 6], ps, pf, [c[0], c[1] - 20], [c[0], c[1] - LIVE_LIFT - LIVE_H * 0.42]];
+    var segs = [], tot = 0;
+    for (var i = 1; i < pts.length; i++) { var l = Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]); segs.push(l); tot += l; }
+    var NS = "http://www.w3.org/2000/svg", g = document.createElementNS(NS, "g");
+    g.setAttribute("style", "--c:" + d.color);
+    g.innerHTML = '<circle class="pb-trail" r="5.5"/><circle class="pb-trail" r="3.8"/><circle class="pb-glow" r="16"/><circle class="pb-core" r="6"/>';
+    ballLayer().appendChild(g);
+    var cs = g.querySelectorAll("circle"), dur = Math.max(1600, Math.min(3400, tot * 3.2)), t0 = performance.now();
+    function at(f) {
+      var dist = Math.max(0, Math.min(1, f)) * tot;
+      for (var i = 0; i < segs.length; i++) {
+        if (dist <= segs[i] || i === segs.length - 1) { var k = segs[i] ? Math.min(1, dist / segs[i]) : 1;
+          return [pts[i][0] + (pts[i + 1][0] - pts[i][0]) * k, pts[i][1] + (pts[i + 1][1] - pts[i][1]) * k]; }
+        dist -= segs[i];
+      }
+    }
+    function step(now) {
+      var f = (now - t0) / dur, e = f < 0.5 ? 2 * f * f : 1 - Math.pow(-2 * f + 2, 2) / 2;
+      [[cs[0], e - 0.05], [cs[1], e - 0.09], [cs[2], e], [cs[3], e]].forEach(function (o) {
+        var q = at(o[1]); o[0].setAttribute("cx", q[0].toFixed(1)); o[0].setAttribute("cy", q[1].toFixed(1));
+      });
+      if (f < 1 && g.isConnected) requestAnimationFrame(step);
+      else { g.remove(); brainHit(d.color); }
+    }
+    requestAnimationFrame(step);
+  }
+  /* aankomst: een ring in de afdelingskleur die vanuit het brein uitdijt */
+  function brainHit(color) {
+    var c = iso(0, 0, 0), cx = c[0], cy = c[1] - LIVE_LIFT - LIVE_H * 0.42;
+    var r = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+    r.setAttribute("class", "pb-hit"); r.setAttribute("style", "--c:" + color);
+    r.setAttribute("cx", cx); r.setAttribute("cy", cy);
+    ballLayer().appendChild(r);
+    var t0 = performance.now();
+    (function grow(now) {
+      var f = Math.min(1, (now - t0) / 750);
+      r.setAttribute("r", (8 + f * LIVE_W * 0.32).toFixed(1));
+      r.setAttribute("opacity", (0.85 * (1 - f)).toFixed(2));
+      if (f < 1 && r.isConnected) requestAnimationFrame(grow); else r.remove();
+    })(t0);
+  }
   function zoomBy(factor, px, py) {
     if (!S.cam) return;
     var c = S.cam, sc = viewScale();
