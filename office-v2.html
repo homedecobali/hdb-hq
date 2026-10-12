@@ -727,7 +727,7 @@
         var phi = -Math.PI / 2 + ((acc + spans[i] / 2) / tot) * Math.PI * 2; acc += spans[i];
         var cx = R * aspect * Math.cos(phi), cy = R * 0.95 * Math.sin(phi);
         var w = unIso(cx, cy);
-        d.x = w[0] - d.w / 2; d.y = w[1] - d.d / 2; d.phi = phi;
+        d.x = w[0] - d.w / 2; d.y = w[1] - d.d / 2; d.phi = phi; d._sc = [cx, cy];
         d._sb = screenBoxOf(d);
       });
       ok = true;
@@ -740,6 +740,21 @@
       }
       if (!ok) R += 6;
     }
+    /* compacteren (12-10): trek elk eiland afzonderlijk langs zijn straal naar het brein zolang het niets
+       raakt; grootste eerst, twee rondes. Minder lege vloer = grotere eilanden in het overzicht. */
+    function clashFree(i) {
+      var d = S.depts[i];
+      if (overlaps(d, brain, DEPT_GAP) || sOverlap(d._sb, bsb, 6)) return false;
+      for (var j = 0; j < n; j++) if (j !== i && (overlaps(d, S.depts[j], DEPT_GAP * 0.6) || sOverlap(d._sb, S.depts[j]._sb, 6))) return false;
+      return true;
+    }
+    function placeAt(d, cx, cy) { var w = unIso(cx, cy); d.x = w[0] - d.w / 2; d.y = w[1] - d.d / 2; d._sc = [cx, cy]; d._sb = screenBoxOf(d); }
+    var order = S.depts.map(function (d, i) { return i; }).sort(function (a, b) { return (S.depts[b].w * S.depts[b].d) - (S.depts[a].w * S.depts[a].d); });
+    for (var pass = 0; pass < 2; pass++) order.forEach(function (i) {
+      var d = S.depts[i], base = d._sc.slice(), best = 1;
+      for (var t = 0.97; t >= 0.35; t -= 0.03) { placeAt(d, base[0] * t, base[1] * t); if (clashFree(i)) best = t; else break; }
+      placeAt(d, base[0] * best, base[1] * best);
+    });
     S.brain = brain;
     S.depts.forEach(function (d) {
       d.agents.forEach(function (a) { a._p = iso(d.x + a._lx, d.y + a._ly, SLAB); });
