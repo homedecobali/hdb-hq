@@ -38,6 +38,8 @@
   Loper: staat office-v2-assets/walker.webp er (sprite-sheet 2560 x 768, frames 256 x 384; rij 1 = 7 frames lopend
   naar de kijker rechtsonder, rij 2 = 10 frames van de kijker af rechtsboven; links = gespiegeld), dan loopt die
   sprite op ware grootte (zelfde schaal als de zittende agent). Anders een holografische figuur van die maat.
+  Tekstballonnen (12-10): een agent in 'working' (en een kopie die op een sub-platform zit) krijgt een
+  ballonnetje met wat hij doet (begin van last_summary, anders zijn naam). Max. 8 tegelijk, rustig zwevend.
 -->
 <html lang="nl">
 <head>
@@ -221,6 +223,17 @@
   .subdept .sub-name{font:700 7.5px var(--mono);letter-spacing:.1em;fill:var(--c);text-anchor:middle}
   .subdept .sd-screen{fill:var(--c);opacity:0;mix-blend-mode:screen;transition:opacity .3s}
   .subdept.busy .sd-screen{animation:pulse 1.2s ease-in-out infinite}
+  /* tekstballonnen boven werkende agents */
+  #bubbleLayer{pointer-events:none}
+  .bub .b-pop{animation:bubIn .35s cubic-bezier(.2,.8,.2,1.2) both}
+  .bub .b-in{animation:bubFloat 3.2s ease-in-out infinite}
+  .bub rect,.bub path{fill:#f4fbff;stroke:var(--c,#00d4ff);stroke-width:1.2}
+  .bub text{font:600 8.5px var(--font);fill:#0b1220}
+  .bub .dots circle{fill:var(--c,#00d4ff);animation:dot 1.2s ease-in-out infinite}
+  .bub .dots circle:nth-child(2){animation-delay:.2s} .bub .dots circle:nth-child(3){animation-delay:.4s}
+  @keyframes bubIn{from{opacity:0;transform:translateY(6px) scale(.6)}to{opacity:1;transform:none}}
+  @keyframes bubFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-2.5px)}}
+  @keyframes dot{0%,100%{opacity:.25}50%{opacity:1}}
   .walker{pointer-events:none}
   .walker .w-sh{fill:#000;opacity:.45}
   .walker .w-body{fill:color-mix(in srgb,var(--c) 45%,#e8fbff);opacity:.92}
@@ -346,7 +359,7 @@
     .hint{display:none}
   }
   @media (prefers-reduced-motion:reduce){
-    #floor.intro .dept,#floor.intro .brain,.pipe-flow,.brain .halo,.brain .beam,.ag .m-glow,.ag.s-error .m-screen,.ag.s-silent .m-screen,#wires path,.cursor::after,.ag .m-code .roll{animation:none}
+    #floor.intro .dept,#floor.intro .brain,.pipe-flow,.brain .halo,.brain .beam,.bub .b-pop,.bub .b-in,.bub .dots circle,.ag .m-glow,.ag.s-error .m-screen,.ag.s-silent .m-screen,#wires path,.cursor::after,.ag .m-code .roll{animation:none}
     .pcard{transition:none}
     .card:hover .pcard,.card:focus-visible .pcard,.dept.cur .card .pcard{transform:none}
     #wires path{stroke-dashoffset:0}
@@ -619,6 +632,7 @@
     S.loadedAt = new Date();
     queueBalls(prevRun);
     queueSubs(prevRun);
+    renderBubbles();
     renderHeader(); renderTools(); renderPanel(); applyFocus();
     if (S.focus && S.focus.type === "agent") loadRuns(S.byId[S.focus.id]);
     if (S.first) {
@@ -1153,6 +1167,32 @@
     }
     requestAnimationFrame(step);
   }
+  /* ------------------------------------------------------- tekstballonnen */
+  var BUB_MAX = 8;
+  function bubbleText(a) {
+    var t = String(a.last_summary || "").split(/[·\n]/)[0].replace(/\s+/g, " ").trim();
+    if (!t || t.length < 4) t = a.agent_name + " aan het werk";
+    return t.length > 34 ? t.slice(0, 33) + "…" : t;
+  }
+  function bubbleSvg(x, y, text, color) {
+    var w = Math.max(40, text.length * 5.0 + 30), h = 18;
+    return '<g class="bub" style="--c:' + esc(color) + '" transform="translate(' + f1(x) + "," + f1(y) + ')"><g class="b-pop"><g class="b-in">'
+      + '<rect x="' + f1(-w / 2) + '" y="' + (-h - 7) + '" width="' + f1(w) + '" height="' + h + '" rx="9"/>'
+      + '<path d="M-4,-7.6 L0,0 L5,-7.6 Z"/>'
+      + '<g class="dots"><circle cx="' + f1(-w / 2 + 9) + '" cy="-16" r="1.6"/><circle cx="' + f1(-w / 2 + 13.5) + '" cy="-16" r="1.6"/><circle cx="' + f1(-w / 2 + 18) + '" cy="-16" r="1.6"/></g>'
+      + '<text x="' + f1(-w / 2 + 23) + '" y="-13">' + esc(text) + "</text></g></g></g>";
+  }
+  function renderBubbles() {
+    var g = $("bubbleLayer");
+    if (!g) { g = document.createElementNS("http://www.w3.org/2000/svg", "g"); g.id = "bubbleLayer"; elWorld.appendChild(g); }
+    var h = "";
+    S.agents.filter(function (a) { return st(a) === "working" && a._p; }).slice(0, BUB_MAX).forEach(function (a) {
+      var d = deptOf(a);
+      h += bubbleSvg(a._p[0] + DESK_W * 0.1, a._p[1] + DY0 + 6, bubbleText(a), d ? d.color : "#00d4ff");
+    });
+    g.innerHTML = h;
+  }
+
   /* ------------------------------------------------- tijdelijke sub-afdelingen */
   var SUB_SKIP = { "dewi-receipt": 1, "dewi-notify": 1 };
   var SUB_WINDOW = 20 * 60000;      /* aanroeper moet binnen 20 min vóór de sub-run gedraaid hebben */
@@ -1287,6 +1327,9 @@
     sleep(700).then(function () { return walk(route); }).then(function () {
       if (!alive()) return;
       img.setAttribute("href", ASSETS + "desk.webp"); g.classList.add("busy");
+      var bw = document.createElementNS(NS, "g");
+      bw.innerHTML = bubbleSvg(dp[0] + DESK_W * 0.1, dp[1] + DY0 + 6, "→ " + (to.agent_name.length > 28 ? to.agent_name.slice(0, 27) + "…" : to.agent_name), d.color);
+      g.appendChild(bw);
       var until = performance.now() + 9000, cap = performance.now() + 5 * 60000;
       return (function wait() {
         return sleep(1000).then(function () {
@@ -1297,6 +1340,7 @@
     }).then(function () {
       if (!alive()) return;
       g.classList.remove("busy"); img.setAttribute("href", ASSETS + "desk-empty.webp");
+      var ob = g.querySelector(".bub"); if (ob) ob.parentNode.remove();
       return walk(route.slice().reverse());
     }).then(function () {
       g.classList.remove("on");
