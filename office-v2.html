@@ -40,6 +40,8 @@
   sprite op ware grootte (zelfde schaal als de zittende agent). Anders een holografische figuur van die maat.
   Tekstballonnen (12-10): een agent in 'working' (en een kopie die op een sub-platform zit) krijgt een
   ballonnetje met wat hij doet (begin van last_summary, anders zijn naam). Max. 8 tegelijk, rustig zwevend.
+  Lege runs (12-10): summary met idle / (stil) / geen bijvulling / niets te … / worklist leeg telt niet als
+  actief (NOOP_RE in st()); ook geen powerbal of sub-afdeling.
   Avatars v3 (12-10): desk-v3.webp / walker-v3.webp zijn de basis; *-v3-map.webp coderen per pixel
   R = schaduw, G = kleding-gewicht, B = haar-gewicht. Bij het laden kleurt tinted() per combinatie
   (afdelingskleur x haarkleur) één keer een canvas in en cachet de data-URL; geen SVG-filters, dus geen
@@ -545,7 +547,14 @@
       return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
     });
   }
-  function st(a) { return STATES[a.state] ? a.state : "ok"; }
+  /* 'working' in v_office_agents = run-receipt < 15 min oud, óók als die run niets deed. Een lege run
+     (idle / stil / niets te doen) is NIET actief: geen blauw scherm, ballon, powerbal of sub-afdeling. */
+  var NOOP_RE = /\bidle\b|\(stil\)|geen bijvulling|niets te (doen|publiceren)|worklist leeg|^0 nieuwe[^,]*\+ 0 /i;
+  function isNoop(a) { return NOOP_RE.test(String(a.last_summary || "")); }
+  function st(a) {
+    var s = STATES[a.state] ? a.state : "ok";
+    return s === "working" && isNoop(a) ? "ok" : s;
+  }
   function iso(x, y, z) { return [(x - y) * HW, (x + y) * HH - (z || 0)]; }
   function unIso(sx, sy) { return [(sx / HW + sy / HH) / 2, (sy / HH - sx / HW) / 2]; }
   function pts(arr) { return arr.map(function (p) { return p[0].toFixed(1) + "," + p[1].toFixed(1); }).join(" "); }
@@ -1172,7 +1181,7 @@
       if (!usesBrain(a)) return;
       var fresh = prevRun && a.last_run_at && a.last_run_at !== (prevRun[a.agent_id] || "");
       var working = st(a) === "working";
-      if (!fresh && !working) return;
+      if ((!fresh && !working) || isNoop(a)) return;
       /* nieuwe run: één bal op een willekeurig moment in de komende minuut (direct als hij nu draait) */
       var t = working ? 300 + Math.random() * 1500 : Math.random() * (REFRESH_MS - 8000);
       ballTimers.push(setTimeout(function () { fireBall(a.agent_id); }, t));
@@ -1259,7 +1268,7 @@
       var to = S.byId[l.to_agent], fr = S.byId[l.from_agent]; if (!to || !fr) return;
       var fresh = prevRun && to.last_run_at && to.last_run_at !== (prevRun[to.agent_id] || "");
       var working = st(to) === "working";
-      if (!fresh && !working) return;
+      if ((!fresh && !working) || isNoop(to) || isNoop(fr)) return;
       var gap = ms(to.last_run_at) - ms(fr.last_run_at);
       if (!(st(fr) === "working" || (gap >= -60000 && gap <= SUB_WINDOW))) return;
       if (!best[to.agent_id] || Math.abs(gap) < best[to.agent_id].gap) best[to.agent_id] = { fr: fr, to: to, gap: Math.abs(gap), working: working };
