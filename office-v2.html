@@ -40,6 +40,11 @@
   sprite op ware grootte (zelfde schaal als de zittende agent). Anders een holografische figuur van die maat.
   Tekstballonnen (12-10): een agent in 'working' (en een kopie die op een sub-platform zit) krijgt een
   ballonnetje met wat hij doet (begin van last_summary, anders zijn naam). Max. 8 tegelijk, rustig zwevend.
+  Avatars v3 (12-10): desk-v3.webp / walker-v3.webp zijn de basis; *-v3-map.webp coderen per pixel
+  R = schaduw, G = kleding-gewicht, B = haar-gewicht. Bij het laden kleurt tinted() per combinatie
+  (afdelingskleur x haarkleur) één keer een canvas in en cachet de data-URL; geen SVG-filters, dus geen
+  kosten bij zoom/pan. Haarkleur per agent = hash(agent_id) uit HAIR. screen-v3.webp = schermvlak van de
+  nieuwe monitor (masker voor de statuskleur). Zolang de v3-bestanden niet geladen zijn: oude sprites.
 -->
 <html lang="nl">
 <head>
@@ -221,6 +226,8 @@
   .subdept .sub-r{fill:color-mix(in srgb,var(--c) 9%,#080d16)}
   .subdept .sub-top{fill:color-mix(in srgb,var(--c) 12%,#121b2a);stroke:var(--c);stroke-width:1.1;stroke-opacity:.8}
   .subdept .sub-name{font:700 7.5px var(--mono);letter-spacing:.1em;fill:var(--c);text-anchor:middle}
+  .subdept .sd-img{transition:opacity .25s,filter .25s}
+  .subdept .sd-img.vacant{opacity:.22;filter:grayscale(1)}
   .subdept .sd-screen{fill:var(--c);opacity:0;mix-blend-mode:screen;transition:opacity .3s}
   .subdept.busy .sd-screen{animation:pulse 1.2s ease-in-out infinite}
   /* tekstballonnen boven werkende agents */
@@ -407,7 +414,7 @@
             </pattern>
             <!-- schermvlak van de bureausprite; schaalt mee met de rechthoek die hem gebruikt -->
             <mask id="mScreen" maskContentUnits="objectBoundingBox">
-              <image href="office-v2-assets/screen.webp" x="0" y="0" width="1" height="1" preserveAspectRatio="none"/>
+              <image href="office-v2-assets/screen-v3.webp" x="0" y="0" width="1" height="1" preserveAspectRatio="none"/>
             </mask>
             <g id="glowDefs"></g>
           </defs>
@@ -454,8 +461,8 @@
   /* gerenderde sprites (map office-v2-assets/) — bron-renders staan in Cloudinary hdb/officev2assets */
   var ASSETS = "office-v2-assets/";
   var AGENT_DX = 1.55, AGENT_DY = 1.38; /* celafstand per agent: een bureau is breder dan één cel */
-  var DESK_W = 78, DESK_H = DESK_W * 622 / 512;   /* sprite 512x622 */
-  var DESK_AX = 0.50, DESK_AY = 0.88;             /* ankerpunt in de sprite (aandeel van b x h) */
+  var DESK_W = 80, DESK_H = DESK_W * 904 / 757;   /* sprite v3 757x904 */
+  var DESK_AX = 0.50, DESK_AY = 0.86;             /* ankerpunt in de sprite (aandeel van b x h) */
   var BRAIN_W = 340, BRAIN_H = BRAIN_W * 553 / 768 * 0.87;  /* 0.87 = 30°-iso naar 2:1 persen */
   var BRAIN_AY = 0.70;
   /* levend brein boven het platform (video 600x540): breedte in wereld-eenheden en hoogte van de
@@ -751,10 +758,46 @@
   /* Hoogte waarop het paneel boven de achter-linkerhoek van het dek hangt: zo hoog dat de
      bovenkant van de achterste bureausprite er altijd onder blijft (anders ligt het op de agents). */
   var CARD_LIFT = Math.max(26, -((PAD + AGENT_DX / 2) + (PAD + AGENT_DY / 2)) * 13 - DY0 + 14);
+  /* ---- avatars v3: inkleuren per afdelingskleur x haarkleur, gecachet ---- */
+  var HAIR = ["#231c18", "#3a281d", "#5e3f2b", "#8a6240", "#c99b55", "#e3c482", "#8c3a1e", "#9c9c9c", "#d8d8d8"];
+  var AV = { ready: false, walk: false, cache: {} };
+  function hairOf(a) { var h = 0, s = String(a.agent_id || a.agent_name || ""); for (var i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0; return HAIR[h % HAIR.length]; }
+  function colorOf(a) { var d = null; for (var i = 0; i < S.depts.length; i++) if (S.depts[i].name === a.dept_name) d = S.depts[i]; return (d && d.color) || a.dept_color || "#8aa0b5"; }
+  function hexRgb(h) { h = String(h).replace("#", ""); if (h.length === 3) h = h.replace(/./g, "$&$&"); var n = parseInt(h, 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255]; }
+  function grab(img, w, h) {
+    var c = document.createElement("canvas"); c.width = w; c.height = h;
+    var x = c.getContext("2d"); x.drawImage(img, 0, 0, w, h);
+    return { w: w, h: h, d: x.getImageData(0, 0, w, h).data };
+  }
+  function loadImg(src) { return new Promise(function (res, rej) { var i = new Image(); i.onload = function () { res(i); }; i.onerror = rej; i.src = src; }); }
+  Promise.all(["desk-v3.webp", "desk-v3-map.webp"].map(function (f) { return loadImg(ASSETS + f); })).then(function (im) {
+    AV.desk = grab(im[0], 384, Math.round(384 * 904 / 757)); AV.deskMap = grab(im[1], AV.desk.w, AV.desk.h);
+    AV.ready = true; if (S.agents && S.agents.length) patchAgents();
+  }, function () {});
+  Promise.all(["walker-v3.webp", "walker-v3-map.webp"].map(function (f) { return loadImg(ASSETS + f); })).then(function (im) {
+    AV.walker = grab(im[0], 1024, 384); AV.walkerMap = grab(im[1], 1024, 384); AV.walk = true;
+  }, function () {});
+  function tinted(kind, cloth, hair) {
+    var key = kind + cloth + hair; if (AV.cache[key]) return AV.cache[key];
+    var B = kind === "walk" ? AV.walker : AV.desk, M = kind === "walk" ? AV.walkerMap : AV.deskMap;
+    var c = document.createElement("canvas"); c.width = B.w; c.height = B.h;
+    var x = c.getContext("2d"), out = x.createImageData(B.w, B.h), o = out.data, b = B.d, m = M.d;
+    var C = hexRgb(cloth), Hh = hexRgb(hair);
+    for (var i = 0; i < o.length; i += 4) {
+      var sh = Math.min(1.25, m[i] / 255 * 1.12), wc = m[i + 1] / 255, wh = m[i + 2] / 255;
+      for (var k = 0; k < 3; k++) {
+        var v = b[i + k] * (1 - wc) + C[k] * sh * wc;
+        o[i + k] = v * (1 - wh) + Hh[k] * sh * 1.1 * wh;
+      }
+      o[i + 3] = b[i + 3];
+    }
+    x.putImageData(out, 0, 0);
+    return (AV.cache[key] = c.toDataURL("image/png"));
+  }
+  function deskHref(a) { return AV.ready ? tinted("desk", colorOf(a), hairOf(a)) : ASSETS + "desk.webp"; }
   function deskSprite(a) {
-    var img = (st(a) === "paused" || st(a) === "idle") ? "desk-empty" : "desk";
     var box = 'x="' + f1(DX0) + '" y="' + f1(DY0) + '" width="' + f1(DESK_W) + '" height="' + f1(DESK_H) + '"';
-    return '<image class="sprite" href="' + ASSETS + img + '.webp" ' + box + ' preserveAspectRatio="none"/>'
+    return '<image class="sprite" href="' + deskHref(a) + '" ' + box + ' preserveAspectRatio="none"/>'
       + '<rect class="m-glow" ' + box + ' mask="url(#mScreen)"/>'
       + '<rect class="m-screen" ' + box + ' mask="url(#mScreen)"/>'
       + (st(a) === "working" ? codeScreen(a) : "");
@@ -762,8 +805,13 @@
   /* Draaiende agent: regels "code" die over het scherm omhoog scrollen.
      Het schermvlak van de sprite is een parallellogram; SCR zet de eenheidsvierkant
      (0..1, 0..1) precies op dat vlak, iets ingezet zodat er een rand overblijft. */
-  var SX = DESK_W / 512, SY = DESK_H / 622;
-  var SCR = [186.5 * SX, -84.0 * SY, 0, 141.7 * SY, DX0 + 115.5 * SX, DY0 + 117.7 * SY];
+  /* schermvlak v3 (bronpixels 757x904): linksboven (173,136), rechtsboven (406,11), linksonder (172,307); 5% ingezet */
+  var SX = DESK_W / 757, SY = DESK_H / 904;
+  var SCR = (function () {
+    var tl = [173, 136], u = [406 - 173, 11 - 136], v = [172 - 173, 307 - 136], k = 0.05;
+    var o = [tl[0] + (u[0] + v[0]) * k, tl[1] + (u[1] + v[1]) * k];
+    return [u[0] * (1 - 2 * k) * SX, u[1] * (1 - 2 * k) * SY, v[0] * (1 - 2 * k) * SX, v[1] * (1 - 2 * k) * SY, DX0 + o[0] * SX, DY0 + o[1] * SY];
+  })();
   var CODE_ROWS = 11;
   function codeScreen(a) {
     var hsh = 0, s = String(a.agent_id || a.agent_name || "");
@@ -1199,9 +1247,7 @@
   var WALK = 3.4;                   /* loopsnelheid in cellen per seconde (vlot) */
   var SW = 2.1, SD = 2.1, SGAP = 1.1;
   /* loper op dezelfde schaal als de zittende agent: hoofd ~20, staand ~76 wereld-eenheden */
-  var WALK_H = 76, WALK_W = WALK_H * 256 / 384, WALK_FPS = 12, WALK_ROW_FR = [7, 10], WALK_COLS = 10;
-  var walkerSheet = false;
-  (function () { var im = new Image(); im.onload = function () { walkerSheet = im.naturalWidth >= 256 * WALK_COLS; }; im.src = ASSETS + "walker.webp"; })();
+  var WALK_H = 84, WALK_W = WALK_H * 256 / 384, WALK_FPS = 12, WALK_ROW_FR = [8, 8], WALK_COLS = 8;
   var HOLO_SCALE = 2.8;
   S.subs = S.subs || [];
   function ms(t) { return t ? new Date(t).getTime() : 0; }
@@ -1273,7 +1319,7 @@
       + '<polygon class="sub-l" points="' + pts([iso(x0, y1, SL), iso(x1, y1, SL), iso(x1, y1), iso(x0, y1)]) + '"/>'
       + '<polygon class="sub-r" points="' + pts([iso(x1, y1, SL), iso(x1, y0, SL), iso(x1, y0), iso(x1, y1)]) + '"/>'
       + '<polygon class="sub-top" points="' + pts([iso(x0, y0, SL), iso(x1, y0, SL), iso(x1, y1, SL), iso(x0, y1, SL)]) + '"/>'
-      + '<g transform="translate(' + f1(dp[0]) + ',' + f1(dp[1]) + ')"><image class="sd-img" href="' + ASSETS + 'desk-empty.webp" ' + box + ' preserveAspectRatio="none"/>'
+      + '<g transform="translate(' + f1(dp[0]) + ',' + f1(dp[1]) + ')"><image class="sd-img vacant" href="' + (AV.ready ? tinted("desk", d.color, hairOf(fr)) : ASSETS + "desk-empty.webp") + '" ' + box + ' preserveAspectRatio="none"/>'
       + '<rect class="sd-screen" ' + box + ' mask="url(#mScreen)"/></g>'
       + '<text class="sub-name" x="' + f1(lp[0]) + '" y="' + f1(lp[1] + 12) + '">↳ ' + esc(name.toUpperCase()) + '</text>';
     subLayer().appendChild(g);
@@ -1290,10 +1336,10 @@
     var route = [[start, SLAB], [lane, SLAB], [edgeA, SLAB], [edgeB, SL], [seat, SL]];
     var w = document.createElementNS(NS, "g");
     w.setAttribute("class", "walker"); w.setAttribute("style", "--c:" + d.color);
-    var useSheet = walkerSheet;
+    var useSheet = AV.walk;
     w.innerHTML = useSheet
       ? '<ellipse class="w-sh" rx="15" ry="6"/><svg class="w-spr" x="' + f1(-WALK_W / 2) + '" y="' + f1(-WALK_H * 0.96) + '" width="' + f1(WALK_W) + '" height="' + f1(WALK_H)
-        + '" viewBox="0 0 256 384" preserveAspectRatio="none" overflow="hidden"><image href="' + ASSETS + 'walker.webp" width="' + (256 * WALK_COLS) + '" height="768"/></svg>'
+        + '" viewBox="0 0 256 384" preserveAspectRatio="none" overflow="hidden"><image href="' + (useSheet ? tinted("walk", d.color, hairOf(fr)) : "") + '" width="' + (256 * WALK_COLS) + '" height="768" preserveAspectRatio="none"/></svg>'
       : '<g transform="scale(' + HOLO_SCALE + ')"><ellipse class="w-sh" rx="5.5" ry="2.4"/><g class="w-up"><ellipse class="w-glow" cx="0" cy="-12" rx="8" ry="13"/>'
         + '<g class="w-legs"><line class="w-leg" x1="-1.6" y1="-8" x2="-1.6" y2="-1"/><line class="w-leg" x1="1.6" y1="-8" x2="1.6" y2="-1"/></g>'
         + '<rect class="w-body" x="-4.2" y="-19" width="8.4" height="12" rx="3.6"/><circle class="w-body" cx="0" cy="-23.5" r="3.6"/></g></g>';
@@ -1326,7 +1372,7 @@
     var img = g.querySelector(".sd-img"), scr = g.querySelector(".sd-screen");
     sleep(700).then(function () { return walk(route); }).then(function () {
       if (!alive()) return;
-      img.setAttribute("href", ASSETS + "desk.webp"); g.classList.add("busy");
+      img.classList.remove("vacant"); if (!AV.ready) img.setAttribute("href", ASSETS + "desk.webp"); g.classList.add("busy");
       var bw = document.createElementNS(NS, "g");
       bw.innerHTML = bubbleSvg(dp[0] + DESK_W * 0.1, dp[1] + DY0 + 6, "→ " + (to.agent_name.length > 28 ? to.agent_name.slice(0, 27) + "…" : to.agent_name), d.color);
       g.appendChild(bw);
@@ -1339,7 +1385,7 @@
       })();
     }).then(function () {
       if (!alive()) return;
-      g.classList.remove("busy"); img.setAttribute("href", ASSETS + "desk-empty.webp");
+      g.classList.remove("busy"); img.classList.add("vacant"); if (!AV.ready) img.setAttribute("href", ASSETS + "desk-empty.webp");
       var ob = g.querySelector(".bub"); if (ob) ob.parentNode.remove();
       return walk(route.slice().reverse());
     }).then(function () {
