@@ -20,6 +20,10 @@
   paneel in terminal-stijl. Monitors tonen statuskleur (geen view levert een output-beeld); een
   afbeeldings-URL in een run-samenvatting wordt in het paneel als thumbnail getoond.
   Deeplink: office-v2.html?agent=<agent_id>.
+  Brain (12-10): boven het Brain-platform zweeft een levend 3D-brein (office-v2-assets/brain-core.mp4,
+  10 s naadloze loop, zwarte achtergrond). Het is een HTML-<video> over de SVG met mix-blend-mode:screen
+  (zwart valt weg) die via placeBrainLive() de onzichtbare .live-anchor in de scene volgt bij zoom/pan/resize.
+  Reduced motion: alleen de stilstaande poster (brain-core.webp).
 -->
 <html lang="nl">
 <head>
@@ -180,6 +184,13 @@
   @keyframes breathe{0%,100%{opacity:.55;transform:scale(1)}50%{opacity:1;transform:scale(1.1)}}
   .brain .bt{font:700 11px var(--mono);letter-spacing:.26em;fill:var(--cyan);text-anchor:middle}
   .brain .bs{font:8.5px var(--mono);letter-spacing:.08em;fill:var(--dim);text-anchor:middle}
+  .brain .live-anchor{fill:transparent;cursor:pointer}
+  .brain .beam{fill:url(#gBeam);mix-blend-mode:screen;pointer-events:none;animation:beam 3.6s ease-in-out infinite}
+  @keyframes beam{0%,100%{opacity:.55}50%{opacity:.95}}
+  /* levend brein: video over de SVG, zwart valt weg door screen; positie/schaal zet placeBrainLive() */
+  .brain-live{position:absolute;left:0;top:0;width:600px;height:540px;z-index:1;pointer-events:none;
+    mix-blend-mode:screen;transform-origin:0 0;will-change:transform;opacity:0;transition:opacity .8s ease;background:#000}
+  .brain-live.on{opacity:1}
 
   /* agents: gerenderd bureau + monitor + stoel (sprite), scherm ingekleurd naar status */
   .ag{cursor:pointer;outline:none;transition:opacity .2s;--s:var(--green)}
@@ -295,7 +306,7 @@
     .hint{display:none}
   }
   @media (prefers-reduced-motion:reduce){
-    #floor.intro .dept,#floor.intro .brain,.pipe-flow,.brain .halo,.ag .m-glow,.ag.s-error .m-screen,.ag.s-silent .m-screen,#wires path,.cursor::after,.ag .m-code .roll{animation:none}
+    #floor.intro .dept,#floor.intro .brain,.pipe-flow,.brain .halo,.brain .beam,.ag .m-glow,.ag.s-error .m-screen,.ag.s-silent .m-screen,#wires path,.cursor::after,.ag .m-code .roll{animation:none}
     .pcard{transition:none}
     .card:hover .pcard,.card:focus-visible .pcard,.dept.cur .card .pcard{transform:none}
     #wires path{stroke-dashoffset:0}
@@ -318,6 +329,7 @@
       <div class="scene" id="scene">
         <svg id="floor" role="group" aria-label="Afdelingen en agents rond de Brain" preserveAspectRatio="xMidYMid meet">
           <defs>
+            <linearGradient id="gBeam" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#00d4ff" stop-opacity=".0"/><stop offset=".35" stop-color="#00d4ff" stop-opacity=".35"/><stop offset="1" stop-color="#b58cff" stop-opacity=".0"/></linearGradient>
             <radialGradient id="gBrainGlow"><stop offset="0" stop-color="#00d4ff" stop-opacity=".30"/><stop offset=".5" stop-color="#00d4ff" stop-opacity=".07"/><stop offset="1" stop-color="#00d4ff" stop-opacity="0"/></radialGradient>
             <filter id="fSoft" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="2.4"/></filter>
             <filter id="fPanel" x="-35%" y="-35%" width="170%" height="180%">
@@ -348,6 +360,10 @@
           </defs>
           <g id="world"></g>
         </svg>
+        <video id="brainLive" class="brain-live" muted loop playsinline preload="auto" disablepictureinpicture
+               poster="office-v2-assets/brain-core.webp" aria-hidden="true" tabindex="-1">
+          <source src="office-v2-assets/brain-core.mp4" type="video/mp4">
+        </video>
         <div id="loading">KANTOOR WORDT OPGEBOUWD…</div>
         <div class="cam" aria-label="Camera">
           <button type="button" data-cam="in" title="Inzoomen">+</button>
@@ -389,6 +405,9 @@
   var DESK_AX = 0.50, DESK_AY = 0.88;             /* ankerpunt in de sprite (aandeel van b x h) */
   var BRAIN_W = 340, BRAIN_H = BRAIN_W * 553 / 768 * 0.87;  /* 0.87 = 30°-iso naar 2:1 persen */
   var BRAIN_AY = 0.70;
+  /* levend brein boven het platform (video 600x540): breedte in wereld-eenheden en hoogte van de
+     onderrand boven het vloermidden; de hersenstam landt op de lichtpilaar van het platform */
+  var LIVE_W = 400, LIVE_H = LIVE_W * 540 / 600, LIVE_LIFT = 85;
   var PROPS = [["prop-rack",521],["prop-cabinet",371],["prop-plant",361],["prop-board",429],["prop-lens",160]];
   /* Toolkleur + monogram. Merkkleur ter herkenning; géén nagetekend logo.
      Onbekende tool -> grijs tegeltje met de eerste twee letters. */
@@ -638,7 +657,9 @@
         d._sb = screenBoxOf(d);
       });
       ok = true;
-      var bsb = [iso(-BRAIN / 2, BRAIN / 2, 0)[0] - 20, iso(0, 0, SLAB + 4)[1] - 40, iso(BRAIN / 2, -BRAIN / 2, 0)[0] + 20, iso(BRAIN / 2, BRAIN / 2, 0)[1] + 10];
+      /* vrij te houden schermvlak: platform + het zwevende brein erboven */
+      var bsb = [Math.min(iso(-BRAIN / 2, BRAIN / 2, 0)[0] - 20, -LIVE_W * 0.42), -LIVE_LIFT - LIVE_H * 0.97,
+                 Math.max(iso(BRAIN / 2, -BRAIN / 2, 0)[0] + 20, LIVE_W * 0.42), iso(BRAIN / 2, BRAIN / 2, 0)[1] + 10];
       for (var i = 0; i < n && ok; i++) {
         if (overlaps(S.depts[i], brain, DEPT_GAP) || sOverlap(S.depts[i]._sb, bsb, 6)) ok = false;
         for (var j = i + 1; j < n && ok; j++) if (overlaps(S.depts[i], S.depts[j], DEPT_GAP) || sOverlap(S.depts[i]._sb, S.depts[j]._sb, 10)) ok = false;
@@ -807,7 +828,8 @@
       + '<line class="pipe-flow' + (s.runs ? "" : " quiet") + '" style="--t:' + t.toFixed(1) + 's" ' + ln + "/>";
   }
 
-  /* Brain = gerenderde sprite; de ademende halo eromheen blijft code zodat hij leeft. */
+  /* Brain = gerenderde sprite (platform + lichtpilaar); de ademende halo eromheen blijft code zodat hij
+     leeft. Daarboven het levende brein: de video zelf staat buiten de SVG, .live-anchor geeft de plek. */
   function brainInner() {
     var c = iso(0, 0, 0), bx = c[0] - BRAIN_W / 2, by = c[1] - BRAIN_H * BRAIN_AY;
     var base = c[1] + BRAIN_H * (1 - BRAIN_AY) * 0.42;
@@ -815,6 +837,8 @@
       + '<ellipse class="halo" cx="' + f1(c[0]) + '" cy="' + f1(c[1] - 18) + '" rx="' + f1(BRAIN_W * 0.4) + '" ry="' + f1(BRAIN_W * 0.3) + '"/>'
       + '<image class="sprite" href="' + ASSETS + 'brain.webp" x="' + f1(bx) + '" y="' + f1(by)
       + '" width="' + f1(BRAIN_W) + '" height="' + f1(BRAIN_H) + '" preserveAspectRatio="none"/>'
+      + '<ellipse class="beam" cx="' + f1(c[0]) + '" cy="' + f1(c[1] - LIVE_LIFT - 40) + '" rx="' + f1(LIVE_W * 0.16) + '" ry="' + f1(LIVE_W * 0.22) + '"/>'
+      + '<rect class="live-anchor" x="' + f1(c[0] - LIVE_W / 2) + '" y="' + f1(c[1] - LIVE_LIFT - LIVE_H) + '" width="' + f1(LIVE_W) + '" height="' + f1(LIVE_H) + '"><title>DEWI Brain</title></rect>'
       + '<text class="bt" x="' + f1(c[0]) + '" y="' + f1(base + 22) + '">DEWI BRAIN</text>'
       + '<text class="bs" id="brainSub" x="' + f1(c[0]) + '" y="' + f1(base + 34) + '"></text>';
   }
@@ -989,7 +1013,7 @@
       var tp = iso(d.x, d.y, SLAB), cw = cardWidth(d) / 2 + 6;
       xs.push(tp[0] - cw, tp[0] + cw); ys.push(tp[1] - CARD_LIFT - cardHeight(d) - 8);
     });
-    var top = iso(0, 0, SLAB + 4); ys.push(top[1] - 150);
+    ys.push(iso(0, 0, 0)[1] - LIVE_LIFT - LIVE_H - 10);   /* bovenkant van het zwevende brein */
     var x0 = Math.min.apply(null, xs), x1 = Math.max.apply(null, xs), y0 = Math.min.apply(null, ys), y1 = Math.max.apply(null, ys);
     S.fitBox = boxFor([[x0 - 24, y0 - 20], [x1 + 24, y1 + 24]], 0);
     var bs = $("brainSub"); if (bs) bs.textContent = brainSub();
@@ -1012,8 +1036,21 @@
   }
   function applyCam() {
     elFloor.setAttribute("viewBox", S.cam.map(function (n) { return n.toFixed(2); }).join(" "));
-    hideTip(); drawWires();
+    hideTip(); drawWires(); placeBrainLive();
   }
+  /* Video volgt de .live-anchor: alleen transform (translate + scale), geen layout per frame. */
+  var elBrainLive = $("brainLive");
+  function placeBrainLive() {
+    var a = elWorld.querySelector(".brain .live-anchor"); if (!elBrainLive || !a) return;
+    var r = a.getBoundingClientRect(), s = elScene.getBoundingClientRect();
+    if (!r.width) return;
+    elBrainLive.style.transform = "translate(" + (r.left - s.left).toFixed(1) + "px," + (r.top - s.top).toFixed(1) + "px) scale(" + (r.width / 600).toFixed(4) + ")";
+    if (!elBrainLive.classList.contains("on")) {
+      elBrainLive.classList.add("on");
+      if (!REDUCED) { var pr = elBrainLive.play(); if (pr && pr.catch) pr.catch(function () {}); }
+    }
+  }
+  if (window.ResizeObserver) new ResizeObserver(function () { placeBrainLive(); }).observe(elScene);
   function zoomBy(factor, px, py) {
     if (!S.cam) return;
     var c = S.cam, sc = viewScale();
