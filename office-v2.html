@@ -42,6 +42,8 @@
   ballonnetje met wat hij doet (begin van last_summary, anders zijn naam). Max. 8 tegelijk, rustig zwevend.
   Lege runs (12-10): summary met idle / (stil) / geen bijvulling / niets te … / worklist leeg telt niet als
   actief (NOOP_RE in st()); ook geen powerbal of sub-afdeling.
+  Koppelingsbogen (12-10): alleen getekend als beide agents actief zijn (dan oplichtend en stromend), of
+  als een van beide de gekozen agent is; inactieve stippellijnen verdwijnen.
   Avatars v3 (12-10): desk-v3.webp / walker-v3.webp zijn de basis; *-v3-map.webp coderen per pixel
   R = schaduw, G = kleding-gewicht, B = haar-gewicht. Bij het laden kleurt tinted() per combinatie
   (afdelingskleur x haarkleur) één keer een canvas in en cachet de data-URL; geen SVG-filters, dus geen
@@ -197,6 +199,9 @@
 
   /* sub-workflow-bogen tussen agents */
   .link{fill:none;stroke:var(--violet);stroke-width:1.1;stroke-dasharray:3 4;stroke-opacity:.55;pointer-events:none}
+  /* 12-10: koppelingen alleen zichtbaar als ze actief zijn (of bij de gekozen agent) */
+  .link.live{stroke-width:1.8;stroke-opacity:.95;stroke-dasharray:5 6;animation:linkflow .9s linear infinite;filter:drop-shadow(0 0 3px var(--violet))}
+  @keyframes linkflow{to{stroke-dashoffset:-11}}
   .link-dot{fill:var(--violet);pointer-events:none}
   #linksLayer{pointer-events:none}
   #floor.has-hl .link{stroke-opacity:.12}
@@ -368,7 +373,7 @@
     .hint{display:none}
   }
   @media (prefers-reduced-motion:reduce){
-    #floor.intro .dept,#floor.intro .brain,.pipe-flow,.brain .halo,.brain .beam,.bub .b-pop,.bub .b-in,.bub .dots circle,.ag .m-glow,.ag.s-error .m-screen,.ag.s-silent .m-screen,#wires path,.cursor::after,.ag .m-code .roll{animation:none}
+    #floor.intro .dept,#floor.intro .brain,.pipe-flow,.link.live,.brain .halo,.brain .beam,.bub .b-pop,.bub .b-in,.bub .dots circle,.ag .m-glow,.ag.s-error .m-screen,.ag.s-silent .m-screen,#wires path,.cursor::after,.ag .m-code .roll{animation:none}
     .pcard{transition:none}
     .card:hover .pcard,.card:focus-visible .pcard,.dept.cur .card .pcard{transform:none}
     #wires path{stroke-dashoffset:0}
@@ -1100,13 +1105,15 @@
     $("glowCss").textContent = css;
   }
   function linksInner() {
-    var h = "";
+    var h = "", fid = S.focus && S.focus.type === "agent" ? S.focus.id : null;
     S.links.forEach(function (l) {
       var a = S.byId[l.from_agent], b = S.byId[l.to_agent]; if (!a || !b || !a._p || !b._p) return;
+      var live = st(a) === "working" && st(b) === "working";
+      if (!live && fid !== l.from_agent && fid !== l.to_agent) return;   /* inactief: niet tekenen */
       var x1 = a._p[0], y1 = a._p[1] - 14, x2 = b._p[0], y2 = b._p[1] - 14;
       var dist = Math.hypot(x2 - x1, y2 - y1), lift = Math.min(140, 40 + dist * 0.25);
       var mx = (x1 + x2) / 2, my = Math.min(y1, y2) - lift;
-      h += '<path class="link" d="M' + f1(x1) + "," + f1(y1) + " Q" + f1(mx) + "," + f1(my) + " " + f1(x2) + "," + f1(y2) + '"><title>' + esc(a.agent_name + " → " + b.agent_name + " (" + (l.kind || "koppeling") + ")") + "</title></path>"
+      h += '<path class="link' + (live ? " live" : "") + '" d="M' + f1(x1) + "," + f1(y1) + " Q" + f1(mx) + "," + f1(my) + " " + f1(x2) + "," + f1(y2) + '"><title>' + esc(a.agent_name + " → " + b.agent_name + " (" + (l.kind || "koppeling") + ")") + "</title></path>"
         + '<circle class="link-dot" cx="' + f1(x2) + '" cy="' + f1(y2) + '" r="2"/>';
     });
     return h;
@@ -1554,7 +1561,9 @@
     }
   }
   function deptByName(n) { var d = null; S.depts.forEach(function (x) { if (x.name === n) d = x; }); return d; }
+  function refreshLinks() { var g = $("linksLayer"); if (g) g.innerHTML = linksInner(); }
   function applyFocus() {
+    refreshLinks();
     var f = S.focus, hl = null, pairs = [], toolName = S.hoverTool || (f && f.type === "tool" ? f.name : null);
     Array.prototype.forEach.call(elWorld.querySelectorAll(".ag.sel,.ag.hl"), function (e) { e.classList.remove("sel", "hl"); });
     Array.prototype.forEach.call(elWorld.querySelectorAll(".dept.hl-d,.dept.cur"), function (e) { e.classList.remove("hl-d", "cur"); });
