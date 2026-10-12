@@ -29,6 +29,15 @@
   gloeiende bal in de afdelingskleur: bureau -> platformrand -> datapijp -> lichtpilaar -> brein, met een
   flits bij aankomst. Zolang zo'n agent 'working' is volgt er elke ~7 s een bal. Runs uit de afgelopen
   minuut worden over de minuut uitgesmeerd. Niet bij reduced motion of een verborgen tab.
+  Sub-afdelingen (12-10): roept een agent een sub-agent aan (v_office_links, kind subworkflow/webhook) en
+  heeft die sub-agent een nieuwe run (of draait hij) terwijl de aanroeper vlak ervoor draaide, dan klapt er
+  aan de buitenkant van de afdeling van de aanroeper tijdelijk een mini-platform met loopbrug uit. Een
+  holografische kopie van de aanroeper loopt erheen, gaat zitten, werkt (zolang de sub-agent 'working' is,
+  anders ~9 s), loopt terug en het platform vervaagt. SUB_SKIP = administratieve helpers die bijna iedereen
+  aanroept (receipt/notify) en dus geen eigen platform krijgen. Klik op het platform = de sub-agent openen.
+  Loper: staat office-v2-assets/walker.webp er (sprite-sheet 2560 x 768, frames 256 x 384; rij 1 = 7 frames lopend
+  naar de kijker rechtsonder, rij 2 = 10 frames van de kijker af rechtsboven; links = gespiegeld), dan loopt die
+  sprite op ware grootte (zelfde schaal als de zittende agent). Anders een holografische figuur van die maat.
 -->
 <html lang="nl">
 <head>
@@ -202,6 +211,26 @@
   #ballLayer .pb-core{fill:color-mix(in srgb,var(--c) 35%,#fff)}
   #ballLayer .pb-trail{fill:var(--c);opacity:.35}
   #ballLayer .pb-hit{fill:none;stroke:var(--c);stroke-width:2}
+  /* tijdelijke sub-afdeling + lopende kopie-agent */
+  .subdept{transition:opacity .7s ease;opacity:0;cursor:pointer}
+  .subdept.on{opacity:1}
+  .subdept .bridge{fill:color-mix(in srgb,var(--c) 22%,#101826);stroke:color-mix(in srgb,var(--c) 55%,transparent);stroke-width:.8}
+  .subdept .sub-l{fill:color-mix(in srgb,var(--c) 14%,#0b111c)}
+  .subdept .sub-r{fill:color-mix(in srgb,var(--c) 9%,#080d16)}
+  .subdept .sub-top{fill:color-mix(in srgb,var(--c) 12%,#121b2a);stroke:var(--c);stroke-width:1.1;stroke-opacity:.8}
+  .subdept .sub-name{font:700 7.5px var(--mono);letter-spacing:.1em;fill:var(--c);text-anchor:middle}
+  .subdept .sd-screen{fill:var(--c);opacity:0;mix-blend-mode:screen;transition:opacity .3s}
+  .subdept.busy .sd-screen{animation:pulse 1.2s ease-in-out infinite}
+  .walker{pointer-events:none}
+  .walker .w-sh{fill:#000;opacity:.45}
+  .walker .w-body{fill:color-mix(in srgb,var(--c) 45%,#e8fbff);opacity:.92}
+  .walker .w-glow{fill:var(--c);opacity:.45;filter:url(#fSoft)}
+  .walker .w-leg{stroke:color-mix(in srgb,var(--c) 45%,#e8fbff);stroke-width:2.6;stroke-linecap:round;opacity:.92}
+  .walker .w-legs line:first-child{animation:legA .32s ease-in-out infinite alternate;transform-box:view-box}
+  .walker .w-legs line:last-child{animation:legA .32s ease-in-out infinite alternate-reverse;transform-box:view-box}
+  @keyframes legA{from{transform:translateX(-2.2px)}to{transform:translateX(2.2px)}}
+  .walker .w-up{animation:bob .16s ease-in-out infinite alternate}
+  @keyframes bob{from{transform:translateY(0)}to{transform:translateY(-1.6px)}}
 
   /* agents: gerenderd bureau + monitor + stoel (sprite), scherm ingekleurd naar status */
   .ag{cursor:pointer;outline:none;transition:opacity .2s;--s:var(--green)}
@@ -589,6 +618,7 @@
 
     S.loadedAt = new Date();
     queueBalls(prevRun);
+    queueSubs(prevRun);
     renderHeader(); renderTools(); renderPanel(); applyFocus();
     if (S.focus && S.focus.type === "agent") loadRuns(S.byId[S.focus.id]);
     if (S.first) {
@@ -1123,6 +1153,157 @@
     }
     requestAnimationFrame(step);
   }
+  /* ------------------------------------------------- tijdelijke sub-afdelingen */
+  var SUB_SKIP = { "dewi-receipt": 1, "dewi-notify": 1 };
+  var SUB_WINDOW = 20 * 60000;      /* aanroeper moet binnen 20 min vóór de sub-run gedraaid hebben */
+  var WALK = 3.4;                   /* loopsnelheid in cellen per seconde (vlot) */
+  var SW = 2.1, SD = 2.1, SGAP = 1.1;
+  /* loper op dezelfde schaal als de zittende agent: hoofd ~20, staand ~76 wereld-eenheden */
+  var WALK_H = 76, WALK_W = WALK_H * 256 / 384, WALK_FPS = 12, WALK_ROW_FR = [7, 10], WALK_COLS = 10;
+  var walkerSheet = false;
+  (function () { var im = new Image(); im.onload = function () { walkerSheet = im.naturalWidth >= 256 * WALK_COLS; }; im.src = ASSETS + "walker.webp"; })();
+  var HOLO_SCALE = 2.8;
+  S.subs = S.subs || [];
+  function ms(t) { return t ? new Date(t).getTime() : 0; }
+  function queueSubs(prevRun) {
+    if (REDUCED) return;
+    var best = {};
+    S.links.forEach(function (l) {
+      if (SUB_SKIP[l.to_agent]) return;
+      var to = S.byId[l.to_agent], fr = S.byId[l.from_agent]; if (!to || !fr) return;
+      var fresh = prevRun && to.last_run_at && to.last_run_at !== (prevRun[to.agent_id] || "");
+      var working = st(to) === "working";
+      if (!fresh && !working) return;
+      var gap = ms(to.last_run_at) - ms(fr.last_run_at);
+      if (!(st(fr) === "working" || (gap >= -60000 && gap <= SUB_WINDOW))) return;
+      if (!best[to.agent_id] || Math.abs(gap) < best[to.agent_id].gap) best[to.agent_id] = { fr: fr, to: to, gap: Math.abs(gap), working: working };
+    });
+    Object.keys(best).forEach(function (k) {
+      var b = best[k];
+      if (S.subs.some(function (s) { return s.to === b.to.agent_id && s.live; })) return;   /* draait al */
+      setTimeout(function () { runSub(b.fr.agent_id, b.to.agent_id, b.working); }, b.working ? 400 : Math.random() * (REFRESH_MS - 25000));
+    });
+  }
+  function subLayer() {
+    var g = $("subLayer");
+    if (!g) { g = document.createElementNS("http://www.w3.org/2000/svg", "g"); g.id = "subLayer"; var bl = $("ballLayer"); elWorld.insertBefore(g, bl || null); }
+    return g;
+  }
+  /* plek: aan de buitenkant (weg van de Brain), anders een andere zijde; geen overlap met afdelingen of
+     andere actieve sub-platforms */
+  function subSpot(d) {
+    var cx = d.x + d.w / 2, cy = d.y + d.d / 2;
+    var sides = Math.abs(cx) > Math.abs(cy) ? (cx > 0 ? ["E", "S", "N", "W"] : ["W", "N", "S", "E"]) : (cy > 0 ? ["S", "E", "W", "N"] : ["N", "W", "E", "S"]);
+    var taken = S.subs.filter(function (s) { return s.live; }).map(function (s) { return s.box; });
+    for (var i = 0; i < sides.length; i++) for (var k = 0; k < 3; k++) {
+      var o = (k === 0 ? 0 : (k === 1 ? 1 : -1)) * (SD + 0.7), b;
+      if (sides[i] === "E") b = { x: d.x + d.w + SGAP, y: cy - SD / 2 + o, w: SW, d: SD };
+      if (sides[i] === "W") b = { x: d.x - SGAP - SW, y: cy - SD / 2 + o, w: SW, d: SD };
+      if (sides[i] === "S") b = { x: cx - SW / 2 + o, y: d.y + d.d + SGAP, w: SW, d: SD };
+      if (sides[i] === "N") b = { x: cx - SW / 2 + o, y: d.y - SGAP - SD, w: SW, d: SD };
+      var clash = S.depts.some(function (q) { return overlaps(b, q, 0.4); }) || overlaps(b, S.brain, 0.6)
+        || taken.some(function (t) { return overlaps(b, t, 0.3); });
+      if (!clash) { b.side = sides[i]; return b; }
+    }
+    return null;
+  }
+  function sleep(t) { return new Promise(function (r) { setTimeout(r, t); }); }
+  function runSub(fromId, toId, working) {
+    if (document.hidden || REDUCED) return;
+    var fr = S.byId[fromId], to = S.byId[toId], d = fr && deptOf(fr);
+    if (!fr || !to || !d || !d.agents) return;
+    var b = subSpot(d); if (!b) return;
+    var ses = { to: toId, box: b, live: true }; S.subs.push(ses);
+    var SL = Math.round(SLAB * 0.8), x0 = b.x, y0 = b.y, x1 = b.x + b.w, y1 = b.y + b.d;
+    var mid = b.side === "E" || b.side === "W" ? [null, y0 + b.d / 2] : [x0 + b.w / 2, null];
+    /* loopbrug tussen afdelingsrand en sub-platform */
+    var br;
+    if (b.side === "E") br = [[d.x + d.w, mid[1] - 0.35], [x0, mid[1] - 0.35], [x0, mid[1] + 0.35], [d.x + d.w, mid[1] + 0.35]];
+    if (b.side === "W") br = [[x1, mid[1] - 0.35], [d.x, mid[1] - 0.35], [d.x, mid[1] + 0.35], [x1, mid[1] + 0.35]];
+    if (b.side === "S") br = [[mid[0] - 0.35, d.y + d.d], [mid[0] + 0.35, d.y + d.d], [mid[0] + 0.35, y0], [mid[0] - 0.35, y0]];
+    if (b.side === "N") br = [[mid[0] - 0.35, y1], [mid[0] + 0.35, y1], [mid[0] + 0.35, d.y], [mid[0] - 0.35, d.y]];
+    var desk = [x0 + b.w / 2 + 0.15, y0 + b.d / 2 + 0.1], dp = iso(desk[0], desk[1], SL);
+    var box = 'x="' + f1(DX0) + '" y="' + f1(DY0) + '" width="' + f1(DESK_W) + '" height="' + f1(DESK_H) + '"';
+    var name = String(to.agent_name || toId); if (name.length > 22) name = name.slice(0, 21) + "…";
+    var lp = iso(x0 + b.w / 2, y1, 0);
+    var NS = "http://www.w3.org/2000/svg", g = document.createElementNS(NS, "g");
+    g.setAttribute("class", "subdept"); g.setAttribute("data-sub", toId); g.setAttribute("style", "--c:" + d.color);
+    g.innerHTML = '<title>' + esc(fr.agent_name + " → " + to.agent_name) + '</title>'
+      + '<polygon class="bridge" points="' + pts(br.map(function (p) { return iso(p[0], p[1], SL); })) + '"/>'
+      + '<polygon class="sub-l" points="' + pts([iso(x0, y1, SL), iso(x1, y1, SL), iso(x1, y1), iso(x0, y1)]) + '"/>'
+      + '<polygon class="sub-r" points="' + pts([iso(x1, y1, SL), iso(x1, y0, SL), iso(x1, y0), iso(x1, y1)]) + '"/>'
+      + '<polygon class="sub-top" points="' + pts([iso(x0, y0, SL), iso(x1, y0, SL), iso(x1, y1, SL), iso(x0, y1, SL)]) + '"/>'
+      + '<g transform="translate(' + f1(dp[0]) + ',' + f1(dp[1]) + ')"><image class="sd-img" href="' + ASSETS + 'desk-empty.webp" ' + box + ' preserveAspectRatio="none"/>'
+      + '<rect class="sd-screen" ' + box + ' mask="url(#mScreen)"/></g>'
+      + '<text class="sub-name" x="' + f1(lp[0]) + '" y="' + f1(lp[1] + 12) + '">↳ ' + esc(name.toUpperCase()) + '</text>';
+    subLayer().appendChild(g);
+    requestAnimationFrame(function () { g.classList.add("on"); });
+    /* route (wereld): voor het eigen bureau -> afdelingsrand -> brug -> voor het sub-bureau */
+    var ax = d.x + fr._lx, ay = d.y + fr._ly, start = [ax + 0.5, ay + 0.5];
+    var edgeA, edgeB;
+    if (b.side === "E") { edgeA = [d.x + d.w - 0.3, mid[1]]; edgeB = [x0 + 0.3, mid[1]]; }
+    if (b.side === "W") { edgeA = [d.x + 0.3, mid[1]]; edgeB = [x1 - 0.3, mid[1]]; }
+    if (b.side === "S") { edgeA = [mid[0], d.y + d.d - 0.3]; edgeB = [mid[0], y0 + 0.3]; }
+    if (b.side === "N") { edgeA = [mid[0], d.y + 0.3]; edgeB = [mid[0], y1 - 0.3]; }
+    var lane = b.side === "E" || b.side === "W" ? [edgeA[0], start[1]] : [start[0], edgeA[1]];
+    var seat = [desk[0] + 0.5, desk[1] + 0.5];
+    var route = [[start, SLAB], [lane, SLAB], [edgeA, SLAB], [edgeB, SL], [seat, SL]];
+    var w = document.createElementNS(NS, "g");
+    w.setAttribute("class", "walker"); w.setAttribute("style", "--c:" + d.color);
+    var useSheet = walkerSheet;
+    w.innerHTML = useSheet
+      ? '<ellipse class="w-sh" rx="15" ry="6"/><svg class="w-spr" x="' + f1(-WALK_W / 2) + '" y="' + f1(-WALK_H * 0.96) + '" width="' + f1(WALK_W) + '" height="' + f1(WALK_H)
+        + '" viewBox="0 0 256 384" preserveAspectRatio="none" overflow="hidden"><image href="' + ASSETS + 'walker.webp" width="' + (256 * WALK_COLS) + '" height="768"/></svg>'
+      : '<g transform="scale(' + HOLO_SCALE + ')"><ellipse class="w-sh" rx="5.5" ry="2.4"/><g class="w-up"><ellipse class="w-glow" cx="0" cy="-12" rx="8" ry="13"/>'
+        + '<g class="w-legs"><line class="w-leg" x1="-1.6" y1="-8" x2="-1.6" y2="-1"/><line class="w-leg" x1="1.6" y1="-8" x2="1.6" y2="-1"/></g>'
+        + '<rect class="w-body" x="-4.2" y="-19" width="8.4" height="12" rx="3.6"/><circle class="w-body" cx="0" cy="-23.5" r="3.6"/></g></g>';
+    var spr = null;
+    function alive() { return g.isConnected; }
+    function walk(rt) {
+      return new Promise(function (res) {
+        var P = rt.map(function (r) { return iso(r[0][0], r[0][1], r[1]); }), L = [], T = 0;
+        for (var i = 1; i < rt.length; i++) { var l = Math.hypot(rt[i][0][0] - rt[i - 1][0][0], rt[i][0][1] - rt[i - 1][0][1]); L.push(l); T += l; }
+        var dur = Math.max(500, T / WALK * 1000), t0 = performance.now();
+        subLayer().appendChild(w);
+        spr = w.querySelector(".w-spr");
+        (function step(now) {
+          if (!alive()) { w.remove(); return res(); }
+          var f = Math.min(1, (now - t0) / dur), dist = f * T, i = 0;
+          while (i < L.length - 1 && dist > L[i]) { dist -= L[i]; i++; }
+          var k = L[i] ? Math.min(1, dist / L[i]) : 1;
+          var x = P[i][0] + (P[i + 1][0] - P[i][0]) * k, y = P[i][1] + (P[i + 1][1] - P[i][1]) * k;
+          var dx = P[i + 1][0] - P[i][0], dy = P[i + 1][1] - P[i][1];
+          var flip = dx < 0 ? -1 : 1;
+          w.setAttribute("transform", "translate(" + x.toFixed(1) + "," + y.toFixed(1) + ") scale(" + flip + ",1)");
+          if (spr) {   /* frame kiezen: rij 0 = naar de kijker (omlaag), rij 1 = van de kijker af (omhoog) */
+            var row = dy < 0 ? 1 : 0, fr = Math.floor((now - t0) / 1000 * WALK_FPS) % WALK_ROW_FR[row];
+            spr.setAttribute("viewBox", (fr * 256) + " " + (row * 384) + " 256 384");
+          }
+          if (f < 1) requestAnimationFrame(step); else { w.remove(); res(); }
+        })(t0);
+      });
+    }
+    var img = g.querySelector(".sd-img"), scr = g.querySelector(".sd-screen");
+    sleep(700).then(function () { return walk(route); }).then(function () {
+      if (!alive()) return;
+      img.setAttribute("href", ASSETS + "desk.webp"); g.classList.add("busy");
+      var until = performance.now() + 9000, cap = performance.now() + 5 * 60000;
+      return (function wait() {
+        return sleep(1000).then(function () {
+          var x = S.byId[toId], still = working && x && st(x) === "working";
+          if (alive() && (performance.now() < until || (still && performance.now() < cap))) return wait();
+        });
+      })();
+    }).then(function () {
+      if (!alive()) return;
+      g.classList.remove("busy"); img.setAttribute("href", ASSETS + "desk-empty.webp");
+      return walk(route.slice().reverse());
+    }).then(function () {
+      g.classList.remove("on");
+      return sleep(750);
+    }).then(function () { g.remove(); ses.live = false; S.subs = S.subs.filter(function (s) { return s.live; }); });
+  }
+
   /* aankomst: een ring in de afdelingskleur die vanuit het brein uitdijt */
   function brainHit(color) {
     var c = iso(0, 0, 0), cx = c[0], cy = c[1] - LIVE_LIFT - LIVE_H * 0.42;
@@ -1515,6 +1696,8 @@
     if (ag) { if (!window.matchMedia("(hover: hover)").matches) hideTip(); var id = ag.getAttribute("data-id"); setFocus(same(S.focus, "agent", id) ? null : { type: "agent", id: id }, true); return; }
     var sl = closest(e.target, ".slab,.card");
     if (sl) { var n = sl.parentNode.getAttribute("data-dept"); setFocus(same(S.focus, "dept", n) ? null : { type: "dept", name: n }); return; }
+    var sd = closest(e.target, ".subdept");
+    if (sd && S.byId[sd.getAttribute("data-sub")]) { setFocus({ type: "agent", id: sd.getAttribute("data-sub") }, true); return; }
     if (closest(e.target, ".brain")) { setFocus(null); return; }
     if (S.focus) setFocus(null, true);
   });
