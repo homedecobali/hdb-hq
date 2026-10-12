@@ -456,13 +456,13 @@
   var HW = 26, HH = 13;                 /* halve tegel: 1 cel = 52 x 26 px op het scherm */
   var SLAB = 22;                        /* dikte van een afdelingsplatform */
   var EDGE = Math.sqrt(HW * HW + HH * HH);
-  var PAD = 0.55, LANE_GAP = 0.3, MAX_COLS = 6, DEPT_GAP = 1.6;
+  var PAD = 1.0, LANE_GAP = 0.6, MAX_COLS = 6, DEPT_GAP = 1.6;   /* 12-10: eilanden ruim, met looppaden */
   var BRAIN = 4.6;                      /* zijde van het Brain-blok in cellen */
   var CARD_H = 112;                     /* ruimte die een afdelingspaneel boven het platform inneemt */
 
   /* gerenderde sprites (map office-v2-assets/) — bron-renders staan in Cloudinary hdb/officev2assets */
   var ASSETS = "office-v2-assets/";
-  var AGENT_DX = 1.55, AGENT_DY = 1.38; /* celafstand per agent: een bureau is breder dan één cel */
+  var AGENT_DX = 2.6, AGENT_DY = 2.45;  /* celafstand per agent (12-10: ruimer, bureaus verder uit elkaar) */
   var DESK_W = 80, DESK_H = DESK_W * 904 / 757;   /* sprite v3 757x904 */
   var DESK_AX = 0.50, DESK_AY = 0.86;             /* ankerpunt in de sprite (aandeel van b x h) */
   var BRAIN_W = 340, BRAIN_H = BRAIN_W * 553 / 768 * 0.87;  /* 0.87 = 30°-iso naar 2:1 persen */
