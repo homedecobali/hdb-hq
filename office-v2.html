@@ -57,6 +57,9 @@
   map) voor gepauzeerde / nooit-gedraaide agents en voor een agent die weg is; desk-stand-v3.webp + map
   (6 frames van 384 x 487 naast elkaar: zitten -> opstaan -> omdraaien; zelfde breedte/uitlijning als
   desk-v3, 56 bronpixels extra onderaan voor de voeten). S.pose[agent_id] = { p: 'stand'|'empty', f }.
+  Leesbaarheid paneel (13-10): rechterpaneel standaard 420 px breed, 13 px tekst x zoom 115 %, lichter --dim.
+  Kop: Paneel A− / A+ (90–180 %), ⇔ (420 <-> 600 px), ↺ (standaard). Sleepgreep op de linkerrand van het paneel
+  (dubbelklik = standaard, pijltjestoetsen bij focus). Keuze per browser in localStorage 'dewi.office2.panel'.
 -->
 <html lang="nl">
 <head>
@@ -99,7 +102,19 @@
   .metric.zero b{color:var(--dim)}
   .upd{color:var(--dim);font-size:11.5px;font-variant-numeric:tabular-nums;min-width:112px;text-align:right}
 
-  main{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) 352px}
+  main{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) var(--pw,420px);position:relative}
+  /* Leesbaarheid paneel (13-10): tekstgrootte (--pz, via zoom) en breedte (--pw) instelbaar, onthouden per browser */
+  .pz{display:flex;align-items:center;gap:4px}
+  .pz .lb{font:700 10px var(--mono);letter-spacing:.14em;color:var(--dim);text-transform:uppercase;margin-right:4px}
+  .pz button{appearance:none;min-width:30px;height:28px;padding:0 7px;border-radius:7px;border:1px solid var(--line);background:rgba(7,11,18,.9);
+    color:var(--text);cursor:pointer;font:700 13px var(--mono);line-height:1}
+  .pz button:hover{border-color:var(--cyan);color:var(--cyan)}
+  .pz button.big{font-size:16px}
+  .pz .pv{font:600 11.5px var(--mono);color:var(--dim);min-width:40px;text-align:center;font-variant-numeric:tabular-nums}
+  .pgrip{position:absolute;top:0;bottom:0;width:10px;right:calc(var(--pw,420px) - 5px);cursor:col-resize;z-index:8;touch-action:none}
+  .pgrip::after{content:"";position:absolute;top:50%;left:3px;width:4px;height:44px;margin-top:-22px;border-radius:2px;background:var(--line);transition:background .12s}
+  .pgrip:hover::after,.pgrip.drag::after,.pgrip:focus-visible::after{background:var(--cyan)}
+  body.pdrag{cursor:col-resize;user-select:none;-webkit-user-select:none}
   .stage{position:relative;min-width:0;min-height:0;display:flex;flex-direction:column;overflow:hidden}
 
   /* tools-balk ("verbonden met") */
@@ -312,7 +327,7 @@
   #loading{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--dim);font-family:var(--mono);letter-spacing:.08em}
 
   /* paneel — terminal-stijl */
-  .panel{border-left:1px solid var(--line);background:var(--panel);overflow-y:auto;padding:16px 16px 28px;min-height:0;font-family:var(--mono);font-size:12.2px}
+  .panel{--dim:#93abbd;border-left:1px solid var(--line);background:var(--panel);overflow-y:auto;padding:16px 16px 28px;min-height:0;font-family:var(--mono);font-size:13px;zoom:var(--pz,1.15)}
   .panel h2{margin:0 0 2px;font:700 16px/1.25 var(--font)}
   .panel h3{margin:20px 0 7px;font:700 10px var(--mono);letter-spacing:.18em;text-transform:uppercase;color:var(--dim);display:flex;align-items:center;gap:8px}
   .panel h3::before{content:"//";color:var(--cyan);opacity:.7}
@@ -377,6 +392,7 @@
     .tools .tool .ic .lg{width:20px;height:20px}
     .tools .tool::after{display:none}
     .panel{border-left:0;border-top:1px solid var(--line);padding-bottom:84px}
+    .pgrip,.pz .pw{display:none}
     .metrics{gap:13px} .upd{display:none}
     .hint{display:none}
   }
@@ -395,6 +411,14 @@
   <header>
     <div class="brand"><span class="dot" id="live"></span><span class="ttl">DEWI</span><span class="sub">Office</span><span class="ver">V2</span></div>
     <div class="spacer"></div>
+    <div class="pz" id="pz" role="group" aria-label="Paneel leesbaarheid">
+      <span class="lb">Paneel</span>
+      <button type="button" data-pz="-" title="Tekst kleiner" aria-label="Tekst kleiner">A−</button>
+      <span class="pv" id="pzv" aria-live="polite">115%</span>
+      <button type="button" data-pz="+" class="big" title="Tekst groter" aria-label="Tekst groter">A+</button>
+      <button type="button" data-pz="w" class="pw" title="Paneel breder / smaller" aria-label="Paneel breder of smaller">⇔</button>
+      <button type="button" data-pz="0" title="Standaard leesbaarheid" aria-label="Standaard">↺</button>
+    </div>
     <div class="metrics" id="metrics"></div>
     <div class="upd" id="upd"></div>
   </header>
@@ -451,6 +475,7 @@
       <div id="tip" role="tooltip"></div>
       <div id="msg" role="alert"></div>
     </section>
+    <div class="pgrip" id="pgrip" role="separator" aria-orientation="vertical" aria-label="Paneelbreedte (sleep of pijltjestoetsen)" tabindex="0" title="Sleep om het paneel breder of smaller te maken"></div>
     <aside class="panel" id="panel" aria-label="Details"></aside>
   </main>
 </div>
@@ -1996,6 +2021,57 @@
     if (e.key === "Escape" && S.focus && !document.documentElement.classList.contains("dn-open") && !document.querySelector("#dn-pal.open")) setFocus(null);
   });
   elTools.addEventListener("scroll", drawWires, { passive: true });
+  /* ---------------------------------------------------- leesbaarheid paneel (13-10)
+     --pz = tekstgrootte (zoom op het paneel), --pw = paneelbreedte. Onthouden in localStorage. */
+  (function () {
+    var root = document.documentElement, KEY = "dewi.office2.panel", DEF = { z: 1.15, w: 420 };
+    var grip = $("pgrip"), pzv = $("pzv"), cur = { z: DEF.z, w: DEF.w };
+    try { var sv = JSON.parse(localStorage.getItem(KEY) || "null"); if (sv && sv.z) cur = { z: +sv.z, w: +sv.w || DEF.w }; } catch (e) {}
+    function maxW() { return Math.max(320, Math.round(window.innerWidth * 0.6)); }
+    function apply(save) {
+      cur.z = Math.min(1.8, Math.max(0.9, Math.round(cur.z * 20) / 20));
+      cur.w = Math.min(maxW(), Math.max(300, Math.round(cur.w)));
+      root.style.setProperty("--pz", cur.z);
+      root.style.setProperty("--pw", cur.w + "px");
+      if (pzv) pzv.textContent = Math.round(cur.z * 100) + "%";
+      if (save) { try { localStorage.setItem(KEY, JSON.stringify(cur)); } catch (e) {} }
+    }
+    function relayout() { window.dispatchEvent(new Event("resize")); }
+    $("pz").addEventListener("click", function (e) {
+      var b = e.target.closest("button[data-pz]"); if (!b) return;
+      var a = b.getAttribute("data-pz");
+      if (a === "+") { cur.z += 0.1; cur.w = Math.max(cur.w, Math.round(DEF.w * cur.z / DEF.z)); }
+      else if (a === "-") cur.z -= 0.1;
+      else if (a === "w") cur.w = cur.w < 520 ? 600 : DEF.w;
+      else cur = { z: DEF.z, w: DEF.w };
+      apply(true); relayout();
+    });
+    if (grip) {
+      var x0 = 0, w0 = 0, raf = 0;
+      grip.addEventListener("pointerdown", function (e) {
+        x0 = e.clientX; w0 = cur.w; grip.setPointerCapture(e.pointerId);
+        grip.classList.add("drag"); document.body.classList.add("pdrag"); e.preventDefault();
+      });
+      grip.addEventListener("pointermove", function (e) {
+        if (!grip.classList.contains("drag")) return;
+        cur.w = w0 + (x0 - e.clientX);
+        if (!raf) raf = requestAnimationFrame(function () { raf = 0; apply(false); });
+      });
+      function end() {
+        if (!grip.classList.contains("drag")) return;
+        grip.classList.remove("drag"); document.body.classList.remove("pdrag"); apply(true); relayout();
+      }
+      grip.addEventListener("pointerup", end); grip.addEventListener("pointercancel", end);
+      grip.addEventListener("dblclick", function () { cur.w = DEF.w; apply(true); relayout(); });
+      grip.addEventListener("keydown", function (e) {
+        if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+        cur.w += e.key === "ArrowLeft" ? 24 : -24; apply(true); relayout(); e.preventDefault();
+      });
+    }
+    window.addEventListener("resize", function () { var w = cur.w; apply(false); cur.w = w; });
+    apply(false);
+  })();
+
   var rzT = null;
   window.addEventListener("resize", function () {
     hideTip(); S.pairs = []; drawWires();
