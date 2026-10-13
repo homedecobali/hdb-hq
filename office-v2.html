@@ -31,13 +31,17 @@
   minuut worden over de minuut uitgesmeerd. Niet bij reduced motion of een verborgen tab.
   Sub-afdelingen (12-10): roept een agent een sub-agent aan (v_office_links, kind subworkflow/webhook) en
   heeft die sub-agent een nieuwe run (of draait hij) terwijl de aanroeper vlak ervoor draaide, dan klapt er
-  aan de buitenkant van de afdeling van de aanroeper tijdelijk een mini-platform met loopbrug uit. Een
-  holografische kopie van de aanroeper loopt erheen, gaat zitten, werkt (zolang de sub-agent 'working' is,
-  anders ~9 s), loopt terug en het platform vervaagt. SUB_SKIP = administratieve helpers die bijna iedereen
-  aanroept (receipt/notify) en dus geen eigen platform krijgen. Klik op het platform = de sub-agent openen.
-  Loper: staat office-v2-assets/walker.webp er (sprite-sheet 2560 x 768, frames 256 x 384; rij 1 = 7 frames lopend
-  naar de kijker rechtsonder, rij 2 = 10 frames van de kijker af rechtsboven; links = gespiegeld), dan loopt die
-  sprite op ware grootte (zelfde schaal als de zittende agent). Anders een holografische figuur van die maat.
+  aan de buitenkant van de afdeling van de aanroeper tijdelijk een mini-platform met loopbrug uit. De
+  aanroeper zelf staat op uit zijn stoel (opsta-frames op zijn eigen bureau, ~0,8 s), zijn bureau wordt leeg,
+  hij loopt via de gangpaden tussen de bureaus naar de rand, over de brug, gaat op het sub-bureau zitten,
+  werkt (zolang de sub-agent 'working' is, anders ~9 s), staat op, loopt terug en gaat weer zitten; dan
+  vervaagt het platform. Eén persoon kan maar op één plek zijn: is de aanroeper al onderweg, dan wacht een
+  volgende sub-run (max. 3 pogingen). SUB_SKIP = administratieve helpers die bijna iedereen aanroept
+  (receipt/notify) en dus geen eigen platform krijgen. Klik op het platform = de sub-agent openen.
+  Loper (13-10): walker-v4.webp + map (640 x 480 = 4 x 2 frames van 160 x 240; rij 0 = naar rechtsonder,
+  rij 1 = naar rechtsboven, links = gespiegeld). Alleen frames met dezelfde lichaamsrichting (geen draai).
+  Diepte: binnen een afdeling wordt de loper tussen de bureaus in de tekenvolgorde gezet (x + y).
+  Zonder sheet: een holografische figuur van die maat.
   Tekstballonnen (12-10): een agent in 'working' (en een kopie die op een sub-platform zit) krijgt een
   ballonnetje met wat hij doet (begin van last_summary, anders zijn naam). Max. 8 tegelijk, rustig zwevend.
   Lege runs (12-10): summary met idle / (stil) / geen bijvulling / niets te … / worklist leeg telt niet als
@@ -49,6 +53,10 @@
   (afdelingskleur x haarkleur) één keer een canvas in en cachet de data-URL; geen SVG-filters, dus geen
   kosten bij zoom/pan. Haarkleur per agent = hash(agent_id) uit HAIR. screen-v3.webp = schermvlak van de
   nieuwe monitor (masker voor de statuskleur). Zolang de v3-bestanden niet geladen zijn: oude sprites.
+  Bureau-poses (13-10): desk-empty-v3.webp (leeg bureau, zelfde uitlijning als desk-v3, geen figuur dus geen
+  map) voor gepauzeerde / nooit-gedraaide agents en voor een agent die weg is; desk-stand-v3.webp + map
+  (6 frames van 384 x 487 naast elkaar: zitten -> opstaan -> omdraaien; zelfde breedte/uitlijning als
+  desk-v3, 56 bronpixels extra onderaan voor de voeten). S.pose[agent_id] = { p: 'stand'|'empty', f }.
 -->
 <html lang="nl">
 <head>
@@ -234,7 +242,7 @@
   .subdept .sub-top{fill:color-mix(in srgb,var(--c) 12%,#121b2a);stroke:var(--c);stroke-width:1.1;stroke-opacity:.8}
   .subdept .sub-name{font:700 7.5px var(--mono);letter-spacing:.1em;fill:var(--c);text-anchor:middle}
   .subdept .sd-img{transition:opacity .25s,filter .25s}
-  .subdept .sd-img.vacant{opacity:.22;filter:grayscale(1)}
+  .subdept .sd-img.vacant{opacity:.9}
   .subdept .sd-screen{fill:var(--c);opacity:0;mix-blend-mode:screen;transition:opacity .3s}
   .subdept.busy .sd-screen{animation:pulse 1.2s ease-in-out infinite}
   /* tekstballonnen boven werkende agents */
@@ -610,7 +618,16 @@
     });
   }
 
+  /* 13-10: bij een verversing zonder structuurwijziging draait layout() niet; de nieuwe objecten
+     erven dan de layout-velden van de vorige (anders crasht patchPipes op d._port en stopt de rest:
+     kaartjes, powerballen en sub-afdelingen werden na de eerste minuut niet meer bijgewerkt). */
+  function carryLayout(oldById, oldDepts) {
+    S.agents.forEach(function (a) { var o = oldById[a.agent_id]; if (o) { a._lx = o._lx; a._ly = o._ly; a._p = o._p; } });
+    var od = {}; oldDepts.forEach(function (d) { od[d.name] = d; });
+    S.depts.forEach(function (d) { var o = od[d.name]; if (!o) return; for (var k in o) if (!(k in d)) d[k] = o[k]; });
+  }
   function ingest(depts, agents, tools, links) {
+    var oldById = S.byId || {}, oldDepts = S.depts || [];
     var prevRun = S.prevRun || null; S.prevRun = {};
     agents.forEach(function (a) { S.prevRun[a.agent_id] = a.last_run_at || ""; });
     S.agents = agents; S.byId = {}; S.byWf = {};
@@ -648,7 +665,7 @@
             + "#" + S.depts.map(function (d) { return d.name + d.color + d.icon; }).join(";")
             + "#" + S.links.map(function (l) { return l.from_agent + ">" + l.to_agent; }).sort().join(";")
             + "#" + S.depts.map(function (d) { return d.name + ":" + panelRows(d).length; }).join(";");
-    if (sig !== S.sig) { S.sig = sig; layout(); renderFloor(); } else { patchAgents(); patchPipes(); patchCards(); }
+    if (sig !== S.sig) { S.sig = sig; layout(); renderFloor(); } else { carryLayout(oldById, oldDepts); patchAgents(); patchPipes(); patchCards(); }
 
     S.loadedAt = new Date();
     queueBalls(prevRun);
@@ -789,7 +806,13 @@
   var CARD_LIFT = Math.max(26, -((PAD + AGENT_DX / 2) + (PAD + AGENT_DY / 2)) * 13 - DY0 + 14);
   /* ---- avatars v3: inkleuren per afdelingskleur x haarkleur, gecachet ---- */
   var HAIR = ["#231c18", "#3a281d", "#5e3f2b", "#8a6240", "#c99b55", "#e3c482", "#8c3a1e", "#9c9c9c", "#d8d8d8"];
-  var AV = { ready: false, walk: false, cache: {} };
+  var AV = { ready: false, walk: false, stand: false, cache: {}, img: {} };
+  var EMPTY = ASSETS + "desk-empty-v3.webp";
+  var STAND_N = 6, STAND_W = 384, STAND_H = 487, STAND_MS = 800;        /* opsta-strip, frames naast elkaar */
+  var STAND_BOX_H = DESK_H * 960 / 904;                                  /* frame = desk-v3 + 56 px onderaan */
+  /* hoofd-x en voeten-y in het laatste opsta-frame (aandeel van frame b x h): daar begint / eindigt de loper
+     (de loper is op zijn hoofd gecentreerd, dus x = hoofd, y = onderkant voorste voet) */
+  var STAND_FEET = [0.728, 0.975];
   function hairOf(a) { var h = 0, s = String(a.agent_id || a.agent_name || ""); for (var i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0; return HAIR[h % HAIR.length]; }
   function colorOf(a) { var d = null; for (var i = 0; i < S.depts.length; i++) if (S.depts[i].name === a.dept_name) d = S.depts[i]; return (d && d.color) || a.dept_color || "#8aa0b5"; }
   function hexRgb(h) { h = String(h).replace("#", ""); if (h.length === 3) h = h.replace(/./g, "$&$&"); var n = parseInt(h, 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255]; }
@@ -799,16 +822,20 @@
     return { w: w, h: h, d: x.getImageData(0, 0, w, h).data };
   }
   function loadImg(src) { return new Promise(function (res, rej) { var i = new Image(); i.onload = function () { res(i); }; i.onerror = rej; i.src = src; }); }
-  Promise.all(["desk-v3.webp", "desk-v3-map.webp"].map(function (f) { return loadImg(ASSETS + f); })).then(function (im) {
-    AV.desk = grab(im[0], 384, Math.round(384 * 904 / 757)); AV.deskMap = grab(im[1], AV.desk.w, AV.desk.h);
-    AV.ready = true; if (S.agents && S.agents.length) patchAgents();
+  function loadPair(kind, file, w, h, flag) {
+    return Promise.all([file + ".webp", file + "-map.webp"].map(function (f) { return loadImg(ASSETS + f); })).then(function (im) {
+      AV.img[kind] = { b: grab(im[0], w, h), m: grab(im[1], w, h) }; AV[flag] = true;
+    });
+  }
+  loadPair("desk", "desk-v3", 384, Math.round(384 * 904 / 757), "ready").then(function () {
+    if (S.agents && S.agents.length) patchAgents();
   }, function () {});
-  Promise.all(["walker-v3.webp", "walker-v3-map.webp"].map(function (f) { return loadImg(ASSETS + f); })).then(function (im) {
-    AV.walker = grab(im[0], 1024, 384); AV.walkerMap = grab(im[1], 1024, 384); AV.walk = true;
-  }, function () {});
+  loadPair("walk", "walker-v4", 640, 480, "walk").catch(function () {});
+  loadPair("stand", "desk-stand-v3", STAND_W * STAND_N, STAND_H, "stand").catch(function () {});
+  loadImg(EMPTY).catch(function () {});   /* voorladen */
   function tinted(kind, cloth, hair) {
     var key = kind + cloth + hair; if (AV.cache[key]) return AV.cache[key];
-    var B = kind === "walk" ? AV.walker : AV.desk, M = kind === "walk" ? AV.walkerMap : AV.deskMap;
+    var B = AV.img[kind].b, M = AV.img[kind].m;
     var c = document.createElement("canvas"); c.width = B.w; c.height = B.h;
     var x = c.getContext("2d"), out = x.createImageData(B.w, B.h), o = out.data, b = B.d, m = M.d;
     var C = hexRgb(cloth), Hh = hexRgb(hair);
@@ -823,10 +850,23 @@
     x.putImageData(out, 0, 0);
     return (AV.cache[key] = c.toDataURL("image/png"));
   }
-  function deskHref(a) { return AV.ready ? tinted("desk", colorOf(a), hairOf(a)) : ASSETS + "desk.webp"; }
+  S.pose = S.pose || {};
+  /* leeg bureau voor wie gepauzeerd is, nog nooit draaide, of op dit moment elders zit */
+  function isVacant(a) { var s = st(a), p = S.pose[a.agent_id]; return s === "paused" || s === "idle" || (p && p.p === "empty"); }
+  function deskHref(a) { return isVacant(a) ? EMPTY : AV.ready ? tinted("desk", colorOf(a), hairOf(a)) : ASSETS + "desk.webp"; }
+  /* het beeldelement van een bureau in een pose: 'seat' (zittend), 'empty', of 'stand' met frame f */
+  function poseImg(cls, pose, f, cloth, hair) {
+    if (pose === "stand" && AV.stand)
+      return '<svg class="' + cls + '" x="' + f1(DX0) + '" y="' + f1(DY0) + '" width="' + f1(DESK_W) + '" height="' + f1(STAND_BOX_H)
+        + '" viewBox="' + (f * STAND_W) + ' 0 ' + STAND_W + ' ' + STAND_H + '" preserveAspectRatio="none" overflow="hidden">'
+        + '<image href="' + tinted("stand", cloth, hair) + '" width="' + (STAND_W * STAND_N) + '" height="' + STAND_H + '" preserveAspectRatio="none"/></svg>';
+    var href = pose === "empty" || pose === "stand" ? EMPTY : AV.ready ? tinted("desk", cloth, hair) : ASSETS + "desk.webp";
+    return '<image class="' + cls + '" href="' + href + '" x="' + f1(DX0) + '" y="' + f1(DY0) + '" width="' + f1(DESK_W) + '" height="' + f1(DESK_H) + '" preserveAspectRatio="none"/>';
+  }
   function deskSprite(a) {
     var box = 'x="' + f1(DX0) + '" y="' + f1(DY0) + '" width="' + f1(DESK_W) + '" height="' + f1(DESK_H) + '"';
-    return '<image class="sprite" href="' + deskHref(a) + '" ' + box + ' preserveAspectRatio="none"/>'
+    var p = S.pose[a.agent_id];
+    return (p && p.p === "stand" ? poseImg("sprite", "stand", p.f, colorOf(a), hairOf(a)) : '<image class="sprite" href="' + deskHref(a) + '" ' + box + ' preserveAspectRatio="none"/>')
       + '<rect class="m-glow" ' + box + ' mask="url(#mScreen)"/>'
       + '<rect class="m-screen" ' + box + ' mask="url(#mScreen)"/>'
       + (st(a) === "working" ? codeScreen(a) : "");
@@ -1265,7 +1305,7 @@
     var g = $("bubbleLayer");
     if (!g) { g = document.createElementNS("http://www.w3.org/2000/svg", "g"); g.id = "bubbleLayer"; elWorld.appendChild(g); }
     var h = "";
-    S.agents.filter(function (a) { return st(a) === "working" && a._p; }).slice(0, BUB_MAX).forEach(function (a) {
+    S.agents.filter(function (a) { return st(a) === "working" && a._p && !S.pose[a.agent_id]; }).slice(0, BUB_MAX).forEach(function (a) {
       var d = deptOf(a);
       h += bubbleSvg(a._p[0] + DESK_W * 0.1, a._p[1] + DY0 + 6, bubbleText(a), d ? d.color : "#00d4ff");
     });
@@ -1276,9 +1316,12 @@
   var SUB_SKIP = { "dewi-receipt": 1, "dewi-notify": 1 };
   var SUB_WINDOW = 20 * 60000;      /* aanroeper moet binnen 20 min vóór de sub-run gedraaid hebben */
   var WALK = 3.4;                   /* loopsnelheid in cellen per seconde (vlot) */
-  var SW = 2.1, SD = 2.1, SGAP = 1.1;
-  /* loper op dezelfde schaal als de zittende agent: hoofd ~20, staand ~76 wereld-eenheden */
-  var WALK_H = 84, WALK_W = WALK_H * 256 / 384, WALK_FPS = 12, WALK_ROW_FR = [8, 8], WALK_COLS = 8;
+  var SW = 2.6, SD = 2.3, SGAP = 1.1;   /* 13-10: iets ruimer, zodat er naast de stoel plek is om te staan */
+  /* loper op dezelfde schaal als de opstaande agent (laatste opsta-frame ~76 wereld-eenheden hoog;
+     figuur = ~90% van het frame, voeten op 96%). 4 frames per rij = één pas -> 8 fps. */
+  var WALK_H = 84, WALK_W = WALK_H * 256 / 384, WALK_FPS = 8, WALK_ROW_FR = [4, 4], WALK_COLS = 4;
+  /* waar de voeten staan in het laatste opsta-frame, als wereld-offset t.o.v. het bureau-anker */
+  var STAND_OFF = unIso(DX0 + STAND_FEET[0] * DESK_W, DY0 + STAND_FEET[1] * STAND_BOX_H);
   var HOLO_SCALE = 2.8;
   S.subs = S.subs || [];
   function ms(t) { return t ? new Date(t).getTime() : 0; }
@@ -1325,10 +1368,39 @@
     return null;
   }
   function sleep(t) { return new Promise(function (r) { setTimeout(r, t); }); }
-  function runSub(fromId, toId, working) {
+  /* ---- opstaan / gaan zitten: speelt de opsta-strip af op een bureau-element ---- */
+  function swapEl(old, markup) {
+    var t = document.createElementNS("http://www.w3.org/2000/svg", "g"); t.innerHTML = markup;
+    var n = t.firstChild; if (old && old.parentNode && n) old.parentNode.replaceChild(n, old); return n;
+  }
+  /* setF(i) zet frame i; reverse = gaan zitten (5 -> 0) */
+  function playStand(setF, reverse) {
+    return new Promise(function (res) {
+      if (!AV.stand) return res();
+      var t0 = performance.now(), last = -1;
+      (function step(now) {
+        var i = Math.min(STAND_N - 1, Math.floor((now - t0) / STAND_MS * STAND_N));
+        var f = reverse ? STAND_N - 1 - i : i;
+        if (f !== last) { setF(f); last = f; }
+        if (now - t0 < STAND_MS) requestAnimationFrame(step); else res();
+      })(t0);
+    });
+  }
+  /* pose van het eigen bureau van een agent zetten en alleen het beeldelement vervangen */
+  function setOwnPose(a, pose, f) {
+    if (pose) S.pose[a.agent_id] = { p: pose, f: f || 0 }; else delete S.pose[a.agent_id];
+    var el = agentEl(a.agent_id), spr = el && el.querySelector(".spr .sprite"); if (!spr) return;
+    if (pose === "stand" && spr.tagName.toLowerCase() === "svg") { spr.setAttribute("viewBox", (f * STAND_W) + " 0 " + STAND_W + " " + STAND_H); return; }
+    swapEl(spr, pose === "stand" ? poseImg("sprite", "stand", f, colorOf(a), hairOf(a))
+      : '<image class="sprite" href="' + deskHref(a) + '" x="' + f1(DX0) + '" y="' + f1(DY0) + '" width="' + f1(DESK_W) + '" height="' + f1(DESK_H) + '" preserveAspectRatio="none"/>');
+  }
+
+  function runSub(fromId, toId, working, tries) {
     if (document.hidden || REDUCED) return;
     var fr = S.byId[fromId], to = S.byId[toId], d = fr && deptOf(fr);
     if (!fr || !to || !d || !d.agents) return;
+    /* één persoon, één plek: is de aanroeper al onderweg, dan straks opnieuw proberen */
+    if (S.pose[fromId]) { if ((tries || 0) < 3) setTimeout(function () { runSub(fromId, toId, working, (tries || 0) + 1); }, 15000); return; }
     var b = subSpot(d); if (!b) return;
     var ses = { to: toId, box: b, live: true }; S.subs.push(ses);
     var SL = Math.round(SLAB * 0.8), x0 = b.x, y0 = b.y, x1 = b.x + b.w, y1 = b.y + b.d;
@@ -1339,8 +1411,9 @@
     if (b.side === "W") br = [[x1, mid[1] - 0.35], [d.x, mid[1] - 0.35], [d.x, mid[1] + 0.35], [x1, mid[1] + 0.35]];
     if (b.side === "S") br = [[mid[0] - 0.35, d.y + d.d], [mid[0] + 0.35, d.y + d.d], [mid[0] + 0.35, y0], [mid[0] - 0.35, y0]];
     if (b.side === "N") br = [[mid[0] - 0.35, y1], [mid[0] + 0.35, y1], [mid[0] + 0.35, d.y], [mid[0] - 0.35, d.y]];
-    var desk = [x0 + b.w / 2 + 0.15, y0 + b.d / 2 + 0.1], dp = iso(desk[0], desk[1], SL);
-    var box = 'x="' + f1(DX0) + '" y="' + f1(DY0) + '" width="' + f1(DESK_W) + '" height="' + f1(DESK_H) + '"';
+    /* sub-bureau iets naar links/achter, zodat de plek naast de stoel (STAND_OFF) op het platform valt */
+    var desk = [x0 + b.w / 2 - 0.45, y0 + b.d / 2 - 0.05], dp = iso(desk[0], desk[1], SL);
+    var cloth = colorOf(fr), hair = hairOf(fr);
     var name = String(to.agent_name || toId); if (name.length > 22) name = name.slice(0, 21) + "…";
     var lp = iso(x0 + b.w / 2, y1, 0);
     var NS = "http://www.w3.org/2000/svg", g = document.createElementNS(NS, "g");
@@ -1350,49 +1423,87 @@
       + '<polygon class="sub-l" points="' + pts([iso(x0, y1, SL), iso(x1, y1, SL), iso(x1, y1), iso(x0, y1)]) + '"/>'
       + '<polygon class="sub-r" points="' + pts([iso(x1, y1, SL), iso(x1, y0, SL), iso(x1, y0), iso(x1, y1)]) + '"/>'
       + '<polygon class="sub-top" points="' + pts([iso(x0, y0, SL), iso(x1, y0, SL), iso(x1, y1, SL), iso(x0, y1, SL)]) + '"/>'
-      + '<g transform="translate(' + f1(dp[0]) + ',' + f1(dp[1]) + ')"><image class="sd-img vacant" href="' + (AV.ready ? tinted("desk", d.color, hairOf(fr)) : ASSETS + "desk-empty.webp") + '" ' + box + ' preserveAspectRatio="none"/>'
-      + '<rect class="sd-screen" ' + box + ' mask="url(#mScreen)"/></g>'
+      + '<g class="sd-desk" transform="translate(' + f1(dp[0]) + ',' + f1(dp[1]) + ')">' + poseImg("sd-img vacant", "empty", 0, cloth, hair)
+      + '<rect class="sd-screen" x="' + f1(DX0) + '" y="' + f1(DY0) + '" width="' + f1(DESK_W) + '" height="' + f1(DESK_H) + '" mask="url(#mScreen)"/></g>'
       + '<text class="sub-name" x="' + f1(lp[0]) + '" y="' + f1(lp[1] + 12) + '">↳ ' + esc(name.toUpperCase()) + '</text>';
     subLayer().appendChild(g);
     requestAnimationFrame(function () { g.classList.add("on"); });
-    /* route (wereld): voor het eigen bureau -> afdelingsrand -> brug -> voor het sub-bureau */
-    var ax = d.x + fr._lx, ay = d.y + fr._ly, start = [ax + 0.5, ay + 0.5];
-    var edgeA, edgeB;
-    if (b.side === "E") { edgeA = [d.x + d.w - 0.3, mid[1]]; edgeB = [x0 + 0.3, mid[1]]; }
-    if (b.side === "W") { edgeA = [d.x + 0.3, mid[1]]; edgeB = [x1 - 0.3, mid[1]]; }
-    if (b.side === "S") { edgeA = [mid[0], d.y + d.d - 0.3]; edgeB = [mid[0], y0 + 0.3]; }
-    if (b.side === "N") { edgeA = [mid[0], d.y + 0.3]; edgeB = [mid[0], y1 - 0.3]; }
-    var lane = b.side === "E" || b.side === "W" ? [edgeA[0], start[1]] : [start[0], edgeA[1]];
-    var seat = [desk[0] + 0.5, desk[1] + 0.5];
-    var route = [[start, SLAB], [lane, SLAB], [edgeA, SLAB], [edgeB, SL], [seat, SL]];
+    var sdDesk = g.querySelector(".sd-desk");
+    function subPose(pose, f) {
+      var old = sdDesk.querySelector(".sd-img");
+      if (pose === "stand" && old && old.tagName.toLowerCase() === "svg") { old.setAttribute("viewBox", (f * STAND_W) + " 0 " + STAND_W + " " + STAND_H); return; }
+      swapEl(old, poseImg("sd-img" + (pose === "empty" ? " vacant" : ""), pose, f, cloth, hair));
+    }
+
+    /* ---- route (wereld) via de gangpaden: naast de eigen stoel -> gangpad tussen de kolommen ->
+       langs de rand (buiten de prop-plekken) -> brug -> naast de stoel op het sub-bureau ---- */
+    /* vloer-voetafdruk van bureau + stoel t.o.v. het anker (gemeten uit desk-v3): x -0.95..0.75, y -1.41..0.59.
+       Gangpad tussen kolommen = midden van de vrije strook daartussen, idem tussen rijen. */
+    var LX = fr._lx, LY = fr._ly, ER = 0.4;
+    var ISLE = (0.75 + AGENT_DX - 0.95) / 2, ROWI = (0.59 + AGENT_DY - 1.41) / 2;
+    var start = [d.x + LX + STAND_OFF[0], d.y + LY + STAND_OFF[1]];
+    var ax = d.x + LX + ISLE, rowAisle = d.y + Math.min(d.d - 1.0, LY + ROWI);
+    var R = [[start, SLAB], [[ax, start[1]], SLAB]];
+    /* voor- en achterstrook: tussen de bureaus en de props op de rand */
+    if (b.side === "S") R.push([[ax, d.y + d.d - 1.0], SLAB], [[mid[0], d.y + d.d - 1.0], SLAB], [[mid[0], d.y + d.d - 0.3], SLAB]);
+    if (b.side === "N") R.push([[ax, d.y + 0.62], SLAB], [[mid[0], d.y + 0.62], SLAB], [[mid[0], d.y + 0.3], SLAB]);
+    if (b.side === "E") R.push([[ax, rowAisle], SLAB], [[d.x + d.w - ER, rowAisle], SLAB], [[d.x + d.w - ER, mid[1]], SLAB], [[d.x + d.w - 0.3, mid[1]], SLAB]);
+    if (b.side === "W") R.push([[ax, rowAisle], SLAB], [[d.x + ER, rowAisle], SLAB], [[d.x + ER, mid[1]], SLAB], [[d.x + 0.3, mid[1]], SLAB]);
+    var seat = [desk[0] + STAND_OFF[0], desk[1] + STAND_OFF[1]];
+    if (b.side === "E") R.push([[x0 + 0.3, mid[1]], SL], [[x0 + 0.3, y1 - 0.3], SL], [[seat[0], y1 - 0.3], SL]);
+    if (b.side === "W") R.push([[x1 - 0.3, mid[1]], SL]);
+    if (b.side === "S") R.push([[mid[0], y0 + 0.3], SL], [[x1 - 0.3, y0 + 0.3], SL], [[x1 - 0.3, seat[1]], SL]);
+    if (b.side === "N") R.push([[mid[0], y1 - 0.3], SL], [[x1 - 0.3, y1 - 0.3], SL], [[x1 - 0.3, seat[1]], SL]);
+    R.push([seat, SL]);
+    /* dubbele punten eruit (lengte 0) */
+    var route = R.filter(function (r, i) { return !i || Math.hypot(r[0][0] - R[i - 1][0][0], r[0][1] - R[i - 1][0][1]) > 0.02 || r[1] !== R[i - 1][1]; });
+
     var w = document.createElementNS(NS, "g");
     w.setAttribute("class", "walker"); w.setAttribute("style", "--c:" + d.color);
     var useSheet = AV.walk;
     w.innerHTML = useSheet
       ? '<ellipse class="w-sh" rx="15" ry="6"/><svg class="w-spr" x="' + f1(-WALK_W / 2) + '" y="' + f1(-WALK_H * 0.96) + '" width="' + f1(WALK_W) + '" height="' + f1(WALK_H)
-        + '" viewBox="0 0 256 384" preserveAspectRatio="none" overflow="hidden"><image href="' + (useSheet ? tinted("walk", d.color, hairOf(fr)) : "") + '" width="' + (256 * WALK_COLS) + '" height="768" preserveAspectRatio="none"/></svg>'
+        + '" viewBox="0 0 256 384" preserveAspectRatio="none" overflow="hidden"><image href="' + tinted("walk", cloth, hair) + '" width="' + (256 * WALK_COLS) + '" height="768" preserveAspectRatio="none"/></svg>'
       : '<g transform="scale(' + HOLO_SCALE + ')"><ellipse class="w-sh" rx="5.5" ry="2.4"/><g class="w-up"><ellipse class="w-glow" cx="0" cy="-12" rx="8" ry="13"/>'
         + '<g class="w-legs"><line class="w-leg" x1="-1.6" y1="-8" x2="-1.6" y2="-1"/><line class="w-leg" x1="1.6" y1="-8" x2="1.6" y2="-1"/></g>'
         + '<rect class="w-body" x="-4.2" y="-19" width="8.4" height="12" rx="3.6"/><circle class="w-body" cx="0" cy="-23.5" r="3.6"/></g></g>';
     var spr = null;
     function alive() { return g.isConnected; }
+    /* tekenvolgorde: in de afdeling tussen de bureaus (x + y), op het sub-platform voor/achter het bureau */
+    function place(wx, wy) {
+      var de = elWorld.querySelector('.dept[data-dept="' + CSS.escape(d.name) + '"]');
+      if (de && wx > d.x && wx < d.x + d.w && wy > d.y && wy < d.y + d.d) {
+        var k = (wx - d.x) + (wy - d.y), before = null, i;
+        /* eerste agent in de DOM met grotere k (agents staan op k gesorteerd) */
+        var els = de.querySelectorAll(":scope > .ag");
+        for (i = 0; i < els.length; i++) { var x = S.byId[els[i].getAttribute("data-id")]; if (x && x._lx + x._ly > k) { before = els[i]; break; } }
+        if (!before) { var last = els[els.length - 1]; before = last ? last.nextSibling : null; }
+        if (w.parentNode !== de || w.nextSibling !== before) de.insertBefore(w, before);
+      } else if (wx >= x0 && wx <= x1 && wy >= y0 && wy <= y1) {
+        var behind = (wx + wy) < (desk[0] + desk[1]);
+        if (behind) { if (w.nextSibling !== sdDesk) g.insertBefore(w, sdDesk); }
+        else if (w.parentNode !== g || w.nextSibling !== g.querySelector(".sub-name")) g.insertBefore(w, g.querySelector(".sub-name"));
+      } else if (w.parentNode !== subLayer() || w.nextSibling !== g) subLayer().insertBefore(w, g);
+    }
     function walk(rt) {
       return new Promise(function (res) {
         var P = rt.map(function (r) { return iso(r[0][0], r[0][1], r[1]); }), L = [], T = 0;
         for (var i = 1; i < rt.length; i++) { var l = Math.hypot(rt[i][0][0] - rt[i - 1][0][0], rt[i][0][1] - rt[i - 1][0][1]); L.push(l); T += l; }
         var dur = Math.max(500, T / WALK * 1000), t0 = performance.now();
-        subLayer().appendChild(w);
+        place(rt[0][0][0], rt[0][0][1]);
         spr = w.querySelector(".w-spr");
         (function step(now) {
           if (!alive()) { w.remove(); return res(); }
-          var f = Math.min(1, (now - t0) / dur), dist = f * T, i = 0;
+          var f = Math.min(1, (now - t0) / dur), dist = f * T; i = 0;
           while (i < L.length - 1 && dist > L[i]) { dist -= L[i]; i++; }
           var k = L[i] ? Math.min(1, dist / L[i]) : 1;
           var x = P[i][0] + (P[i + 1][0] - P[i][0]) * k, y = P[i][1] + (P[i + 1][1] - P[i][1]) * k;
+          var wx = rt[i][0][0] + (rt[i + 1][0][0] - rt[i][0][0]) * k, wy = rt[i][0][1] + (rt[i + 1][0][1] - rt[i][0][1]) * k;
           var dx = P[i + 1][0] - P[i][0], dy = P[i + 1][1] - P[i][1];
           var flip = dx < 0 ? -1 : 1;
+          place(wx, wy);
           w.setAttribute("transform", "translate(" + x.toFixed(1) + "," + y.toFixed(1) + ") scale(" + flip + ",1)");
-          if (spr) {   /* frame kiezen: rij 0 = naar de kijker (omlaag), rij 1 = van de kijker af (omhoog) */
+          if (spr) {   /* rij 0 = naar de kijker (omlaag), rij 1 = van de kijker af (omhoog) */
             var row = dy < 0 ? 1 : 0, fr = Math.floor((now - t0) / 1000 * WALK_FPS) % WALK_ROW_FR[row];
             spr.setAttribute("viewBox", (fr * 256) + " " + (row * 384) + " 256 384");
           }
@@ -1400,29 +1511,48 @@
         })(t0);
       });
     }
-    var img = g.querySelector(".sd-img"), scr = g.querySelector(".sd-screen");
-    sleep(700).then(function () { return walk(route); }).then(function () {
+    function home() { if (S.pose[fromId]) setOwnPose(fr, null); }   /* altijd terug op zijn stoel */
+    /* 1. opstaan uit de eigen stoel, 2. bureau leeg, 3. weglopen */
+    playStand(function (f) { setOwnPose(fr, "stand", f); }, false).then(function () {
       if (!alive()) return;
-      img.classList.remove("vacant"); if (!AV.ready) img.setAttribute("href", ASSETS + "desk.webp"); g.classList.add("busy");
-      var bw = document.createElementNS(NS, "g");
-      bw.innerHTML = bubbleSvg(dp[0] + DESK_W * 0.1, dp[1] + DY0 + 6, "→ " + (to.agent_name.length > 28 ? to.agent_name.slice(0, 27) + "…" : to.agent_name), d.color);
-      g.appendChild(bw);
-      var until = performance.now() + 9000, cap = performance.now() + 5 * 60000;
-      return (function wait() {
-        return sleep(1000).then(function () {
-          var x = S.byId[toId], still = working && x && st(x) === "working";
-          if (alive() && (performance.now() < until || (still && performance.now() < cap))) return wait();
-        });
-      })();
+      setOwnPose(fr, "empty"); renderBubbles();
+      return walk(route);
     }).then(function () {
       if (!alive()) return;
-      g.classList.remove("busy"); img.classList.add("vacant"); if (!AV.ready) img.setAttribute("href", ASSETS + "desk-empty.webp");
+      /* 4. gaan zitten op het sub-bureau */
+      return playStand(function (f) { subPose("stand", f); }, true).then(function () {
+        if (!alive()) return;
+        subPose("seat"); g.classList.add("busy");
+        var bw = document.createElementNS(NS, "g");
+        bw.innerHTML = bubbleSvg(dp[0] + DESK_W * 0.1, dp[1] + DY0 + 6, "→ " + (to.agent_name.length > 28 ? to.agent_name.slice(0, 27) + "…" : to.agent_name), d.color);
+        g.appendChild(bw);
+        var until = performance.now() + 9000, cap = performance.now() + 5 * 60000;
+        return (function wait() {
+          return sleep(1000).then(function () {
+            var x = S.byId[toId], still = working && x && st(x) === "working";
+            if (alive() && (performance.now() < until || (still && performance.now() < cap))) return wait();
+          });
+        })();
+      });
+    }).then(function () {
+      if (!alive()) return;
+      /* 5. opstaan op het sub-bureau en teruglopen */
+      g.classList.remove("busy");
       var ob = g.querySelector(".bub"); if (ob) ob.parentNode.remove();
-      return walk(route.slice().reverse());
+      return playStand(function (f) { subPose("stand", f); }, false).then(function () {
+        if (!alive()) return;
+        subPose("empty");
+        return walk(route.slice().reverse());
+      });
     }).then(function () {
+      /* 6. omdraaien en weer gaan zitten op de eigen stoel */
+      if (!alive()) return;
       g.classList.remove("on");
+      return playStand(function (f) { setOwnPose(fr, "stand", f); }, true);
+    }).then(function () {
+      home(); renderBubbles();
       return sleep(750);
-    }).then(function () { g.remove(); ses.live = false; S.subs = S.subs.filter(function (s) { return s.live; }); });
+    }, function () { home(); }).then(function () { w.remove(); g.remove(); ses.live = false; S.subs = S.subs.filter(function (s) { return s.live; }); });
   }
 
   /* aankomst: een ring in de afdelingskleur die vanuit het brein uitdijt */
