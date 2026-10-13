@@ -40,34 +40,33 @@
 
   /* ---------------------------------------------------------------- menu */
   var NAV = [
-    { id: "handel", label: "Handel", items: [
-      { id: "cockpit", label: "KPI-cockpit", url: "kpi.html", ic: "\u25C9", c: "#00d4ff", kw: "kpi dashboard home start overzicht" },
-      { id: "z-shop",  label: "Shopify",     zone: "shop", ic: "S", c: "#2fd47e", kw: "omzet winst orders onverzonden verkoop marge webshop winkel" },
-      { id: "team",    label: "Team-dashboard", url: "team.html", ic: "T", c: "#2fd47e", kw: "team collega marco ingrid lisette" }
+    { id: "cockpit", label: "Cockpit", items: [
+      { id: "cockpit",  label: "KPI",                   url: "kpi.html",   ic: "\u25C9", c: "#00d4ff", kw: "kpi cockpit dashboard home start overzicht" },
+      { id: "z-shop",   label: "Paneel Shopify",        zone: "shop",      ic: "S", c: "#2fd47e", kw: "omzet winst orders onverzonden verkoop marge webshop winkel" },
+      { id: "z-meta",   label: "Paneel Meta",           zone: "meta",      ic: "M", c: "#ff3f9a", kw: "facebook instagram ads spend mer budget advertenties" },
+      { id: "z-google", label: "Paneel Google",         zone: "google",    ic: "G", c: "#4285f4", kw: "google ads pmax roas cpc conversies" },
+      { id: "z-stats",  label: "Paneel Stats & Social", zone: "stats",     ic: "\u25CF", c: "#00c8ff", kw: "ga4 sessies conversie funnel brevo mail utm kanalen instagram volgers pinterest" },
+      { id: "z-dewi",   label: "Paneel Dewi",           zone: "dewi",      ic: "D", c: "#a37bff", kw: "dewi to-do todo memos stille agents systeem voorstellen" }
     ]},
-    { id: "marketing", label: "Marketing", items: [
-      { id: "z-meta",   label: "Meta Ads",      zone: "meta",   ic: "M", c: "#ff3f9a", kw: "facebook instagram ads spend mer budget advertenties" },
-      { id: "z-google", label: "Google Ads",    zone: "google", ic: "G", c: "#4285f4", kw: "pmax roas cpc conversies" },
-      { id: "z-stats",  label: "Stats & Social", zone: "stats", ic: "\u25CF", c: "#00c8ff", kw: "ga4 sessies conversie funnel brevo mail utm kanalen instagram volgers pinterest" },
-      { id: "comp",     label: "Concurrentie",  pane: "comp", url: "competition.html", ic: "\u2694", c: "#00d4ff", kw: "competition competitor intel" }
-    ]},
-    { id: "studios", label: "Studio's", items: [
+    { id: "studios", label: "Studios", items: [
       { id: "st-social",    label: "Social-studio",    pane: "social",    url: "social-studio.html",    ic: "\u2726", c: "#ff9f40", kw: "social goedkeuring posts reels nieuwsbrief mail studio" },
       { id: "st-meta",      label: "Meta-studio",      pane: "meta",      url: "meta-studio.html",      ic: "M", c: "#ff3f9a", kw: "creatives ads studio" },
       { id: "st-google",    label: "Google-studio",    pane: "google",    url: "google-studio.html",    ic: "G", c: "#4285f4", kw: "pmax studio" },
       { id: "st-pinterest", label: "Pinterest-studio", pane: "pinterest", url: "pinterest-studio.html", ic: "P", c: "#e60023", kw: "pins shop the look trends studio" }
     ]},
-    { id: "systeem", label: "Systeem", items: [
-      { id: "org",           label: "Organisatie",  pane: "org",           url: "organisation.html",  ic: "\u2261", c: "#a37bff", kw: "organigram agents afdelingen alarm" },
-      { id: "office",        label: "Office 3D",    url: "office.html",        ic: "\u25C6", c: "#a37bff", kw: "office kantoor 3d dashboard isometrisch afdelingen agents status tools vloer" },
-      { id: "office2",       label: "Office v2",    url: "office-v2.html",     ic: "\u25C7", c: "#a37bff", kw: "office v2 kantoor brain pijpen bureaus zoom gerenderd isometrisch afdelingen agents" },
-      { id: "agents",        label: "Agents",       pane: "agents",        url: "agents.html",        ic: "\u2699", c: "#a37bff", kw: "pipeline runs" },
+    { id: "views", label: "Views", items: [
+      { id: "office2", label: "Office v2", url: "office-v2.html", ic: "\u25C7", c: "#a37bff", kw: "office v2 kantoor brain pijpen bureaus zoom gerenderd isometrisch afdelingen agents" },
+      { id: "office",  label: "Office 3D", url: "office.html",    ic: "\u25C6", c: "#a37bff", kw: "office kantoor 3d dashboard isometrisch afdelingen agents status tools vloer" },
+      { id: "org",     label: "Org Chart", pane: "org", url: "organisation.html", ic: "\u2261", c: "#a37bff", kw: "organigram organisatie org chart agents afdelingen alarm" }
+    ]},
+    { id: "systeem", label: "System", items: [
+      { id: "agents",        label: "Agents",        pane: "agents",        url: "agents.html",        ic: "\u2699", c: "#a37bff", kw: "pipeline runs" },
       { id: "constellation", label: "Constellation", pane: "constellation", url: "constellation.html", ic: "\u2735", c: "#a37bff", kw: "swarm" },
-      { id: "creds",         label: "Credentials",  pane: "creds",         url: "credentials.html",   ic: "\u26BF", c: "#a37bff", kw: "keys connectors tokens" },
-      { id: "z-dewi",        label: "DEWI-zone",    zone: "dewi",          ic: "D", c: "#a37bff", kw: "to-do todo memos stille agents systeem voorstellen" }
+      { id: "creds",         label: "Credentials",   pane: "creds",         url: "credentials.html",   ic: "\u26BF", c: "#a37bff", kw: "keys connectors tokens" },
+      { id: "comp",          label: "Competition",   pane: "comp",          url: "competition.html",   ic: "\u2694", c: "#00d4ff", kw: "competition competitor concurrentie intel" }
     ]},
     { id: "setup", label: "Setup", items: [
-      { id: "usage", label: "Verbruik tools", url: "usage.html", ic: "%", c: "#3ecf8e", kw: "verbruik kosten plafond limiet quota abonnement n8n executies anthropic api cloudinary credits brevo apify pdfshift" }
+      { id: "usage", label: "Usage", url: "usage.html", ic: "%", c: "#3ecf8e", kw: "usage verbruik kosten plafond limiet quota abonnement n8n executies anthropic api cloudinary credits brevo apify pdfshift" }
     ]}
   ];
   /* extra palet-doelen (geen menu-item): kaarten binnen de cockpit */
