@@ -77,6 +77,10 @@
   Motion v2 (14-10): knop rechtsboven in de kop; tijdens het inzoomen een LIVE-banner linksboven in de vloer
   (afdeling, agent, 'gaat aan het werk' / 'heeft net gedraaid', wat hij doet = begin van last_summary, +N als er
   meer agents van die afdeling bij komen, voortgangsbalk van AUTO_HOLD). Klik op de banner = agent openen.
+  Zwevend paneel (14-10): het rechterpaneel ligt als kaart over de vloer (absolute, 12 px marge, radius 16,
+  glas met blur); de vloer loopt eronder door. sceneInset()/visW() = het zichtbare deel links van het paneel:
+  layout(), boxFor() (fit + inzoomen) en de zoomknoppen rekenen daarmee. Tekstgrootte (--pz) staat nu op
+  .panel > * zodat de kaart zelf niet meeschaalt. Onder 880 px gewoon onder de vloer zoals voorheen.
 -->
 <html lang="nl">
 <head>
@@ -119,7 +123,8 @@
   .metric.zero b{color:var(--dim)}
   .upd{color:var(--dim);font-size:11.5px;font-variant-numeric:tabular-nums;min-width:112px;text-align:right}
 
-  main{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) var(--pw,420px);position:relative}
+  main{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr);position:relative}
+  /* 14-10: het paneel zweeft over de vloer (afgeronde hoeken, glas); de vloer loopt eronder door */
   /* Leesbaarheid paneel (13-10): tekstgrootte (--pz, via zoom) en breedte (--pw) instelbaar, onthouden per browser */
   .pz{display:flex;align-items:center;gap:4px}
   .pz .lb{font:700 10px var(--mono);letter-spacing:.14em;color:var(--dim);text-transform:uppercase;margin-right:4px}
@@ -128,14 +133,14 @@
   .pz button:hover{border-color:var(--cyan);color:var(--cyan)}
   .pz button.big{font-size:16px}
   .pz .pv{font:600 11.5px var(--mono);color:var(--dim);min-width:40px;text-align:center;font-variant-numeric:tabular-nums}
-  .pgrip{position:absolute;top:0;bottom:0;width:10px;right:calc(var(--pw,420px) - 5px);cursor:col-resize;z-index:8;touch-action:none}
+  .pgrip{position:absolute;top:22px;bottom:22px;width:10px;right:calc(var(--pw,420px) + 7px);cursor:col-resize;z-index:8;touch-action:none}
   .pgrip::after{content:"";position:absolute;top:50%;left:3px;width:4px;height:44px;margin-top:-22px;border-radius:2px;background:var(--line);transition:background .12s}
   .pgrip:hover::after,.pgrip.drag::after,.pgrip:focus-visible::after{background:var(--cyan)}
   body.pdrag{cursor:col-resize;user-select:none;-webkit-user-select:none}
   .stage{position:relative;min-width:0;min-height:0;display:flex;flex-direction:column;overflow:hidden}
 
   /* tools-balk ("verbonden met") */
-  .tools{display:flex;align-items:center;gap:9px;flex-wrap:wrap;padding:9px 16px;min-height:56px;border-bottom:1px solid var(--line);position:relative}
+  .tools{display:flex;align-items:center;gap:9px;flex-wrap:wrap;padding:9px calc(var(--pw,420px) + 30px) 9px 16px;min-height:56px;border-bottom:1px solid var(--line);position:relative}
   .tools .lbl{font:700 10px var(--mono);letter-spacing:.16em;color:var(--dim);margin-right:4px;text-transform:uppercase}
   .tools .note{color:var(--dim);font-size:11.5px;margin-left:6px}
   /* Icoonstrip: alleen het beeldmerk. De naam staat in aria-label en verschijnt bij hover. */
@@ -177,10 +182,10 @@
   @keyframes draw{to{stroke-dashoffset:0}}
 
   /* camera-knoppen (rechtsonder; linksonder zit de ☰ van dewi-nav) */
-  .cam{position:absolute;right:14px;bottom:14px;z-index:5;display:flex;flex-direction:column;gap:4px}
+  .cam{position:absolute;right:calc(var(--pw,420px) + 26px);bottom:14px;z-index:5;display:flex;flex-direction:column;gap:4px}
   .cam button{appearance:none;width:32px;height:32px;border-radius:8px;border:1px solid var(--line);background:rgba(7,11,18,.9);color:var(--text);cursor:pointer;font:700 15px var(--mono);line-height:1}
   .cam button:hover{border-color:var(--cyan);color:var(--cyan)}
-  .hint{position:absolute;left:50%;bottom:16px;transform:translateX(-50%);z-index:4;font:11px var(--mono);letter-spacing:.06em;color:var(--dim);
+  .hint{position:absolute;left:calc((100% - var(--pw,420px) - 24px) / 2);bottom:16px;transform:translateX(-50%);z-index:4;font:11px var(--mono);letter-spacing:.06em;color:var(--dim);
     background:rgba(7,11,18,.75);border:1px solid var(--line);border-radius:999px;padding:4px 11px;pointer-events:none;white-space:nowrap;transition:opacity .4s}
   .hint.off{opacity:0}
 
@@ -343,7 +348,7 @@
     background:#0b1220;border:1px solid var(--line);border-radius:8px;padding:5px 9px;font-size:12px;box-shadow:0 6px 18px rgba(0,0,0,.5)}
   #tip b{display:block;font-weight:700}
   #tip span{color:var(--dim);font-size:11.5px;font-family:var(--mono)}
-  #msg{position:absolute;left:16px;right:16px;bottom:16px;z-index:6;display:none;background:#2a1216;border:1px solid var(--red);
+  #msg{position:absolute;left:16px;right:calc(var(--pw,420px) + 28px);bottom:16px;z-index:6;display:none;background:#2a1216;border:1px solid var(--red);
     color:#ffd9d9;border-radius:10px;padding:9px 12px;font-size:12.5px}
   /* Motion-knop in de kop (14-10) */
   .motion{appearance:none;height:28px;display:flex;align-items:center;gap:7px;padding:0 12px;border-radius:999px;cursor:pointer;
@@ -377,7 +382,16 @@
   #loading{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--dim);font-family:var(--mono);letter-spacing:.08em}
 
   /* paneel — terminal-stijl */
-  .panel{--dim:#93abbd;border-left:1px solid var(--line);background:var(--panel);overflow-y:auto;padding:16px 16px 28px;min-height:0;font-family:var(--mono);font-size:13px;zoom:var(--pz,1.15)}
+  .panel{--dim:#93abbd;position:absolute;top:12px;right:12px;bottom:12px;width:var(--pw,420px);z-index:6;
+    background:rgba(11,16,25,.84);-webkit-backdrop-filter:blur(10px) saturate(1.15);backdrop-filter:blur(10px) saturate(1.15);
+    border:1px solid rgba(160,190,220,.14);border-radius:16px;
+    box-shadow:0 18px 50px rgba(0,0,0,.55),0 2px 8px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.05);
+    overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:#24324a transparent;
+    padding:16px 18px 28px;min-height:0;font-family:var(--mono);font-size:13px}
+  .panel > *{zoom:var(--pz,1.15)}   /* tekstgrootte op de inhoud, niet op de zwevende kaart zelf */
+  .panel::-webkit-scrollbar{width:8px}
+  .panel::-webkit-scrollbar-thumb{background:#24324a;border-radius:8px;border:2px solid transparent;background-clip:padding-box}
+  .panel::-webkit-scrollbar-track{background:transparent;margin:14px 0}
   .panel h2{margin:0 0 2px;font:700 16px/1.25 var(--font)}
   .panel h3{margin:20px 0 7px;font:700 10px var(--mono);letter-spacing:.18em;text-transform:uppercase;color:var(--dim);display:flex;align-items:center;gap:8px}
   .panel h3::before{content:"//";color:var(--cyan);opacity:.7}
@@ -441,7 +455,9 @@
     .tools .tool,.tools .tool .ic{width:31px;height:31px}
     .tools .tool .ic .lg{width:20px;height:20px}
     .tools .tool::after{display:none}
-    .panel{border-left:0;border-top:1px solid var(--line);padding-bottom:84px}
+    .panel{position:static;width:auto;border:0;border-top:1px solid var(--line);border-radius:0;box-shadow:none;
+      -webkit-backdrop-filter:none;backdrop-filter:none;background:var(--panel);padding-bottom:84px}
+    .tools{padding-right:16px} .cam{right:14px} .hint{left:50%} #msg{right:16px}
     .pgrip,.pz .pw{display:none}
     .metrics{gap:13px} .upd{display:none}
     .hint{display:none}
@@ -824,7 +840,7 @@
      de straal groeit tot geen platform of kaartje een ander raakt. */
   function layout() {
     S.depts.forEach(planDept);
-    var n = S.depts.length, cw = Math.max(1, elScene.clientWidth), ch = Math.max(1, elScene.clientHeight);
+    var n = S.depts.length, cw = Math.max(1, visW()), ch = Math.max(1, elScene.clientHeight);
     var brain = { x: -BRAIN / 2, y: -BRAIN / 2, w: BRAIN, d: BRAIN };
     var aspect = Math.min(1.9, Math.max(1.1, cw / ch));
     var spans = S.depts.map(function (d) { return Math.pow((d.w + d.d) * HW + 60, 0.8); }), tot = spans.reduce(function (s, v) { return s + v; }, 0);
@@ -1973,13 +1989,22 @@
     S.cam = [vx - (vx - c[0]) * f, vy - (vy - c[1]) * f, nw, nh];
     applyCam();
   }
+  /* 14-10: breedte die het zwevende paneel rechts van de vloer afdekt (0 als het paneel niet zweeft) */
+  function sceneInset() {
+    if (!elPanel || getComputedStyle(elPanel).position !== "absolute") return 0;
+    var a = elScene.getBoundingClientRect(), b = elPanel.getBoundingClientRect();
+    return Math.max(0, Math.min(a.width * 0.6, a.right - b.left + 12));
+  }
+  function visW() { return Math.max(200, elScene.clientWidth - sceneInset()); }
   function boxFor(points, pad) {
     var xs = points.map(function (p) { return p[0]; }), ys = points.map(function (p) { return p[1]; });
     var x0 = Math.min.apply(null, xs) - pad, x1 = Math.max.apply(null, xs) + pad, y0 = Math.min.apply(null, ys) - pad, y1 = Math.max.apply(null, ys) + pad;
     /* aspect gelijk aan de scene zodat "meet" niets afsnijdt */
-    var ar = elScene.clientWidth / Math.max(1, elScene.clientHeight), w = x1 - x0, h = y1 - y0;
+    var cw = Math.max(1, elScene.clientWidth), vw = Math.min(cw, visW());
+    var ar = vw / Math.max(1, elScene.clientHeight), w = x1 - x0, h = y1 - y0;
     if (w / h < ar) { var nw = h * ar; x0 -= (nw - w) / 2; w = nw; } else { var nh = w / ar; y0 -= (nh - h) / 2; h = nh; }
-    return [x0, y0, w, h];
+    /* inhoud in het zichtbare deel links van het paneel; de viewBox loopt door tot onder het paneel */
+    return [x0, y0, w * cw / vw, h];
   }
   function zoomToDept(d, instant) {
     var p = [iso(d.x, d.y, SLAB), iso(d.x + d.w, d.y, SLAB), iso(d.x + d.w, d.y + d.d, 0), iso(d.x, d.y + d.d, 0)];
@@ -2121,7 +2146,7 @@
   elScene.querySelector(".cam").addEventListener("click", function (e) {
     var b = closest(e.target, "button"); if (!b) return;
     userActed();
-    var cw = elScene.clientWidth, ch = elScene.clientHeight, m = b.getAttribute("data-cam");
+    var cw = visW(), ch = elScene.clientHeight, m = b.getAttribute("data-cam");
     if (m === "in") zoomBy(1.35, cw / 2, ch / 2);
     else if (m === "out") zoomBy(1 / 1.35, cw / 2, ch / 2);
     else setCam(S.fitBox, true);
@@ -2536,7 +2561,7 @@
     clearTimeout(rzT);
     rzT = setTimeout(function () {
       if (!S.agents.length) return;
-      var o = S.sceneSize || [1, 1], n = [elScene.clientWidth, elScene.clientHeight];
+      var o = S.sceneSize || [1, 1], n = [visW(), elScene.clientHeight];
       if (Math.abs(n[0] / n[1] - o[0] / o[1]) > 0.08 * (o[0] / o[1])) { layout(); renderFloor(); }
       applyFocus();
     }, 220);
