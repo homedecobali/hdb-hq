@@ -69,6 +69,11 @@
   alleen decoratie en is weg. Keuze vast per afdeling (seed = naam); thema per afdeling via furnPool().
   Meubels dragen data-k (x + y) net als de bureaus; de loper voegt zich daartussen. Looplijn achter = WALK_BACK,
   sub-platforms aan N/W alleen recht voor de doorgang.
+  Motion (14-10): volgcamera. Gaat een agent aan het werk (nieuw 'working' of een nieuwe, niet-lege run sinds
+  de vorige verversing), dan zoomt de camera 10 s in op zijn afdeling en daarna weer uit; meerdere afdelingen
+  één voor één (queueAutoCam / acNext). Wacht 30 s na eigen slepen/zoomen/klikken en doet niets met een
+  selectie open. Knop 'Motion' rechtsonder (aan/uit, toont tijdens het inzoomen de afdeling + 10 s-balkje);
+  keuze in localStorage 'dewi.office2.motion', standaard uit bij reduced motion.
 -->
 <html lang="nl">
 <head>
@@ -337,6 +342,21 @@
   #tip span{color:var(--dim);font-size:11.5px;font-family:var(--mono)}
   #msg{position:absolute;left:16px;right:16px;bottom:16px;z-index:6;display:none;background:#2a1216;border:1px solid var(--red);
     color:#ffd9d9;border-radius:10px;padding:9px 12px;font-size:12.5px}
+  /* Motion-knop (14-10): volgcamera aan/uit; tijdens het inzoomen loopt een balkje van 10 s */
+  .motion{position:absolute;right:56px;bottom:14px;z-index:5;appearance:none;height:32px;display:flex;align-items:center;gap:8px;padding:0 13px;
+    border-radius:999px;border:1px solid var(--line);background:rgba(7,11,18,.9);color:var(--text);cursor:pointer;overflow:hidden;
+    font:700 10.5px var(--mono);letter-spacing:.14em;text-transform:uppercase}
+  .motion:hover{border-color:var(--cyan)}
+  .motion .md{width:8px;height:8px;border-radius:50%;background:var(--grey);flex:none}
+  .motion[aria-pressed="true"] .md{background:var(--green);box-shadow:0 0 8px var(--green)}
+  .motion .ms{color:var(--dim);font-weight:600;letter-spacing:.08em;max-width:190px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .motion.live{border-color:var(--mc,var(--cyan))}
+  .motion.live .md{background:var(--mc,var(--cyan));box-shadow:0 0 9px var(--mc,var(--cyan));animation:pulse 1.2s ease-in-out infinite}
+  .motion.live .ms{color:var(--text)}
+  .motion .mt{position:absolute;left:0;bottom:0;height:2px;width:0;background:var(--mc,var(--cyan))}
+  .motion.live .mt{animation:mtime var(--hold,10s) linear forwards}
+  @keyframes mtime{to{width:100%}}
+  @media (max-width:880px){ .motion{right:54px;padding:0 10px} .motion .ms{max-width:110px} }
   #loading{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--dim);font-family:var(--mono);letter-spacing:.08em}
 
   /* paneel — terminal-stijl */
@@ -410,7 +430,7 @@
     .hint{display:none}
   }
   @media (prefers-reduced-motion:reduce){
-    #floor.intro .dept,#floor.intro .brain,.pipe-flow,.link.live,.brain .halo,.brain .beam,.bub .b-pop,.bub .b-in,.bub .dots circle,.ag .m-glow,.ag.s-error .m-screen,.ag.s-silent .m-screen,#wires path,.cursor::after,.ag .m-code .roll{animation:none}
+    #floor.intro .dept,#floor.intro .brain,.pipe-flow,.link.live,.brain .halo,.brain .beam,.bub .b-pop,.bub .b-in,.bub .dots circle,.ag .m-glow,.ag.s-error .m-screen,.ag.s-silent .m-screen,#wires path,.cursor::after,.motion.live .md,.ag .m-code .roll{animation:none}
     .pcard{transition:none}
     .card:hover .pcard,.card:focus-visible .pcard,.dept.cur .card .pcard{transform:none}
     #wires path{stroke-dashoffset:0}
@@ -488,6 +508,9 @@
           <button type="button" data-cam="out" title="Uitzoomen">−</button>
           <button type="button" data-cam="fit" title="Alles in beeld">⤢</button>
         </div>
+        <button type="button" class="motion" id="motion" aria-pressed="true" title="Motion: zoomt 10 s in op de afdeling waar een agent aan het werk gaat. Klik om aan/uit te zetten.">
+          <span class="md"></span><span>Motion</span><span class="ms" id="motionState">aan</span><span class="mt"></span>
+        </button>
         <div class="hint" id="hint">scroll = zoom · sleep = verschuif · klik = details</div>
       </div>
       <svg id="wires" aria-hidden="true"></svg>
@@ -674,6 +697,8 @@
     var oldById = S.byId || {}, oldDepts = S.depts || [];
     var prevRun = S.prevRun || null; S.prevRun = {};
     agents.forEach(function (a) { S.prevRun[a.agent_id] = a.last_run_at || ""; });
+    var prevSt = S.prevSt || null; S.prevSt = {};
+    agents.forEach(function (a) { S.prevSt[a.agent_id] = st(a); });
     S.agents = agents; S.byId = {}; S.byWf = {};
     agents.forEach(function (a) { S.byId[a.agent_id] = a; S.byWf[a.workflow_name] = a; });
 
@@ -714,6 +739,7 @@
     S.loadedAt = new Date();
     queueBalls(prevRun);
     queueSubs(prevRun);
+    queueAutoCam(prevRun, prevSt);
     renderBubbles();
     renderHeader(); renderTools(); renderPanel(); applyFocus();
     if (S.focus && S.focus.type === "agent") loadRuns(S.byId[S.focus.id]);
@@ -1950,11 +1976,77 @@
     if (d) zoomToDept(d, instant);
   }
 
+  /* ---- Motion / volgcamera (14-10) ------------------------------------------------------------
+     Gaat een agent aan het werk (nu 'working' en de vorige verversing niet, of een nieuwe run sinds de
+     vorige verversing; lege runs tellen niet), dan zoomt de camera in op zijn afdeling, houdt dat
+     AUTO_HOLD vast en zoomt dan weer uit naar het overzicht. Meerdere afdelingen: één voor één, met
+     AUTO_GAP overzicht ertussen. Nooit over de gebruiker heen: na zelf slepen/zoomen/klikken of met
+     een selectie open wacht de camera AUTO_IDLE; ingrijpen tijdens het inzoomen stopt de rondgang
+     (de camera blijft dan waar de gebruiker hem zet). Niet bij een verborgen tab. Aan/uit met de
+     Motion-knop, onthouden per browser (localStorage 'dewi.office2.motion'); standaard uit bij
+     reduced motion. */
+  var AUTO_HOLD = 10000, AUTO_GAP = 3000, AUTO_IDLE = 30000, AUTO_QMAX = 4;
+  var AC = { on: !REDUCED, q: [], busy: false, t: null, lastUser: 0, cur: null };
+  try { var mv = localStorage.getItem("dewi.office2.motion"); if (mv !== null) AC.on = mv === "1"; } catch (e) {}
+  var elMotion = $("motion"), elMotionSt = $("motionState");
+  function motionUi() {
+    elMotion.setAttribute("aria-pressed", AC.on ? "true" : "false");
+    elMotion.classList.toggle("live", !!AC.cur);
+    var d = AC.cur ? deptByName(AC.cur) : null;
+    elMotion.style.setProperty("--mc", d ? d.color : "");
+    elMotion.style.setProperty("--hold", AUTO_HOLD / 1000 + "s");
+    elMotionSt.textContent = AC.cur ? AC.cur : (AC.on ? "aan" : "uit");
+    var mt = elMotion.querySelector(".mt"); if (mt && AC.cur) { mt.style.animation = "none"; void mt.offsetWidth; mt.style.animation = ""; }
+  }
+  function userActed() { AC.lastUser = Date.now(); if (AC.cur || AC.busy) acStop(false); }
+  function acStop(zoomOut) {
+    clearTimeout(AC.t); AC.t = null; AC.q = [];
+    var was = AC.cur; AC.cur = null; AC.busy = false;
+    if (zoomOut && was && !S.focus && S.fitBox) setCam(S.fitBox, true);
+    motionUi();
+  }
+  function acBlocked() { return !AC.on || document.hidden || !!S.focus || Date.now() - AC.lastUser < AUTO_IDLE; }
+  function acNext() {
+    if (AC.busy || !AC.q.length) return;
+    if (acBlocked()) { AC.q = []; return; }
+    var d = deptByName(AC.q.shift()); if (!d) return acNext();
+    AC.busy = true; AC.cur = d.name;
+    zoomToDept(d); motionUi();
+    AC.t = setTimeout(function () {
+      AC.cur = null; motionUi();
+      if (!S.focus && S.fitBox) setCam(S.fitBox, true);
+      AC.t = setTimeout(function () { AC.busy = false; acNext(); }, AUTO_GAP);
+    }, AUTO_HOLD);
+  }
+  function queueAutoCam(prevRun, prevSt) {
+    if (!AC.on || !prevRun) return;                                  /* niet bij de eerste lading */
+    S.agents.filter(function (a) {
+      if (isNoop(a)) return false;
+      var now = st(a) === "working", was = prevSt && prevSt[a.agent_id] === "working";
+      var fresh = !!a.last_run_at && a.last_run_at !== (prevRun[a.agent_id] || "");
+      return !was && (now || fresh);
+    }).sort(function (x, y) {
+      return ((st(y) === "working") - (st(x) === "working")) || (ms(y.last_run_at) - ms(x.last_run_at));
+    }).forEach(function (a) {
+      if (a.dept_name === AC.cur || AC.q.indexOf(a.dept_name) >= 0 || AC.q.length >= AUTO_QMAX) return;
+      AC.q.push(a.dept_name);
+    });
+    acNext();
+  }
+  elMotion.addEventListener("click", function () {
+    AC.on = !AC.on;
+    try { localStorage.setItem("dewi.office2.motion", AC.on ? "1" : "0"); } catch (e) {}
+    if (!AC.on) acStop(true); else motionUi();
+  });
+  document.addEventListener("visibilitychange", function () { if (document.hidden && AC.cur) acStop(true); });
+  motionUi();
+
   /* pan + zoom met de muis/vinger */
   var drag = null;
   elScene.addEventListener("pointerdown", function (e) {
     if (e.button !== 0 && e.pointerType === "mouse") return;
-    if (closest(e.target, ".cam")) return;
+    if (closest(e.target, ".cam,.motion")) return;
+    userActed();
     drag = { x: e.clientX, y: e.clientY, cam: S.cam ? S.cam.slice() : null, moved: false, id: e.pointerId };
   });
   elScene.addEventListener("pointermove", function (e) {
@@ -1980,6 +2072,7 @@
   elScene.addEventListener("pointercancel", endDrag);
   elScene.addEventListener("wheel", function (e) {
     e.preventDefault();
+    userActed();
     var r = elScene.getBoundingClientRect();
     var k = Math.pow(1.0015, -e.deltaY * (e.deltaMode === 1 ? 20 : 1));
     zoomBy(k, e.clientX - r.left, e.clientY - r.top);
@@ -1988,6 +2081,7 @@
   elScene.addEventListener("dblclick", function (e) { if (!closest(e.target, ".ag,.slab,.card")) setCam(S.fitBox, true); });
   elScene.querySelector(".cam").addEventListener("click", function (e) {
     var b = closest(e.target, "button"); if (!b) return;
+    userActed();
     var cw = elScene.clientWidth, ch = elScene.clientHeight, m = b.getAttribute("data-cam");
     if (m === "in") zoomBy(1.35, cw / 2, ch / 2);
     else if (m === "out") zoomBy(1 / 1.35, cw / 2, ch / 2);
@@ -2028,6 +2122,7 @@
 
   /* ----------------------------------------------------------------- focus */
   function setFocus(f, noZoom) {
+    userActed();
     S.focus = f; S.hoverTool = null;
     var u = new URL(location.href);
     if (f && f.type === "agent") u.searchParams.set("agent", f.id); else u.searchParams.delete("agent");
