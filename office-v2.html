@@ -60,6 +60,15 @@
   Leesbaarheid paneel (13-10): rechterpaneel standaard 420 px breed, 13 px tekst x zoom 115 %, lichter --dim.
   Kop: Paneel A− / A+ (90–180 %), ⇔ (420 <-> 600 px), ↺ (standaard). Sleepgreep op de linkerrand van het paneel
   (dubbelklik = standaard, pijltjestoetsen bij focus). Keuze per browser in localStorage 'dewi.office2.panel'.
+  Inrichting (14-10): elke afdeling heeft lage wanden op de twee achterranden (N langs y0, W langs x0, hoogte
+  WALL_H, LED-rand in afdelingskleur) met in het midden een doorgang; de achterstrook is WALL (1,5 cel) breed en
+  de oude props-strook rechts (PROP_LANE) is weg. Tegen de wanden staan meubels en planten (furnish(): boekenkast,
+  locker, dressoir met printer/vaas/mappen, koffiebar, waterkoeler, staande lamp, sanseveria, palm in rotan mand,
+  bolplant, cactus + de sprites plant/archiefkast/serverrek/whiteboard, gespiegeld per wand); aan de wanden hangt
+  decoratie (dashboardscherm, prints, rotan wandbord, prikbord, klok, wandplank). Het vergrootglas (prop-lens) was
+  alleen decoratie en is weg. Keuze vast per afdeling (seed = naam); thema per afdeling via furnPool().
+  Meubels dragen data-k (x + y) net als de bureaus; de loper voegt zich daartussen. Looplijn achter = WALK_BACK,
+  sub-platforms aan N/W alleen recht voor de doorgang.
 -->
 <html lang="nl">
 <head>
@@ -172,7 +181,11 @@
   .ground-tex{opacity:.9}
   .grid{stroke:#0e1521;stroke-width:1}
   .slab-tex{opacity:.85}
-  .prop{opacity:.9;pointer-events:none}
+  .prop{pointer-events:none}
+  /* inrichting (14-10) */
+  .walls,.pp{pointer-events:none}
+  .pshadow{fill:#000;fill-opacity:.3}
+  .wled{fill-opacity:.95}
   .dept{--c:#8aa0b5}
   #floor.intro .dept,#floor.intro .brain{animation:rise .55s cubic-bezier(.2,.7,.2,1) both;animation-delay:calc(var(--i)*55ms)}
   @keyframes rise{from{opacity:0;transform:translateY(18px)}}
@@ -316,7 +329,7 @@
   .ag:focus-visible .hit{stroke:#fff;stroke-width:1;stroke-dasharray:2 2}
   .ag.sel .selring{display:block}
   #floor.has-hl .ag:not(.hl){opacity:.14}
-  #floor.has-hl .dept:not(.hl-d) .slab,#floor.has-hl .dept:not(.hl-d) .card,#floor.has-hl .dept:not(.hl-d) .pipe{opacity:.35}
+  #floor.has-hl .dept:not(.hl-d) .slab,#floor.has-hl .dept:not(.hl-d) .card,#floor.has-hl .dept:not(.hl-d) .pipe,#floor.has-hl .dept:not(.hl-d) .walls,#floor.has-hl .dept:not(.hl-d) .pp{opacity:.35}
 
   #tip{position:absolute;z-index:5;pointer-events:none;display:none;transform:translate(-50%,-100%);white-space:nowrap;
     background:#0b1220;border:1px solid var(--line);border-radius:8px;padding:5px 9px;font-size:12px;box-shadow:0 6px 18px rgba(0,0,0,.5)}
@@ -455,6 +468,12 @@
             <mask id="mScreen" maskContentUnits="objectBoundingBox">
               <image href="office-v2-assets/screen-v3.webp" x="0" y="0" width="1" height="1" preserveAspectRatio="none"/>
             </mask>
+            <!-- inrichting: ronde schaduw voor potten/cilinders en warm lamplicht -->
+            <linearGradient id="gCyl" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0" stop-color="#000" stop-opacity=".38"/><stop offset=".45" stop-color="#000" stop-opacity="0"/>
+              <stop offset=".62" stop-color="#fff" stop-opacity=".16"/><stop offset="1" stop-color="#000" stop-opacity=".42"/>
+            </linearGradient>
+            <radialGradient id="gWarm"><stop offset="0" stop-color="#ffd38a" stop-opacity=".28"/><stop offset="1" stop-color="#ffd38a" stop-opacity="0"/></radialGradient>
             <g id="glowDefs"></g>
           </defs>
           <g id="world"></g>
@@ -495,6 +514,8 @@
   var SLAB = 22;                        /* dikte van een afdelingsplatform */
   var EDGE = Math.sqrt(HW * HW + HH * HH);
   var PAD = 1.0, LANE_GAP = 0.6, MAX_COLS = 6, DEPT_GAP = 1.6;   /* 12-10: eilanden ruim, met looppaden */
+  /* 14-10: achterstrook (N + W) voor wanden en meubels; wandhoogte/-dikte, doorgang, looplijn langs de kasten */
+  var WALL = 1.5, WALL_T = 0.1, WALL_H = 46, DOOR = 1.5, WALK_BACK = 1.05, DOOR_MIN = 3.6;   /* korter dan DOOR_MIN: dichte wand, geen sub-platform aan die kant */
   var BRAIN = 4.6;                      /* zijde van het Brain-blok in cellen */
   var CARD_H = 112;                     /* ruimte die een afdelingspaneel boven het platform inneemt */
 
@@ -508,7 +529,6 @@
   /* levend brein boven het platform (video 600x540): breedte in wereld-eenheden en hoogte van de
      onderrand boven het vloermidden; de hersenstam landt op de lichtpilaar van het platform */
   var LIVE_W = 400, LIVE_H = LIVE_W * 540 / 600, LIVE_LIFT = 85;
-  var PROPS = [["prop-rack",521],["prop-cabinet",371],["prop-plant",361],["prop-board",429],["prop-lens",160]];
   /* Toolkleur + monogram. Merkkleur ter herkenning; géén nagetekend logo.
      Onbekende tool -> grijs tegeltje met de eerste twee letters. */
   var TOOL_META = {
@@ -557,7 +577,6 @@
            : "<b>" + esc(m[1]) + "</b>")
       + "</span>" + (count ? "<i>" + count + "</i>" : "") + "</button>";
   }
-  var PROP_LANE = 1.0;                  /* vrije strook rechts op het platform, alleen voor props */
   var STAGES = ["SCOUT", "COMPILE", "BUILD", "PUBLISH", "REVIEW"];
   var REDUCED = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   var IMG_RE = /https?:\/\/[^\s"'<>)]+?\.(?:png|jpe?g|webp|gif)(?:\?[^\s"'<>)]*)?|https?:\/\/res\.cloudinary\.com\/[^\s"'<>)]+/i;
@@ -730,14 +749,14 @@
       });
     });
     var gutter = maxLabel ? Math.min(3.6, Math.max(1.3, maxLabel * 5.7 / EDGE + 0.55)) : 0;
-    var cols = 0, y = PAD;
+    var cols = 0, y = WALL;
     lanes.forEach(function (l, i) {
       if (i) y += LANE_GAP;
       var n = l.agents.length, rows = Math.ceil(n / MAX_COLS), per = Math.ceil(n / rows);
       l.y0 = y;
       for (var r = 0; r < rows; r++) {
         l.agents.slice(r * per, (r + 1) * per).forEach(function (a, c) {
-          a._lx = PAD + gutter + c * AGENT_DX + AGENT_DX / 2; a._ly = y + AGENT_DY / 2;
+          a._lx = WALL + gutter + c * AGENT_DX + AGENT_DX / 2; a._ly = y + AGENT_DY / 2;
           cols = Math.max(cols, c + 1);
         });
         y += AGENT_DY;
@@ -746,7 +765,7 @@
     });
     d.lanes = lanes; d.gutter = gutter;
     d.labelChars = Math.max(3, Math.floor((gutter - 0.5) * EDGE / 5.7));
-    d.w = Math.max(PAD * 2 + gutter + cols * AGENT_DX + PROP_LANE, 3);
+    d.w = Math.max(WALL + PAD + gutter + cols * AGENT_DX, 3);
     d.d = y + PAD;
   }
   function overlaps(a, b, gap) {
@@ -828,7 +847,7 @@
   var DX0 = -DESK_W * DESK_AX, DY0 = -DESK_H * DESK_AY;
   /* Hoogte waarop het paneel boven de achter-linkerhoek van het dek hangt: zo hoog dat de
      bovenkant van de achterste bureausprite er altijd onder blijft (anders ligt het op de agents). */
-  var CARD_LIFT = Math.max(26, -((PAD + AGENT_DX / 2) + (PAD + AGENT_DY / 2)) * 13 - DY0 + 14);
+  var CARD_LIFT = Math.max(WALL_H + 26, -((WALL + AGENT_DX / 2) + (WALL + AGENT_DY / 2)) * 13 - DY0 + 14);
   /* ---- avatars v3: inkleuren per afdelingskleur x haarkleur, gecachet ---- */
   var HAIR = ["#231c18", "#3a281d", "#5e3f2b", "#8a6240", "#c99b55", "#e3c482", "#8c3a1e", "#9c9c9c", "#d8d8d8"];
   var AV = { ready: false, walk: false, stand: false, cache: {}, img: {} };
@@ -1042,34 +1061,336 @@
       + '<text class="bt" x="' + f1(c[0]) + '" y="' + f1(base + 22) + '">DEWI BRAIN</text>'
       + '<text class="bs" id="brainSub" x="' + f1(c[0]) + '" y="' + f1(base + 34) + '"></text>';
   }
-  /* Twee vaste props per afdeling, gekozen op de naam zodat ze niet rondspringen. */
   function hash(s) { var h = 0; for (var i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0; return h; }
-  /* Props staan langs de randen van het platform en worden alleen geplaatst waar ze op het scherm
-     geen enkel bureau raken; ze krijgen dezelfde dieptesleutel als de agents, anders tekenen ze
-     over de monitoren heen. Past er niets, dan krijgt die afdeling geen prop. */
-  function propList(d) {
-    var out = [], w = 30, M = 4;
-    if (d.d < 1.6) return out;
-    var boxes = d.agents.map(function (a) {
-      return [a._p[0] + DX0 - M, a._p[1] + DY0 - M, a._p[0] + DX0 + DESK_W + M, a._p[1] + DY0 + DESK_H + M];
-    });
-    var cand = [], i, t;
-    for (t = 0.18; t <= 0.85; t += 0.16) cand.push([d.x + d.w - PAD - PROP_LANE / 2, d.y + PAD + t * (d.d - PAD * 2)]);   /* rechterrand */
-    for (t = 0.15; t <= 0.9; t += 0.2) cand.push([d.x + PAD + t * (d.w - PAD * 2), d.y + PAD * 0.45]);                     /* achterrand */
-    for (t = 0.15; t <= 0.9; t += 0.2) cand.push([d.x + PAD + t * (d.w - PAD * 2), d.y + d.d - PAD * 0.45]);               /* voorrand */
-    var hsh = hash(d.name), used = [];
-    for (i = 0; i < cand.length && out.length < 2; i++) {
-      var p = PROPS[((hsh >>> (out.length * 5 + 1)) + out.length * 3) % PROPS.length], hh = w * p[1] / 256;
-      var q = iso(cand[i][0], cand[i][1], SLAB);
-      var r = [q[0] - w / 2, q[1] - hh * 0.88, q[0] + w / 2, q[1] + hh * 0.12];
-      var clash = boxes.concat(used).some(function (b) { return r[0] < b[2] && b[0] < r[2] && r[1] < b[3] && b[1] < r[3]; });
-      if (clash) continue;
-      used.push([r[0] - 10, r[1] - 10, r[2] + 10, r[3] + 10]);
-      out.push({ k: (cand[i][0] - d.x) + (cand[i][1] - d.y),
-        h: '<image class="prop" href="' + ASSETS + p[0] + '.webp" x="' + f1(r[0]) + '" y="' + f1(r[1])
-           + '" width="' + w + '" height="' + f1(hh) + '" preserveAspectRatio="none"/>' });
+  /* ---- Inrichting (14-10): wanden + meubels en planten langs de wanden ------------------------------
+     Elke afdeling krijgt twee lage wanden op de achterranden (N = langs y0, W = langs x0) met in het
+     midden een doorgang (daar loopt een agent doorheen naar een sub-platform). Tegen die wanden staan
+     kasten, planten en kantoorspullen in de achterstrook (WALL breed); aan de wanden hangt decoratie.
+     Alles staat in diepte (x + y) tussen de bureaus, dus een bureau ervoor dekt een kast af, nooit
+     andersom. De inrichting ligt per afdeling vast (seed = naam), springt dus niet rond bij verversen.
+     Wandframe: u = positie langs de wand in cellen (links -> rechts op het scherm), s = afstand tot de
+     wand, z in px. Getekend in pure SVG; alleen plant/archiefkast/serverrek/whiteboard zijn sprites. */
+  function rng(seed) {
+    var a = seed >>> 0;
+    return function () { a = (a + 0x6D2B79F5) >>> 0; var t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+  }
+  function shade(hex, f) {
+    var c = hexRgb(hex);
+    return "rgb(" + c.map(function (v) { return Math.max(0, Math.min(255, Math.round(f > 1 ? v + (255 - v) * (f - 1) : v * f))); }).join(",") + ")";
+  }
+  function mix(a, b, t) { var p = hexRgb(a), q = hexRgb(b); return "#" + p.map(function (v, i) { return ("0" + Math.round(v * t + q[i] * (1 - t)).toString(16)).slice(-2); }).join(""); }
+  function wallFrame(d, side) {
+    if (side === "N") return { side: "N", L: d.w, w: function (u, s) { return [d.x + u, d.y + WALL_T + s]; }, uv: [HW, HH] };
+    return { side: "W", L: d.d, w: function (u, s) { return [d.x + WALL_T + s, d.y + d.d - u]; }, uv: [HW, -HH] };
+  }
+  /* blok in het wandframe: voorvlak (+y), zijvlak (+x) en bovenvlak, schaduw op kleur */
+  function wbox(F, u0, u1, s0, s1, z, h, col) {
+    var p = F.w(u0, s0), q = F.w(u1, s1);
+    var xa = Math.min(p[0], q[0]), xb = Math.max(p[0], q[0]), ya = Math.min(p[1], q[1]), yb = Math.max(p[1], q[1]);
+    return '<polygon fill="' + shade(col, 0.66) + '" points="' + pts([iso(xa, yb, z + h), iso(xb, yb, z + h), iso(xb, yb, z), iso(xa, yb, z)]) + '"/>'
+      + '<polygon fill="' + shade(col, 0.9) + '" points="' + pts([iso(xb, ya, z + h), iso(xb, yb, z + h), iso(xb, yb, z), iso(xb, ya, z)]) + '"/>'
+      + '<polygon fill="' + shade(col, 1.16) + '" points="' + pts([iso(xa, ya, z + h), iso(xb, ya, z + h), iso(xb, yb, z + h), iso(xa, yb, z + h)]) + '"/>';
+  }
+  /* tekenvlak op het voorvlak (s) vanaf u0: lokaal x = cellen langs de wand, y = px omhoog */
+  function face(F, u0, s, z) {
+    var o = iso(F.w(u0, s)[0], F.w(u0, s)[1], z);
+    return '<g transform="matrix(' + F.uv[0] + "," + F.uv[1] + ",0,-1," + f1(o[0]) + "," + f1(o[1]) + ')">';
+  }
+  function rc(x, y, w, h, fill, extra) {
+    return '<rect x="' + x.toFixed(3) + '" y="' + y.toFixed(2) + '" width="' + Math.max(0, w).toFixed(3) + '" height="' + Math.max(0, h).toFixed(2) + '" fill="' + fill + '"' + (extra || "") + "/>";
+  }
+  function el(cx, cy, rx, ry, fill, extra) {
+    return '<ellipse cx="' + cx.toFixed(3) + '" cy="' + cy.toFixed(2) + '" rx="' + rx.toFixed(3) + '" ry="' + ry.toFixed(2) + '" fill="' + fill + '"' + (extra || "") + "/>";
+  }
+  /* pot / cilinder op schermpunt p (onderkant), van straal r0 naar r1, hoogte h */
+  function pot(p, r0, r1, h, col) {
+    var x = p[0], y = p[1], body = pts([[x - r0, y], [x - r1, y - h], [x + r1, y - h], [x + r0, y]]);
+    return '<ellipse cx="' + f1(x) + '" cy="' + f1(y) + '" rx="' + f1(r0) + '" ry="' + f1(r0 / 2) + '" fill="' + shade(col, 0.62) + '"/>'
+      + '<polygon fill="' + col + '" points="' + body + '"/><polygon fill="url(#gCyl)" points="' + body + '"/>'
+      + '<ellipse cx="' + f1(x) + '" cy="' + f1(y - h) + '" rx="' + f1(r1) + '" ry="' + f1(r1 / 2) + '" fill="' + shade(col, 1.12) + '"/>'
+      + '<ellipse cx="' + f1(x) + '" cy="' + f1(y - h + 0.6) + '" rx="' + f1(r1 * 0.8) + '" ry="' + f1(r1 * 0.38) + '" fill="#2a1f17"/>';
+  }
+  function leaf(x, y, h, lean, w, col) {
+    return '<path fill="' + col + '" d="M' + f1(x - w) + "," + f1(y) + " Q" + f1(x - w + lean * 0.35) + "," + f1(y - h * 0.62) + " " + f1(x + lean) + "," + f1(y - h)
+      + " Q" + f1(x + w + lean * 0.35) + "," + f1(y - h * 0.62) + " " + f1(x + w) + "," + f1(y) + 'Z"/>';
+  }
+  var BOOK = ["#b4533c", "#d39b3a", "#3f7d6e", "#2f5d8a", "#7b5a9e", "#e6dcc4", "#5b6b7a", "#9a3f4f", "#4f8a5b", "#c7b48a", "#2b2f36"];
+  var LEAF = ["#3f8a45", "#2f6f3a", "#58a04f", "#3b7d4c", "#6aa851"];
+  var WOOD = ["#6b4a33", "#4a3426", "#8a6a4a", "#3a2c24"];
+  var POTC = ["#d9d4cc", "#3a3f47", "#b5714e", "#c9b79a", "#5c6f7d"];
+  /* meubels: w langs de wand (cellen), d diepte (cellen), h hoogte (px); lo = laag, er past wanddecor boven */
+  var FURN = {
+    bookcase: { w: 1.1, d: 0.42, h: 64 }, locker: { w: 0.8, d: 0.45, h: 68 }, sideboard: { w: 1.4, d: 0.42, h: 19, lo: 1 },
+    coffee: { w: 1.2, d: 0.48, h: 23, lo: 1 }, cooler: { w: 0.45, d: 0.42, h: 44 }, lamp: { w: 0.45, d: 0.42, h: 60 },
+    snake: { w: 0.5, d: 0.45, h: 40, pl: 1 }, palm: { w: 0.8, d: 0.62, h: 60, pl: 1 }, bush: { w: 0.55, d: 0.5, h: 28, lo: 1, pl: 1 },
+    cactus: { w: 0.42, d: 0.4, h: 26, lo: 1, pl: 1 }, plant: { w: 0.62, d: 0.55, h: 48, img: "prop-plant", iw: 36, ar: 361 / 256, pl: 1 },
+    cabinet: { w: 0.72, d: 0.5, h: 44, img: "prop-cabinet", iw: 33, ar: 371 / 256, nat: "W" },
+    rack: { w: 0.62, d: 0.55, h: 60, img: "prop-rack", iw: 30, ar: 521 / 256, nat: "W" },
+    board: { w: 1.0, d: 0.36, h: 58, img: "prop-board", iw: 36, ar: 429 / 256, nat: "N" }
+  };
+  var PLANTS = ["plant", "palm", "snake", "bush", "cactus", "plant", "palm"];
+  function furnPool(name) {
+    var n = String(name).toUpperCase(), p = ["bookcase", "bookcase", "locker", "sideboard", "cabinet", "cabinet", "cooler", "lamp", "coffee", "board"];
+    if (/PLATFORM|DATA|OFFICE/.test(n)) p.push("rack", "rack", "locker", "cabinet");
+    if (/MARKETING|SOCIAL|PINTEREST|META|GOOGLE/.test(n)) p.push("board", "lamp", "sideboard");
+    if (/MANAGEMENT/.test(n)) p.push("bookcase", "coffee", "sideboard");
+    if (/CATALOG|CONTENT/.test(n)) p.push("bookcase", "cabinet", "sideboard");
+    return p;
+  }
+
+  function drawFurn(F, kind, u, R, dc) {
+    var it = FURN[kind], W = it.w, D = it.d, H = it.h, Z = SLAB, h = "", i, x;
+    var mid = F.w(u + W / 2, D / 2), c = iso(mid[0], mid[1], Z);
+    if (it.img) {
+      var iw = it.iw * (0.92 + R() * 0.16), ih = iw * it.ar, flip = it.nat && it.nat !== F.side;
+      var bx = c[0] - iw / 2, by = c[1] + iw * 0.22 - ih;
+      return '<ellipse class="pshadow" cx="' + f1(c[0]) + '" cy="' + f1(c[1] + 2) + '" rx="' + f1(iw * 0.5) + '" ry="' + f1(iw * 0.22) + '"/>'
+        + '<image class="prop" href="' + ASSETS + it.img + '.webp" x="' + f1(bx) + '" y="' + f1(by) + '" width="' + f1(iw) + '" height="' + f1(ih) + '" preserveAspectRatio="none"'
+        + (flip ? ' transform="translate(' + f1(2 * c[0]) + ',0) scale(-1,1)"' : "") + "/>";
     }
-    return out;
+    var sh = '<ellipse class="pshadow" cx="' + f1(c[0]) + '" cy="' + f1(c[1] + 2) + '" rx="' + f1((W + D) * HW * 0.5) + '" ry="' + f1((W + D) * HH * 0.5) + '"/>';
+    if (kind === "bookcase") {
+      var bc = R() < 0.6 ? WOOD[(R() * WOOD.length) | 0] : (R() < 0.5 ? "#d7dadc" : "#2c333d");
+      h = sh + wbox(F, u, u + W, 0, D, Z, H, bc) + face(F, u, D, Z);
+      var n = 4, ih2 = (H - 5) / n;
+      for (i = 0; i < n; i++) {
+        var y0 = 3 + i * ih2, hh = ih2 - 2.4;
+        h += rc(0.06, y0, W - 0.12, hh, shade(bc, 0.28));
+        x = 0.09;
+        while (x < W - 0.1) {
+          var r = R();
+          if (r < 0.08 && x < W - 0.35) { h += rc(x, y0, 0.22, hh * 0.45, shade(POTC[(R() * POTC.length) | 0], 0.9)) + el(x + 0.11, y0 + hh * 0.62, 0.11, hh * 0.3, LEAF[(R() * LEAF.length) | 0]); x += 0.27; continue; }
+          if (r < 0.16 && x < W - 0.3) { h += rc(x, y0, 0.22, hh * 0.38, R() < 0.5 ? "#c9b79a" : "#8c9aa6"); x += 0.25; continue; }
+          if (r < 0.24) { x += 0.1 + R() * 0.12; continue; }
+          var bw = 0.075 + R() * 0.05, bh = hh * (0.6 + R() * 0.36);
+          if (x + bw > W - 0.08) break;
+          var bcol = BOOK[(R() * BOOK.length) | 0];
+          h += rc(x, y0, bw, bh, bcol) + rc(x, y0 + bh * 0.7, bw, 0.9, shade(bcol, 1.35));
+          x += bw + 0.012;
+        }
+      }
+      h += "</g>";
+      if (R() < 0.55) { var tp = F.w(u + W * (0.25 + R() * 0.5), D / 2); h += smallPlant(iso(tp[0], tp[1], Z + H), R, 0.8); }
+      return h;
+    }
+    if (kind === "locker") {
+      var lc = R() < 0.5 ? "#4b5a6b" : (R() < 0.5 ? "#6b7f73" : "#8a8f96");
+      h = sh + wbox(F, u, u + W, 0, D, Z, H, lc) + face(F, u, D, Z);
+      h += rc(W / 2 - 0.012, 1, 0.024, H - 2, shade(lc, 0.4));
+      for (i = 0; i < 2; i++) {
+        var dx = 0.07 + i * W / 2;
+        for (var v = 0; v < 4; v++) h += rc(dx + 0.04, H - 9 - v * 3, W / 2 - 0.22, 1.1, shade(lc, 0.45));
+        h += rc(i ? dx + 0.03 : W / 2 - 0.11, H * 0.5, 0.04, 7, shade(lc, 1.5));
+        h += rc(dx + 0.06, 6, W / 2 - 0.2, 7, shade(lc, 0.8));   /* naamkaartje */
+      }
+      return h + "</g>";
+    }
+    if (kind === "sideboard" || kind === "coffee") {
+      var sc = kind === "coffee" ? "#2f3742" : WOOD[(R() * WOOD.length) | 0];
+      h = sh + wbox(F, u, u + W, 0, D, Z, H, sc) + wbox(F, u - 0.02, u + W + 0.02, -0.01, D + 0.03, Z + H, 2, kind === "coffee" ? "#c9c2b6" : mix(sc, "#ffffff", 0.8));
+      h += face(F, u, D, Z);
+      var np = kind === "coffee" ? 2 : 3, pw = (W - 0.12) / np;
+      for (i = 0; i < np; i++) {
+        h += rc(0.06 + i * pw + 0.02, 2, pw - 0.04, H - 4, shade(sc, 0.82));
+        h += rc(0.06 + i * pw + pw / 2 - 0.07, H - 6, 0.14, 1.2, "#c8ccd1");
+      }
+      h += "</g>";
+      var top = Z + H + 2;
+      if (kind === "coffee") {
+        h += wbox(F, u + 0.12, u + 0.48, 0.06, 0.36, top, 16, "#9aa3ad");
+        h += face(F, u + 0.12, 0.36, top) + rc(0.08, 3, 0.2, 7, "#1d232b") + rc(0.13, 10.5, 0.1, 2, "#ff6a3d") + "</g>";
+        var cp = F.w(u + 0.3, 0.42); h += pot(iso(cp[0], cp[1], top), 2.2, 2.4, 3, "#f1ece4");
+        for (i = 0; i < 3; i++) { var cq = F.w(u + 0.68 + i * 0.13, 0.26 + (i % 2) * 0.1); h += pot(iso(cq[0], cq[1], top), 2, 2.3, 3.5, ["#f1ece4", "#d9a441", "#3f7d6e"][i]); }
+        return h;
+      }
+      var acc = R();
+      if (acc < 0.3) {          /* printer */
+        h += wbox(F, u + 0.2, u + 0.72, 0.05, 0.37, top, 8, "#cfd5db") + face(F, u + 0.2, 0.37, top) + rc(0.08, 4.2, 0.36, 1.4, "#3a4047") + "</g>"
+          + wbox(F, u + 0.27, u + 0.62, 0.1, 0.3, top + 8, 1.2, "#ffffff");
+      } else if (acc < 0.6) {   /* vaas met takken */
+        var vp = F.w(u + 0.35, D / 2); h += pot(iso(vp[0], vp[1], top), 2.6, 3.3, 10, POTC[(R() * POTC.length) | 0]);
+        var vq = iso(vp[0], vp[1], top + 10);
+        for (i = 0; i < 4; i++) h += leaf(vq[0] + (i - 1.5) * 1.6, vq[1], 10 + R() * 8, (i - 1.5) * 3, 1.2, LEAF[(R() * LEAF.length) | 0]);
+      } else {                  /* stapel mappen + bureaulamp */
+        for (i = 0; i < 3; i++) h += wbox(F, u + 0.18, u + 0.6, 0.06, 0.36, top + i * 2.4, 2.2, BOOK[(R() * BOOK.length) | 0]);
+        var lp = F.w(u + 1.05, 0.2), lq = iso(lp[0], lp[1], top);
+        h += el(lq[0], lq[1], 3, 1.4, "#22272e") + rc(lq[0] - 0.6, lq[1] - 12, 1.2, 12, "#3a4048")
+          + '<polygon fill="#f3d9a4" points="' + pts([[lq[0] - 4, lq[1] - 10], [lq[0] - 2, lq[1] - 15], [lq[0] + 2, lq[1] - 15], [lq[0] + 4, lq[1] - 10]]) + '"/>';
+      }
+      if (R() < 0.5) { var sp = F.w(u + W - 0.25, D / 2); h += smallPlant(iso(sp[0], sp[1], top), R, 0.85); }
+      return h;
+    }
+    if (kind === "cooler") {
+      h = sh + wbox(F, u + 0.04, u + 0.41, 0.03, 0.4, Z, 26, "#dfe5ea") + face(F, u + 0.04, 0.4, Z)
+        + rc(0.08, 15, 0.2, 5, "#9aa6b1") + rc(0.1, 16, 0.04, 2.6, "#3fa3ff") + rc(0.2, 16, 0.04, 2.6, "#ff5d5d") + "</g>";
+      var bt = iso(mid[0], mid[1], Z + 26);
+      h += pot(bt, 6.2, 6.2, 16, "#7cc8ff").replace(/fill="#2a1f17"/, 'fill="#4aa6e8"') + '<ellipse cx="' + f1(bt[0]) + '" cy="' + f1(bt[1] - 8) + '" rx="2" ry="6" fill="#fff" fill-opacity=".35"/>';
+      return h;
+    }
+    if (kind === "lamp") {
+      var g = iso(mid[0], mid[1], Z);
+      return '<ellipse cx="' + f1(g[0]) + '" cy="' + f1(g[1] - 40) + '" rx="26" ry="30" fill="url(#gWarm)"/>' + sh
+        + el(g[0], g[1], 6, 2.6, "#1f242b") + rc(g[0] - 0.8, g[1] - 50, 1.6, 50, "#2e343c")
+        + '<polygon fill="#f0d39b" points="' + pts([[g[0] - 9, g[1] - 44], [g[0] - 5.5, g[1] - 60], [g[0] + 5.5, g[1] - 60], [g[0] + 9, g[1] - 44]]) + '"/>'
+        + '<polygon fill="url(#gCyl)" points="' + pts([[g[0] - 9, g[1] - 44], [g[0] - 5.5, g[1] - 60], [g[0] + 5.5, g[1] - 60], [g[0] + 9, g[1] - 44]]) + '"/>'
+        + el(g[0], g[1] - 44, 9, 3, "#ffe7b0");
+    }
+    /* planten */
+    var b = iso(mid[0], mid[1], Z);
+    if (kind === "snake") {
+      h = sh + pot(b, 6, 7.5, 12, POTC[(R() * POTC.length) | 0]);
+      for (i = 0; i < 7; i++) {
+        var lx = b[0] + (i - 3) * 1.7, lh = 18 + R() * 16, ln = (i - 3) * 1.6 + (R() - 0.5) * 3, lc2 = LEAF[(R() * LEAF.length) | 0];
+        h += leaf(lx, b[1] - 11, lh, ln, 2.1, "#c9c46a") + leaf(lx, b[1] - 11, lh - 1.5, ln, 1.5, lc2);
+      }
+      return h;
+    }
+    if (kind === "palm") {          /* palm in rotan mand — knipoog naar Bali */
+      h = sh + pot(b, 8, 9.5, 14, "#b08850");
+      for (i = 0; i < 4; i++) h += '<path fill="none" stroke="#7a5a32" stroke-width=".8" d="M' + f1(b[0] - 9.2 + i * 0.4) + "," + f1(b[1] - 3 - i * 3) + " Q" + f1(b[0]) + "," + f1(b[1] + 1.5 - i * 3) + " " + f1(b[0] + 9.2 - i * 0.4) + "," + f1(b[1] - 3 - i * 3) + '"/>';
+      var tt = [b[0], b[1] - 14];
+      for (i = 0; i < 8; i++) {
+        var a = -Math.PI / 2 + (i - 3.5) * 0.38 + (R() - 0.5) * 0.2, L = 26 + R() * 14;
+        var ex = tt[0] + Math.cos(a) * L * 0.75, ey = tt[1] + Math.sin(a) * L, cx = tt[0] + Math.cos(a) * L * 0.35, cy = tt[1] + Math.sin(a) * L * 0.9 - 6;
+        var fc = LEAF[(R() * LEAF.length) | 0];
+        h += '<path fill="none" stroke="' + shade(fc, 0.7) + '" stroke-width="1" d="M' + f1(tt[0]) + "," + f1(tt[1]) + " Q" + f1(cx) + "," + f1(cy) + " " + f1(ex) + "," + f1(ey) + '"/>';
+        for (var k = 1; k <= 6; k++) {
+          var t = k / 7, px = (1 - t) * (1 - t) * tt[0] + 2 * (1 - t) * t * cx + t * t * ex, py = (1 - t) * (1 - t) * tt[1] + 2 * (1 - t) * t * cy + t * t * ey;
+          var ll = 7 * (1 - t * 0.6);
+          h += '<path fill="' + fc + '" d="M' + f1(px) + "," + f1(py) + " l" + f1(-ll * 0.5) + "," + f1(ll * 0.7) + " l1.4,-0.4Z M" + f1(px) + "," + f1(py) + " l" + f1(ll * 0.55) + "," + f1(ll * 0.65) + ' l-1.4,-0.2Z"/>';
+        }
+      }
+      return h;
+    }
+    if (kind === "bush") {
+      h = sh + wbox(F, u + 0.08, u + 0.47, 0.06, 0.45, Z, 11, POTC[(R() * POTC.length) | 0]);
+      var bb = iso(mid[0], mid[1], Z + 11);
+      return h + el(bb[0], bb[1] - 7, 9.5, 8.5, "#2f6f3a") + el(bb[0] - 3, bb[1] - 9, 6, 5.5, "#3f8a45") + el(bb[0] + 3, bb[1] - 10.5, 5, 4.5, "#58a04f") + el(bb[0] - 1, bb[1] - 13.5, 3.2, 2.6, "#6aa851");
+    }
+    if (kind === "cactus") {
+      h = sh + pot(b, 5, 6, 9, POTC[(R() * POTC.length) | 0]);
+      var cb = [b[0], b[1] - 8];
+      return h + rc(cb[0] - 2.6, cb[1] - 17, 5.2, 17, "#4f8a5b", ' rx="2.6"') + rc(cb[0] + 2, cb[1] - 11, 4, 2.4, "#4f8a5b") + rc(cb[0] + 4, cb[1] - 16, 2.4, 7, "#4f8a5b", ' rx="1.2"')
+        + rc(cb[0] - 6, cb[1] - 9, 4, 2.2, "#3f7d4c") + rc(cb[0] - 6.2, cb[1] - 13, 2.2, 6, "#3f7d4c", ' rx="1.1"') + rc(cb[0] - 0.6, cb[1] - 17, 1.2, 16, "#6aa851", ' fill-opacity=".5"')
+        + (R() < 0.5 ? el(cb[0], cb[1] - 17.5, 1.8, 1.3, "#ff7aa8") : "");
+    }
+    return "";
+  }
+  function smallPlant(p, R, s) {
+    s = s || 1;
+    var h = pot(p, 3.2 * s, 3.8 * s, 6 * s, POTC[(R() * POTC.length) | 0]), q = [p[0], p[1] - 6 * s];
+    for (var i = 0; i < 5; i++) h += leaf(q[0] + (i - 2) * 1.1 * s, q[1], (6 + R() * 6) * s, (i - 2) * 2.2 * s, 1.5 * s, LEAF[(R() * LEAF.length) | 0]);
+    return h;
+  }
+  /* wanddecoratie op het wandvlak; lokaal x in cellen, y in px boven de vloer van het platform */
+  var DECOR = { screen: 1.0, art: 0.6, rattan: 0.55, cork: 0.9, clock: 0.36, shelf: 0.85, art2: 0.45 };
+  function drawDecor(F, kind, u, R, dc, low) {
+    var W = DECOR[kind], h = face(F, u, 0.004, SLAB), z = low ? low + 4 : 16 + R() * 5, k = 1 / EDGE;
+    if (kind === "screen") {
+      h += rc(0, z, W, 18, "#0b0f16") + rc(0.04, z + 1.4, W - 0.08, 15.2, mix(dc, "#0b1220", 0.16));
+      for (var i = 0; i < 6; i++) { var bh = 3 + R() * 10; h += rc(0.1 + i * 0.13, z + 3, 0.08, bh, dc, ' fill-opacity="' + (0.55 + R() * 0.4).toFixed(2) + '"'); }
+      h += rc(0.04, z + 14.2, W - 0.08, 1.2, dc, ' fill-opacity=".9"');
+    } else if (kind === "art" || kind === "art2") {
+      var fr = R() < 0.5 ? "#e8e2d6" : "#20242b", sky = ["#f6a96b", "#7cc4d8", "#e7c27a", "#c98bb3"][(R() * 4) | 0];
+      h += rc(0, z, W, 17, fr) + rc(0.05, z + 1.6, W - 0.1, 13.8, sky) + rc(0.05, z + 1.6, W - 0.1, 5, shade(sky, 0.7));
+      h += '<polygon fill="' + shade(sky, 0.45) + '" points="' + [[0.05, z + 1.6], [W * 0.38, z + 11], [W * 0.62, z + 6.5], [W - 0.05, z + 1.6]].map(function (p) { return p[0].toFixed(3) + "," + p[1].toFixed(2); }).join(" ") + '"/>';
+      h += el(W * 0.7, z + 11.5, 1.8 * k, 1.8, "#fff4d6", ' fill-opacity=".9"');
+    } else if (kind === "rattan") {
+      var cx = W / 2, cy = z + 9;
+      for (var r = 9; r > 1; r -= 1.6) h += el(cx, cy, r * k, r, r % 3.2 < 1.6 ? "#c8a46a" : "#a7814c");
+      h += el(cx, cy, 1.4 * k, 1.4, "#7a5a32");
+    } else if (kind === "cork") {
+      h += rc(0, z, W, 17, "#5a4632") + rc(0.035, z + 1.2, W - 0.07, 14.6, "#a77d4f");
+      var nc = ["#ffe066", "#ff9ec4", "#8ce0ff", "#a7f3a0", "#ffffff"];
+      for (var j = 0; j < 7; j++) { var nx = 0.07 + R() * (W - 0.28), ny = z + 2.5 + R() * 8; h += rc(nx, ny, 0.16, 4.6, nc[(R() * nc.length) | 0]) + el(nx + 0.08, ny + 4, 0.8 * k, 0.8, "#d33"); }
+      h += rc(0.12, z + 9.5, W - 0.3, 0.5, dc, ' fill-opacity=".8"');
+    } else if (kind === "clock") {
+      var ccx = W / 2, ccy = z + 10;
+      h += el(ccx, ccy, 7 * k, 7, "#20242b") + el(ccx, ccy, 6 * k, 6, "#f4f1ea") + rc(ccx - 0.4 * k, ccy, 0.8 * k, 4.8, "#20242b") + rc(ccx, ccy - 0.4, 3.5 * k, 0.8, "#20242b") + el(ccx, ccy, 0.8 * k, 0.8, dc);
+    } else if (kind === "shelf") {
+      var sz = z + 6;
+      h += rc(0, sz, W, 1.6, "#6b4a33");
+      var x = 0.05;
+      while (x < W - 0.12) { var bw = 0.07 + R() * 0.04, bh2 = 7 + R() * 4; if (R() < 0.18) { x += 0.12; continue; } h += rc(x, sz + 1.6, bw, bh2, BOOK[(R() * BOOK.length) | 0]); x += bw + 0.01; if (x > W * 0.6) break; }
+      h += rc(W - 0.26, sz + 1.6, 0.18, 4, POTC[(R() * POTC.length) | 0]) + el(W - 0.17, sz + 8, 0.12, 4, LEAF[(R() * LEAF.length) | 0]);
+    }
+    return h + "</g>";
+  }
+  /* wandsegment in het frame van u0 tot u1 */
+  function wallSeg(F, u0, u1, d) {
+    if (u1 - u0 < 0.05) return "";
+    var base = mix(d.color || "#8aa0b5", "#141c29", 0.14);
+    var h = wbox(F, u0, u1, -WALL_T, 0, SLAB, WALL_H, base) + face(F, u0, 0.002, SLAB);
+    h += rc(0, WALL_H - 13, u1 - u0, 10.5, d.color, ' fill-opacity=".07"');                      /* glasstrook */
+    for (var x = Math.ceil(u0) - u0; x < u1 - u0; x += 1) h += rc(x, 0, 0.02, WALL_H, "#000", ' fill-opacity=".28"');   /* naden */
+    h += rc(0, WALL_H - 2.4, u1 - u0, 1.3, d.color, ' class="wled"') + rc(0, 0, u1 - u0, 2.2, "#000", ' fill-opacity=".35"') + "</g>";
+    return h;
+  }
+  /* alles voor één afdeling: wanden (los) en meubels (met dieptesleutel k) */
+  function furnish(d) {
+    var R = rng(hash(d.name + "|inrichting")), walls = "", items = [], pool = furnPool(d.name), last = "", cnt = {};
+    var labels = d.lanes.filter(function (l) { return l.name; }).map(function (l) { return d.y + l.y0 + 0.62; });
+    ["W", "N"].forEach(function (side) {
+      var F = wallFrame(d, side), L = F.L, dm = L / 2, door = L >= DOOR_MIN, d0 = door ? dm - DOOR / 2 : dm, d1 = door ? dm + DOOR / 2 : dm;
+      var start = side === "N" ? WALL_T : 0, end = side === "N" ? L : L - WALL_T;
+      walls += wallSeg(F, start, d0, d) + wallSeg(F, d1, end, d);
+      /* deurpost-accenten */
+      (door ? [d0, d1] : []).forEach(function (u) { walls += wbox(F, u - 0.05, u + 0.05, -WALL_T - 0.02, 0.03, SLAB, WALL_H + 2, mix(d.color || "#8aa0b5", "#1b2433", 0.3)); });
+      /* meubels langs de wand */
+      var segs = door ? [[0.12, d0 - 0.1], [d1 + 0.1, side === "W" ? L - 0.8 : L - 0.12]] : [[0.12, side === "W" ? L - 0.8 : L - 0.12]], placed = [];   /* hoek achter = N-wand */
+      segs.forEach(function (sg) {
+        var u = sg[0] + R() * 0.15, guard = 0;
+        while (u < sg[1] - 0.35 && guard++ < 40) {
+          var kind;
+          var wantPlant = !FURN[last] || !FURN[last].pl ? R() < 0.5 : R() < 0.12;
+          if (wantPlant) kind = PLANTS[(R() * PLANTS.length) | 0];
+          else kind = pool[(R() * pool.length) | 0];
+          if (kind === last || (kind === "coffee" && cnt.coffee) || (kind === "cooler" && cnt.cooler) || (kind === "lamp" && cnt.lamp > 1) || (kind === "board" && cnt.board > 1)) kind = PLANTS[(R() * PLANTS.length) | 0];
+          var it = FURN[kind], W = it.w;
+          if (u + W > sg[1]) {               /* past niet: probeer een kleine plant */
+            kind = W > 0.5 ? (R() < 0.5 ? "cactus" : "snake") : kind; it = FURN[kind]; W = it.w;
+            if (u + W > sg[1]) break;
+          }
+          /* bij de hoek waar het afdelingskaartje hangt geen hoge kast */
+          var nearCorner = side === "N" ? u < 0.55 : u + W > L - 0.55;
+          if (nearCorner && it.h > 50) { u += 0.2; continue; }
+          /* op de W-wand geen meubel dat een baannaam op de vloer afdekt */
+          if (side === "W") {
+            var ya = d.y + d.d - u - W, yb = d.y + d.d - u;
+            if (labels.some(function (ly) { return ly > ya - 1.45 && ly < yb - 0.05; })) { u += 0.25; continue; }
+          }
+          if (R() < 0.12) { u += 0.35 + R() * 0.4; continue; }   /* af en toe lucht */
+          var mk = F.w(u + W / 2, it.d / 2);
+          var kk = (mk[0] - d.x) + (mk[1] - d.y);
+          items.push({ k: kk, h: '<g class="pp" data-k="' + kk.toFixed(2) + '">' + drawFurn(F, kind, u, R, d.color) + "</g>" });
+          placed.push([u, u + W, it.lo ? it.h : 999]);
+          cnt[kind] = (cnt[kind] || 0) + 1; last = kind;
+          u += W + 0.12 + R() * 0.3;
+        }
+      });
+      /* wanddecoratie in vrije stukken of boven lage meubels */
+      var free = [], cur = 0.15;
+      placed.sort(function (a, b) { return a[0] - b[0]; });
+      (door ? [[d0 - 0.05, d1 + 0.05, 999]] : []).concat(placed).sort(function (a, b) { return a[0] - b[0]; }).forEach(function (p) {
+        if (p[0] - cur > 0.3) free.push([cur, p[0] - 0.04, 0]);
+        if (p[2] < 999) free.push([p[0] + 0.05, p[1] - 0.05, p[2]]);
+        cur = Math.max(cur, p[1] + 0.04);
+      });
+      if (L - 0.15 - cur > 0.3) free.push([cur, L - 0.15, 0]);
+      var dk = ["screen", "art", "rattan", "cork", "clock", "shelf", "art2", "rattan"], lastD = "";
+      free.forEach(function (f) {
+        var u = f[0];
+        while (true) {
+          var kd = dk[(R() * dk.length) | 0]; if (kd === lastD) kd = dk[(R() * dk.length) | 0];
+          var W = DECOR[kd];
+          if (u + W > f[1]) { if (u + DECOR.clock <= f[1] && lastD !== "clock") { kd = "clock"; W = DECOR.clock; } else break; }
+          if (f[2] && f[2] + 4 + 18 > WALL_H) break;
+          walls += drawDecor(F, kd, u + Math.max(0, (Math.min(f[1] - u, W + 0.4) - W) / 2), R, d.color || "#8aa0b5", f[2]);
+          lastD = kd; u += W + 0.25 + R() * 0.3;
+        }
+      });
+    });
+    return { walls: walls, items: items };
   }
   function brainSub() {
     var runs = 0, w = 0;
@@ -1119,7 +1440,7 @@
           h += '<polygon class="band" points="' + pts([iso(x0 + 0.22, y0 + l.y0 + 0.05, SLAB), iso(x1 - 0.22, y0 + l.y0 + 0.05, SLAB), iso(x1 - 0.22, y0 + l.y1 - 0.05, SLAB), iso(x0 + 0.22, y0 + l.y1 - 0.05, SLAB)]) + '"/>';
         }
         if (l.name) {
-          var lp = iso(x0 + 0.42, y0 + l.y0 + 0.62, SLAB), nm = l.name.toUpperCase();
+          var lp = iso(x0 + WALL - 0.55, y0 + l.y0 + 0.62, SLAB), nm = l.name.toUpperCase();
           if (nm.length > d.labelChars) nm = nm.slice(0, d.labelChars - 1) + "…";
           h += '<text class="lane" transform="matrix(.894,.447,-.894,.447,' + f1(lp[0]) + "," + f1(lp[1]) + ')">' + esc(nm) + "</text>";
         }
@@ -1127,11 +1448,13 @@
       var pp = iso(x0 + 0.3, y1, 0);
       h += '<text class="plate" transform="matrix(.894,.447,0,1,' + f1(pp[0]) + "," + f1(pp[1] - 6.5) + ')">' + esc(d.name) + "</text>";
       h += "</g>";
+      var fu = furnish(d);
+      h += '<g class="walls">' + fu.walls + "</g>";
       var layer = d.agents.map(function (ag) {
         return { k: ag._lx + ag._ly,
-          h: '<g class="ag s-' + st(ag) + '" data-id="' + esc(ag.agent_id) + '" tabindex="0" role="button" aria-label="' + esc(agentLabel(ag)) +
+          h: '<g class="ag s-' + st(ag) + '" data-id="' + esc(ag.agent_id) + '" data-k="' + (ag._lx + ag._ly).toFixed(2) + '" tabindex="0" role="button" aria-label="' + esc(agentLabel(ag)) +
              '" transform="translate(' + f1(ag._p[0]) + "," + f1(ag._p[1]) + ')">' + deskInner(ag) + "</g>" };
-      }).concat(propList(d));
+      }).concat(fu.items);
       layer.sort(function (p, q) { return p.k - q.k; }).forEach(function (o) { h += o.h; });
       /* zwevend kaartje boven de achterste hoek */
       var tp = iso(x0, y0, SLAB);
@@ -1380,7 +1703,8 @@
     var cx = d.x + d.w / 2, cy = d.y + d.d / 2;
     var sides = Math.abs(cx) > Math.abs(cy) ? (cx > 0 ? ["E", "S", "N", "W"] : ["W", "N", "S", "E"]) : (cy > 0 ? ["S", "E", "W", "N"] : ["N", "W", "E", "S"]);
     var taken = S.subs.filter(function (s) { return s.live; }).map(function (s) { return s.box; });
-    for (var i = 0; i < sides.length; i++) for (var k = 0; k < 3; k++) {
+    sides = sides.filter(function (sd) { return !((sd === "N" && d.w < DOOR_MIN) || (sd === "W" && d.d < DOOR_MIN)); });
+    for (var i = 0; i < sides.length; i++) for (var k = 0; k < (sides[i] === "N" || sides[i] === "W" ? 1 : 3); k++) {   /* N/W: alleen recht voor de doorgang */
       var o = (k === 0 ? 0 : (k === 1 ? 1 : -1)) * (SD + 0.7), b;
       if (sides[i] === "E") b = { x: d.x + d.w + SGAP, y: cy - SD / 2 + o, w: SW, d: SD };
       if (sides[i] === "W") b = { x: d.x - SGAP - SW, y: cy - SD / 2 + o, w: SW, d: SD };
@@ -1469,11 +1793,11 @@
     var start = [d.x + LX + STAND_OFF[0], d.y + LY + STAND_OFF[1]];
     var ax = d.x + LX + ISLE, rowAisle = d.y + Math.min(d.d - 1.0, LY + ROWI);
     var R = [[start, SLAB], [[ax, start[1]], SLAB]];
-    /* voor- en achterstrook: tussen de bureaus en de props op de rand */
+    /* voor- en achterstrook; achter (N/W) via de looplijn voor de kasten langs en door de doorgang in de wand */
     if (b.side === "S") R.push([[ax, d.y + d.d - 1.0], SLAB], [[mid[0], d.y + d.d - 1.0], SLAB], [[mid[0], d.y + d.d - 0.3], SLAB]);
-    if (b.side === "N") R.push([[ax, d.y + 0.62], SLAB], [[mid[0], d.y + 0.62], SLAB], [[mid[0], d.y + 0.3], SLAB]);
+    if (b.side === "N") R.push([[ax, d.y + WALK_BACK], SLAB], [[mid[0], d.y + WALK_BACK], SLAB], [[mid[0], d.y + 0.3], SLAB]);
     if (b.side === "E") R.push([[ax, rowAisle], SLAB], [[d.x + d.w - ER, rowAisle], SLAB], [[d.x + d.w - ER, mid[1]], SLAB], [[d.x + d.w - 0.3, mid[1]], SLAB]);
-    if (b.side === "W") R.push([[ax, rowAisle], SLAB], [[d.x + ER, rowAisle], SLAB], [[d.x + ER, mid[1]], SLAB], [[d.x + 0.3, mid[1]], SLAB]);
+    if (b.side === "W") R.push([[ax, rowAisle], SLAB], [[d.x + WALK_BACK, rowAisle], SLAB], [[d.x + WALK_BACK, mid[1]], SLAB], [[d.x + 0.3, mid[1]], SLAB]);
     var seat = [desk[0] + STAND_OFF[0], desk[1] + STAND_OFF[1]];
     if (b.side === "E") R.push([[x0 + 0.3, mid[1]], SL], [[x0 + 0.3, y1 - 0.3], SL], [[seat[0], y1 - 0.3], SL]);
     if (b.side === "W") R.push([[x1 - 0.3, mid[1]], SL]);
@@ -1499,9 +1823,9 @@
       var de = elWorld.querySelector('.dept[data-dept="' + CSS.escape(d.name) + '"]');
       if (de && wx > d.x && wx < d.x + d.w && wy > d.y && wy < d.y + d.d) {
         var k = (wx - d.x) + (wy - d.y), before = null, i;
-        /* eerste agent in de DOM met grotere k (agents staan op k gesorteerd) */
-        var els = de.querySelectorAll(":scope > .ag");
-        for (i = 0; i < els.length; i++) { var x = S.byId[els[i].getAttribute("data-id")]; if (x && x._lx + x._ly > k) { before = els[i]; break; } }
+        /* eerste bureau of meubel in de DOM met grotere k (de laag staat op k gesorteerd) */
+        var els = de.querySelectorAll(":scope > [data-k]");
+        for (i = 0; i < els.length; i++) { if (parseFloat(els[i].getAttribute("data-k")) > k) { before = els[i]; break; } }
         if (!before) { var last = els[els.length - 1]; before = last ? last.nextSibling : null; }
         if (w.parentNode !== de || w.nextSibling !== before) de.insertBefore(w, before);
       } else if (wx >= x0 && wx <= x1 && wy >= y0 && wy <= y1) {
