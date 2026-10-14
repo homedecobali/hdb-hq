@@ -74,6 +74,9 @@
   één voor één (queueAutoCam / acNext). Wacht 30 s na eigen slepen/zoomen/klikken en doet niets met een
   selectie open. Knop 'Motion' rechtsonder (aan/uit, toont tijdens het inzoomen de afdeling + 10 s-balkje);
   keuze in localStorage 'dewi.office2.motion', standaard uit bij reduced motion.
+  Motion v2 (14-10): knop rechtsboven in de kop; tijdens het inzoomen een LIVE-banner linksboven in de vloer
+  (afdeling, agent, 'gaat aan het werk' / 'heeft net gedraaid', wat hij doet = begin van last_summary, +N als er
+  meer agents van die afdeling bij komen, voortgangsbalk van AUTO_HOLD). Klik op de banner = agent openen.
 -->
 <html lang="nl">
 <head>
@@ -342,21 +345,35 @@
   #tip span{color:var(--dim);font-size:11.5px;font-family:var(--mono)}
   #msg{position:absolute;left:16px;right:16px;bottom:16px;z-index:6;display:none;background:#2a1216;border:1px solid var(--red);
     color:#ffd9d9;border-radius:10px;padding:9px 12px;font-size:12.5px}
-  /* Motion-knop (14-10): volgcamera aan/uit; tijdens het inzoomen loopt een balkje van 10 s */
-  .motion{position:absolute;right:56px;bottom:14px;z-index:5;appearance:none;height:32px;display:flex;align-items:center;gap:8px;padding:0 13px;
-    border-radius:999px;border:1px solid var(--line);background:rgba(7,11,18,.9);color:var(--text);cursor:pointer;overflow:hidden;
-    font:700 10.5px var(--mono);letter-spacing:.14em;text-transform:uppercase}
+  /* Motion-knop in de kop (14-10) */
+  .motion{appearance:none;height:28px;display:flex;align-items:center;gap:7px;padding:0 12px;border-radius:999px;cursor:pointer;
+    border:1px solid rgba(0,212,255,.35);background:rgba(7,11,18,.9);color:var(--text);font:700 10.5px var(--mono);letter-spacing:.16em;text-transform:uppercase}
   .motion:hover{border-color:var(--cyan)}
   .motion .md{width:8px;height:8px;border-radius:50%;background:var(--grey);flex:none}
-  .motion[aria-pressed="true"] .md{background:var(--green);box-shadow:0 0 8px var(--green)}
-  .motion .ms{color:var(--dim);font-weight:600;letter-spacing:.08em;max-width:190px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .motion[aria-pressed="true"] .md{background:var(--cyan);box-shadow:0 0 8px var(--cyan)}
+  .motion[aria-pressed="false"]{color:var(--dim);border-color:var(--line)}
   .motion.live{border-color:var(--mc,var(--cyan))}
   .motion.live .md{background:var(--mc,var(--cyan));box-shadow:0 0 9px var(--mc,var(--cyan));animation:pulse 1.2s ease-in-out infinite}
-  .motion.live .ms{color:var(--text)}
-  .motion .mt{position:absolute;left:0;bottom:0;height:2px;width:0;background:var(--mc,var(--cyan))}
-  .motion.live .mt{animation:mtime var(--hold,10s) linear forwards}
+  /* LIVE-banner linksboven tijdens het inzoomen: afdeling, agent, wat hij doet, voortgang van de 10 s */
+  .acbar{position:absolute;left:12px;top:12px;z-index:5;max-width:min(580px,calc(100% - 24px));cursor:pointer;
+    background:rgba(7,11,18,.92);border:1px solid var(--mc,var(--cyan));border-radius:12px;padding:7px 13px 9px;overflow:hidden;
+    box-shadow:0 0 18px -6px var(--mc,var(--cyan)),0 6px 18px rgba(0,0,0,.5);opacity:0;transform:translateY(-6px);pointer-events:none;
+    transition:opacity .25s,transform .25s}
+  .acbar.on{opacity:1;transform:none;pointer-events:auto}
+  .acbar .l1{display:flex;align-items:baseline;gap:8px;white-space:nowrap;min-width:0}
+  .acbar .lv{font:700 10px var(--mono);letter-spacing:.18em;color:var(--mc,var(--cyan));display:inline-flex;align-items:center;gap:6px;align-self:center}
+  .acbar .lv i{width:7px;height:7px;border-radius:50%;background:var(--mc,var(--cyan));box-shadow:0 0 8px var(--mc,var(--cyan));animation:pulse 1.2s ease-in-out infinite}
+  .acbar .dp{font:700 10px var(--mono);letter-spacing:.14em;color:color-mix(in srgb,var(--mc,var(--cyan)) 60%,#fff);text-transform:uppercase}
+  .acbar .dp::before{content:"· ";color:var(--dim)}
+  .acbar b{font-weight:700;font-size:13px;overflow:hidden;text-overflow:ellipsis;min-width:0}
+  .acbar .vb{color:var(--dim);font-size:12.5px}
+  .acbar .more{font:700 10px var(--mono);color:var(--text);border:1px solid var(--line);border-radius:999px;padding:0 6px}
+  .acbar .l2{margin-top:3px;font:12px/1.35 var(--mono);color:#b9cbd8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .acbar .l2::before{content:"> ";color:var(--mc,var(--cyan))}
+  .acbar .pr{position:absolute;left:0;right:0;bottom:0;height:3px;background:rgba(255,255,255,.06)}
+  .acbar .pr i{display:block;height:100%;width:0;background:var(--mc,var(--cyan));box-shadow:0 0 8px var(--mc,var(--cyan));animation:mtime var(--hold,10s) linear forwards}
   @keyframes mtime{to{width:100%}}
-  @media (max-width:880px){ .motion{right:54px;padding:0 10px} .motion .ms{max-width:110px} }
+  @media (max-width:880px){ .acbar{left:8px;top:8px;max-width:calc(100% - 16px)} .motion{padding:0 9px} }
   #loading{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--dim);font-family:var(--mono);letter-spacing:.08em}
 
   /* paneel — terminal-stijl */
@@ -430,7 +447,7 @@
     .hint{display:none}
   }
   @media (prefers-reduced-motion:reduce){
-    #floor.intro .dept,#floor.intro .brain,.pipe-flow,.link.live,.brain .halo,.brain .beam,.bub .b-pop,.bub .b-in,.bub .dots circle,.ag .m-glow,.ag.s-error .m-screen,.ag.s-silent .m-screen,#wires path,.cursor::after,.motion.live .md,.ag .m-code .roll{animation:none}
+    #floor.intro .dept,#floor.intro .brain,.pipe-flow,.link.live,.brain .halo,.brain .beam,.bub .b-pop,.bub .b-in,.bub .dots circle,.ag .m-glow,.ag.s-error .m-screen,.ag.s-silent .m-screen,#wires path,.cursor::after,.motion.live .md,.acbar .lv i,.ag .m-code .roll{animation:none}
     .pcard{transition:none}
     .card:hover .pcard,.card:focus-visible .pcard,.dept.cur .card .pcard{transform:none}
     #wires path{stroke-dashoffset:0}
@@ -444,6 +461,7 @@
   <header>
     <div class="brand"><span class="dot" id="live"></span><span class="ttl">DEWI</span><span class="sub">Office</span><span class="ver">V2</span></div>
     <div class="spacer"></div>
+    <button type="button" class="motion" id="motion" aria-pressed="true" title="Motion: zoomt 10 s in op de afdeling waar een agent aan het werk gaat. Klik om aan/uit te zetten."><span class="md"></span>Motion</button>
     <div class="pz" id="pz" role="group" aria-label="Paneel leesbaarheid">
       <span class="lb">Paneel</span>
       <button type="button" data-pz="-" title="Tekst kleiner" aria-label="Tekst kleiner">A−</button>
@@ -508,9 +526,7 @@
           <button type="button" data-cam="out" title="Uitzoomen">−</button>
           <button type="button" data-cam="fit" title="Alles in beeld">⤢</button>
         </div>
-        <button type="button" class="motion" id="motion" aria-pressed="true" title="Motion: zoomt 10 s in op de afdeling waar een agent aan het werk gaat. Klik om aan/uit te zetten.">
-          <span class="md"></span><span>Motion</span><span class="ms" id="motionState">aan</span><span class="mt"></span>
-        </button>
+        <div class="acbar" id="acbar" role="status" aria-live="polite" title="Klik om deze agent te openen"></div>
         <div class="hint" id="hint">scroll = zoom · sleep = verschuif · klik = details</div>
       </div>
       <svg id="wires" aria-hidden="true"></svg>
@@ -1988,16 +2004,37 @@
   var AUTO_HOLD = 10000, AUTO_GAP = 3000, AUTO_IDLE = 30000, AUTO_QMAX = 4;
   var AC = { on: !REDUCED, q: [], busy: false, t: null, lastUser: 0, cur: null };
   try { var mv = localStorage.getItem("dewi.office2.motion"); if (mv !== null) AC.on = mv === "1"; } catch (e) {}
-  var elMotion = $("motion"), elMotionSt = $("motionState");
+  var elMotion = $("motion"), elAcBar = $("acbar");
   function motionUi() {
     elMotion.setAttribute("aria-pressed", AC.on ? "true" : "false");
     elMotion.classList.toggle("live", !!AC.cur);
-    var d = AC.cur ? deptByName(AC.cur) : null;
+    var d = AC.cur ? deptByName(AC.cur.dept) : null;
     elMotion.style.setProperty("--mc", d ? d.color : "");
-    elMotion.style.setProperty("--hold", AUTO_HOLD / 1000 + "s");
-    elMotionSt.textContent = AC.cur ? AC.cur : (AC.on ? "aan" : "uit");
-    var mt = elMotion.querySelector(".mt"); if (mt && AC.cur) { mt.style.animation = "none"; void mt.offsetWidth; mt.style.animation = ""; }
+    elMotion.setAttribute("aria-label", "Motion " + (AC.on ? "aan" : "uit"));
+    renderAcBar(d);
   }
+  /* wat de agent doet: eerste deel van zijn laatste samenvatting, zonder links */
+  function doingText(a) {
+    var t = String(a.last_summary || "").replace(/https?:\/\/\S+/g, "").split(/[·\n]/)[0].replace(/\s+/g, " ").trim();
+    if (t.length < 4 || isNoop(a)) return "";
+    return t.length > 120 ? t.slice(0, 119) + "…" : t;
+  }
+  function renderAcBar(d) {
+    var e = AC.cur, a = e && S.byId[e.ids[0]];
+    if (!e || !d || !a) { elAcBar.classList.remove("on"); return; }
+    var sum = doingText(a), verb = st(a) === "working" ? "gaat aan het werk" : "heeft net gedraaid";
+    elAcBar.style.setProperty("--mc", d.color);
+    elAcBar.style.setProperty("--hold", AUTO_HOLD / 1000 + "s");
+    elAcBar.setAttribute("data-id", a.agent_id);
+    elAcBar.innerHTML = '<div class="l1"><span class="lv"><i></i>LIVE</span><span class="dp">' + esc(d.name) + "</span><b>" + esc(a.agent_name) + '</b><span class="vb">' + verb + "</span>"
+      + (e.ids.length > 1 ? '<span class="more">+' + (e.ids.length - 1) + "</span>" : "") + "</div>"
+      + (sum ? '<div class="l2">' + esc(sum) + "</div>" : "")
+      + '<div class="pr"><i style="animation-delay:-' + Math.max(0, Date.now() - e.t0) + 'ms"></i></div>';
+    elAcBar.classList.add("on");
+  }
+  elAcBar.addEventListener("click", function () {
+    var id = elAcBar.getAttribute("data-id"); if (id && S.byId[id]) setFocus({ type: "agent", id: id });
+  });
   function userActed() { AC.lastUser = Date.now(); if (AC.cur || AC.busy) acStop(false); }
   function acStop(zoomOut) {
     clearTimeout(AC.t); AC.t = null; AC.q = [];
@@ -2009,8 +2046,8 @@
   function acNext() {
     if (AC.busy || !AC.q.length) return;
     if (acBlocked()) { AC.q = []; return; }
-    var d = deptByName(AC.q.shift()); if (!d) return acNext();
-    AC.busy = true; AC.cur = d.name;
+    var e = AC.q.shift(), d = deptByName(e.dept); if (!d) return acNext();
+    AC.busy = true; e.t0 = Date.now(); AC.cur = e;
     zoomToDept(d); motionUi();
     AC.t = setTimeout(function () {
       AC.cur = null; motionUi();
@@ -2028,9 +2065,11 @@
     }).sort(function (x, y) {
       return ((st(y) === "working") - (st(x) === "working")) || (ms(y.last_run_at) - ms(x.last_run_at));
     }).forEach(function (a) {
-      if (a.dept_name === AC.cur || AC.q.indexOf(a.dept_name) >= 0 || AC.q.length >= AUTO_QMAX) return;
-      AC.q.push(a.dept_name);
+      var hit = AC.cur && AC.cur.dept === a.dept_name ? AC.cur : AC.q.filter(function (x) { return x.dept === a.dept_name; })[0];
+      if (hit) { if (hit.ids.indexOf(a.agent_id) < 0) hit.ids.push(a.agent_id); return; }
+      if (AC.q.length < AUTO_QMAX) AC.q.push({ dept: a.dept_name, ids: [a.agent_id] });
     });
+    if (AC.cur) motionUi();                                          /* +N bijwerken */
     acNext();
   }
   elMotion.addEventListener("click", function () {
@@ -2045,7 +2084,7 @@
   var drag = null;
   elScene.addEventListener("pointerdown", function (e) {
     if (e.button !== 0 && e.pointerType === "mouse") return;
-    if (closest(e.target, ".cam,.motion")) return;
+    if (closest(e.target, ".cam,.acbar")) return;
     userActed();
     drag = { x: e.clientX, y: e.clientY, cam: S.cam ? S.cam.slice() : null, moved: false, id: e.pointerId };
   });
