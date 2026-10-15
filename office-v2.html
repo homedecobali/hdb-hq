@@ -81,6 +81,9 @@
   glas met blur); de vloer loopt eronder door. sceneInset()/visW() = het zichtbare deel links van het paneel:
   layout(), boxFor() (fit + inzoomen) en de zoomknoppen rekenen daarmee. Tekstgrootte (--pz) staat nu op
   .panel > * zodat de kaart zelf niet meeschaalt. Onder 880 px gewoon onder de vloer zoals voorheen.
+  Brein-waakhond (15-10): de video bleef stilstaan als de browser hem ooit pauzeerde (play() ging maar één keer).
+  kickBrain() + interval van 4 s: loopt currentTime niet op, dan opnieuw play(); twee keer vast = bron opnieuw
+  laden. Ook bij terugkeer naar tab/venster, pause/stalled/error-events en de eerste klik. Niet bij reduced motion.
 -->
 <html lang="nl">
 <head>
@@ -1634,6 +1637,36 @@
     }
   }
   if (window.ResizeObserver) new ResizeObserver(function () { placeBrainLive(); }).observe(elScene);
+  /* 15-10: waakhond — het brein mag nooit stil blijven staan. play() ging maar één keer; pauzeerde de
+     browser de video daarna (slaapstand, energiebesparing, tab op de achtergrond, haperende stream), dan
+     bleef hij voorgoed staan. Nu: elke 4 s controleren of de tijd in de video opschuift; zo niet, opnieuw
+     starten, en na twee keer vastzitten de bron opnieuw laden. Ook direct bij terugkeer naar tab/venster,
+     na een pauze-, stalled- of error-event en bij de eerste klik (als autoplay geweigerd werd). */
+  var brainWD = { last: -1, stuck: 0, kicked: 0 };
+  function kickBrain(reload) {
+    var v = elBrainLive;
+    if (REDUCED || !v || !v.classList.contains("on") || document.hidden) return;
+    if (reload || v.error) { brainWD.stuck = 0; v.load(); }
+    if (v.paused || v.ended) { brainWD.kicked = Date.now(); var p = v.play(); if (p && p.catch) p.catch(function () {}); }
+  }
+  if (elBrainLive) {
+    setInterval(function () {
+      if (REDUCED || document.hidden || !elBrainLive.classList.contains("on")) return;
+      var t = elBrainLive.currentTime;
+      if (!elBrainLive.paused && t === brainWD.last) brainWD.stuck++; else brainWD.stuck = 0;
+      brainWD.last = t;
+      kickBrain(brainWD.stuck >= 2);
+    }, 4000);
+    ["pause", "stalled", "error"].forEach(function (ev) {
+      elBrainLive.addEventListener(ev, function () {
+        if (Date.now() - brainWD.kicked > 1500) setTimeout(function () { kickBrain(ev === "error"); }, 400);
+      });
+    });
+    document.addEventListener("visibilitychange", function () { if (!document.hidden) setTimeout(kickBrain, 200); });
+    window.addEventListener("focus", function () { kickBrain(); });
+    window.addEventListener("pageshow", function () { kickBrain(); });
+    document.addEventListener("pointerdown", function () { kickBrain(); }, { passive: true });
+  }
 
   /* ------------------------------------------------------------ powerballen */
   var AI_TOOLS = { anthropic: 1, openai: 1 };
