@@ -36,8 +36,21 @@
   hij loopt via de gangpaden tussen de bureaus naar de rand, over de brug, gaat op het sub-bureau zitten,
   werkt (zolang de sub-agent 'working' is, anders ~9 s), staat op, loopt terug en gaat weer zitten; dan
   vervaagt het platform. Eén persoon kan maar op één plek zijn: is de aanroeper al onderweg, dan wacht een
-  volgende sub-run (max. 3 pogingen). SUB_SKIP = administratieve helpers die bijna iedereen aanroept
-  (receipt/notify) en dus geen eigen platform krijgen. Klik op het platform = de sub-agent openen.
+  volgende sub-run (max. 3 pogingen). Klik op het platform = de sub-agent openen.
+  Extra werkplekken (15-10, vervangt de koppeling-op-tijd hierboven): een agent met "sub-workflow" in zijn
+  schema (isSub) krijgt GEEN bureau; hij telt wel mee in alle totalen, kaartjes en het paneel (d.agents = alle,
+  d.desks = met bureau, d.subs = zonder; in het afdelingspaneel onder SUB-WORKFLOWS). Elke verversing haalt de
+  sub-runs van het afgelopen half uur uit dewi_runs_public; elke nieuwe run is een aanroep. callerOf() zoekt wie
+  aanriep: eerst op naam in de run-samenvatting ("Copy OK - Reels Builder", "melding voor Reel-Publisher"),
+  eerst onder de gekoppelde aanroepers (v_office_links), dan onder alle agents; anders de gekoppelde aanroeper
+  die het dichtst bij die run draaide (≤ 20 min). Is de aanroeper zelf een sub-workflow (Propose -> Notify),
+  dan wordt diens aanroeper gezocht (max. 3 niveaus) tot de agent van de hoofdworkflow. Bij de afdeling van die
+  agent klapt een extra werkplek uit; hij staat op, loopt erheen, werkt er (duur = duration_ms van de run,
+  6–20 s; gebruikt de sub-workflow AI dan gaat er een powerbal vanaf die werkplek) en loopt terug naar zijn
+  stoel. Per aanroeper één tocht tegelijk; aanroepen die binnenkomen terwijl hij nog zit werkt hij daar na
+  elkaar af (label i/n), latere wachten in zijn rij (max. 6, max. 5 min oud). Verschillende afdelingen (twee
+  aanroepers van Telegram/Notify tegelijk) krijgen elk hun eigen werkplek. Geen SUB_SKIP meer. Eerste lading
+  speelt niets na. De volgcamera (Motion) negeert sub-agents; de aanroeper triggert hem zelf.
   Loper (13-10): walker-v4.webp + map (640 x 480 = 4 x 2 frames van 160 x 240; rij 0 = naar rechtsonder,
   rij 1 = naar rechtsboven, links = gespiegeld). Alleen frames met dezelfde lichaamsrichting (geen draai).
   Diepte: binnen een afdeling wordt de loper tussen de bureaus in de tekenvolgorde gezet (x + y).
@@ -743,7 +756,13 @@
       if (!seen[a.dept_name]) { seen[a.dept_name] = 1; S.depts.push({ name: a.dept_name, color: a.dept_color || "#8aa0b5", icon: a.dept_icon || "", sort: a.dept_sort == null ? 999 : a.dept_sort }); }
     });
     S.depts.sort(function (x, y) { return (x.sort - y.sort) || String(x.name).localeCompare(String(y.name)); });
-    S.depts.forEach(function (d) { d.agents = agents.filter(function (a) { return a.dept_name === d.name; }); });
+    /* 15-10: sub-workflow-agents krijgen geen bureau (d.desks); ze tellen wel mee (d.agents) */
+    S.depts.forEach(function (d) {
+      d.agents = agents.filter(function (a) { return a.dept_name === d.name; });
+      d.desks = d.agents.filter(function (a) { return !isSub(a); });
+      d.subs = d.agents.filter(isSub);
+      if (!d.desks.length) { d.desks = d.agents; d.subs = []; }
+    });
     S.depts = S.depts.filter(function (d) { return d.agents.length; });
 
     if (tools) {
@@ -765,7 +784,7 @@
     if (f && ((f.type === "agent" && !S.byId[f.id]) || (f.type === "dept" && !S.depts.some(function (d) { return d.name === f.name; })) ||
               (f.type === "tool" && !S.tools.some(function (t) { return t.tool === f.name; })))) S.focus = null;
 
-    var sig = agents.map(function (a) { return [a.agent_id, a.dept_name, a.grp, a.grp_step, a.agent_sort].join("|"); }).sort().join(";")
+    var sig = agents.map(function (a) { return [a.agent_id, a.dept_name, a.grp, a.grp_step, a.agent_sort, isSub(a) ? "s" : ""].join("|"); }).sort().join(";")
             + "#" + S.depts.map(function (d) { return d.name + d.color + d.icon; }).join(";")
             + "#" + S.links.map(function (l) { return l.from_agent + ">" + l.to_agent; }).sort().join(";")
             + "#" + S.depts.map(function (d) { return d.name + ":" + panelRows(d).length; }).join(";");
@@ -793,7 +812,7 @@
   }
   function planDept(d) {
     var map = {}, lanes = [];
-    d.agents.forEach(function (a) {
+    d.desks.forEach(function (a) {
       var k = a.grp || "";
       if (!map[k]) { map[k] = { name: k, agents: [], minSort: 1e9 }; lanes.push(map[k]); }
       map[k].agents.push(a);
@@ -884,7 +903,8 @@
     });
     S.brain = brain;
     S.depts.forEach(function (d) {
-      d.agents.forEach(function (a) { a._p = iso(d.x + a._lx, d.y + a._ly, SLAB); });
+      d.desks.forEach(function (a) { a._p = iso(d.x + a._lx, d.y + a._ly, SLAB); });
+      d.subs.forEach(function (a) { a._p = null; a._lx = a._ly = null; });
       var c = iso(d.x + d.w / 2, d.y + d.d / 2, 0);
       d._c = c;
       /* aanhechtpunt van de pijp: het punt op de platformrand richting de Brain */
@@ -1511,7 +1531,7 @@
       h += "</g>";
       var fu = furnish(d);
       h += '<g class="walls">' + fu.walls + "</g>";
-      var layer = d.agents.map(function (ag) {
+      var layer = d.desks.map(function (ag) {
         return { k: ag._lx + ag._ly,
           h: '<g class="ag s-' + st(ag) + '" data-id="' + esc(ag.agent_id) + '" data-k="' + (ag._lx + ag._ly).toFixed(2) + '" tabindex="0" role="button" aria-label="' + esc(agentLabel(ag)) +
              '" transform="translate(' + f1(ag._p[0]) + "," + f1(ag._p[1]) + ')">' + deskInner(ag) + "</g>" };
@@ -1695,11 +1715,12 @@
     if (!g) { g = document.createElementNS("http://www.w3.org/2000/svg", "g"); g.id = "ballLayer"; elWorld.appendChild(g); }
     return g;
   }
-  function fireBall(id) {
+  function fireBall(id, at) {   /* at = { p, d }: vanaf een extra werkplek, in de kleur van die afdeling */
     if (document.hidden) return;
-    var a = S.byId[id], d = a && deptOf(a); if (!a || !d || !a._p || !d._port) return;
+    var a = S.byId[id], d = at ? at.d : (a && deptOf(a)), p0 = at ? at.p : (a && a._p);
+    if (!a || !d || !p0 || !d._port) return;
     var c = iso(0, 0, 0), ps = iso(d._port[0], d._port[1], SLAB), pf = iso(d._port[0], d._port[1], 0);
-    var pts = [[a._p[0], a._p[1] - 30], [a._p[0], a._p[1] - 6], ps, pf, [c[0], c[1] - 20], [c[0], c[1] - LIVE_LIFT - LIVE_H * 0.42]];
+    var pts = [[p0[0], p0[1] - 30], [p0[0], p0[1] - 6], ps, pf, [c[0], c[1] - 20], [c[0], c[1] - LIVE_LIFT - LIVE_H * 0.42]];
     var segs = [], tot = 0;
     for (var i = 1; i < pts.length; i++) { var l = Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]); segs.push(l); tot += l; }
     var NS = "http://www.w3.org/2000/svg", g = document.createElementNS(NS, "g");
@@ -1751,9 +1772,13 @@
     g.innerHTML = h;
   }
 
-  /* ------------------------------------------------- tijdelijke sub-afdelingen */
-  var SUB_SKIP = { "dewi-receipt": 1, "dewi-notify": 1 };
-  var SUB_WINDOW = 20 * 60000;      /* aanroeper moet binnen 20 min vóór de sub-run gedraaid hebben */
+  /* ------------------------------------------- extra werkplekken voor sub-workflows (15-10) */
+  function isSub(a) { return /sub-?\s?workflow/i.test(String((a && a.schedule_human) || "")); }
+  var SUB_WINDOW = 20 * 60000;      /* terugval op tijd: aanroeper draaide binnen 20 min van de sub-run */
+  var SUB_LOOK = 30 * 60000;
+  var SUB_CHAIN = 15000;            /* sub roept sub aan (Propose -> Notify): runs liggen binnen 15 s */        /* run-cache: sub-runs van het afgelopen half uur */
+  var SUB_MIN = 6000, SUB_MAX = 20000, SUB_DEF = 9000;   /* werktijd per aanroep op de extra werkplek */
+  var TRIP_MAX = 6, TRIP_TTL = 5 * 60000;                 /* wachtrij per aanroeper */
   var WALK = 3.4;                   /* loopsnelheid in cellen per seconde (vlot) */
   var SW = 2.6, SD = 2.3, SGAP = 1.1;   /* 13-10: iets ruimer, zodat er naast de stoel plek is om te staan */
   /* loper op dezelfde schaal als de opstaande agent (laatste opsta-frame ~76 wereld-eenheden hoog;
@@ -1762,25 +1787,118 @@
   /* waar de voeten staan in het laatste opsta-frame, als wereld-offset t.o.v. het bureau-anker */
   var STAND_OFF = unIso(DX0 + STAND_FEET[0] * DESK_W, DY0 + STAND_FEET[1] * STAND_BOX_H);
   var HOLO_SCALE = 2.8;
-  S.subs = S.subs || [];
+  S.subs = S.subs || []; S.subRuns = S.subRuns || []; S.subSeen = S.subSeen || null; S.trips = S.trips || {}; S.subClaim = S.subClaim || {};
   function ms(t) { return t ? new Date(t).getTime() : 0; }
+
+  /* ---- wie riep aan? naam in de samenvatting, anders tijd; sub-aanroeper -> diens aanroeper ---- */
+  var NAME_STOP = { hdb: 1, dewi: 1 };
+  function collapse(x) { return String(x || "").toLowerCase().replace(/[^a-z0-9]+/g, ""); }
+  function toks(x) {
+    return String(x || "").toLowerCase().split(/[^a-z0-9]+/).filter(function (t) { return t.length >= 3 && !NAME_STOP[t]; })
+      .map(function (t) { return t.length > 4 ? t.replace(/s$/, "") : t; });
+  }
+  /* 100+ = volledige naam staat erin ("Reels Builder"); 10+ = minstens 2 en 2/3 van de naamwoorden
+     ("Reel-Publisher" -> Reel/Story Publisher); 0 = geen treffer */
+  function nameScore(a, ctext, tt) {
+    var best = 0;
+    [a.agent_name, shortWf(a.workflow_name)].forEach(function (n) {
+      var c = collapse(n);
+      if (c.length >= 6 && ctext.indexOf(c) >= 0) best = Math.max(best, 100 + c.length);
+      var nt = toks(n); if (nt.length < 2) return;
+      var hit = nt.filter(function (t) { return tt[t]; }).length;
+      if (hit >= 2 && hit / nt.length >= 0.66) best = Math.max(best, 10 * hit + hit / nt.length);
+    });
+    return best;
+  }
+  /* run van sub-agent a die het dichtst bij t ligt (≤ max ms), uit de cache of zijn laatste run. Een sub-run
+     die al als aanroeper van een andere run is gebruikt (S.subClaim) telt niet nog eens: één Propose-run
+     stuurt één melding, dus een tweede Notify op hetzelfde moment komt van iemand anders. */
+  function runKey(r) { return r.workflow + "|" + r.run_at; }
+  function nearRun(a, t, max) {
+    var best = null, bg = (max || 3 * 60000) + 1;
+    S.subRuns.forEach(function (r) {
+      if (r.workflow !== a.workflow_name || S.subClaim[runKey(r)]) return;
+      var g = Math.abs(ms(r.run_at) - t); if (g < bg) { bg = g; best = r; }
+    });
+    var lr = { workflow: a.workflow_name, run_at: a.last_run_at, summary: a.last_summary };
+    if (!best && a.last_run_at && !S.subClaim[runKey(lr)] && Math.abs(ms(a.last_run_at) - t) < bg) best = lr;
+    return best;
+  }
+  function callerOf(toId, t, text, depth) {
+    if (depth > 3 || !S.byId[toId]) return null;
+    var linked = S.links.filter(function (l) { return l.to_agent === toId; }).map(function (l) { return S.byId[l.from_agent]; }).filter(Boolean);
+    var ctext = collapse(text), tt = {}; toks(text).forEach(function (k) { tt[k] = 1; });
+    function byName(list) {
+      var b = null, bs = 0;
+      list.forEach(function (a) { if (a.agent_id === toId) return; var sc = nameScore(a, ctext, tt); if (sc > bs) { bs = sc; b = a; } });
+      return b;
+    }
+    var hit = byName(linked) || byName(S.agents);
+    if (!hit) {   /* tijd: de gekoppelde aanroeper die het dichtst bij deze run draaide */
+      var bg = Infinity;
+      linked.forEach(function (a) {
+        var tr = 0;
+        if (isSub(a)) { var r = nearRun(a, t, SUB_CHAIN); tr = r ? ms(r.run_at) : 0; }   /* keten = vrijwel gelijktijdig */
+        else if (a.last_run_at && !isNoop(a)) tr = ms(a.last_run_at);
+        if (!tr) return;
+        var g = Math.abs(tr - t); if (g <= SUB_WINDOW && g < bg) { bg = g; hit = a; }
+      });
+    }
+    if (!hit) return null;
+    if (!isSub(hit)) return hit;
+    var nr = nearRun(hit, t);
+    if (nr) S.subClaim[runKey(nr)] = 1;
+    return callerOf(hit.agent_id, nr ? ms(nr.run_at) : t, nr ? nr.summary : "", depth + 1);
+  }
+
   function queueSubs(prevRun) {
     if (REDUCED) return;
-    var best = {};
-    S.links.forEach(function (l) {
-      if (SUB_SKIP[l.to_agent]) return;
-      var to = S.byId[l.to_agent], fr = S.byId[l.from_agent]; if (!to || !fr) return;
-      var fresh = prevRun && to.last_run_at && to.last_run_at !== (prevRun[to.agent_id] || "");
-      var working = st(to) === "working";
-      if ((!fresh && !working) || isNoop(to) || isNoop(fr)) return;
-      var gap = ms(to.last_run_at) - ms(fr.last_run_at);
-      if (!(st(fr) === "working" || (gap >= -60000 && gap <= SUB_WINDOW))) return;
-      if (!best[to.agent_id] || Math.abs(gap) < best[to.agent_id].gap) best[to.agent_id] = { fr: fr, to: to, gap: Math.abs(gap), working: working };
-    });
-    Object.keys(best).forEach(function (k) {
-      var b = best[k];
-      if (S.subs.some(function (s) { return s.to === b.to.agent_id && s.live; })) return;   /* draait al */
-      setTimeout(function () { runSub(b.fr.agent_id, b.to.agent_id, b.working); }, b.working ? 400 : Math.random() * (REFRESH_MS - 25000));
+    var subs = S.agents.filter(isSub); if (!subs.length) return;
+    var list = subs.map(function (a) { return '"' + String(a.workflow_name).replace(/\\/g, "\\\\").replace(/"/g, '\\"') + '"'; }).join(",");
+    var since = new Date(Date.now() - SUB_LOOK).toISOString();
+    rest("dewi_runs_public?select=workflow,run_at,status,duration_ms,summary&workflow=in." + encodeURIComponent("(" + list + ")")
+      + "&run_at=gte." + encodeURIComponent(since) + "&order=run_at.asc&limit=300")
+      .then(function (rows) { return rows || []; }, function () {
+        /* terugval: alleen de laatste run per sub-agent uit v_office_agents */
+        return subs.filter(function (a) { return a.last_run_at; })
+          .map(function (a) { return { workflow: a.workflow_name, run_at: a.last_run_at, summary: a.last_summary, duration_ms: null }; });
+      })
+      .then(function (rows) {
+        var key = runKey, seen = S.subSeen, now = {}, claim = {};
+        rows.forEach(function (r) { now[key(r)] = 1; if (S.subClaim[key(r)]) claim[key(r)] = 1; });
+        S.subRuns = rows; S.subSeen = now; S.subClaim = claim;
+        if (!seen || !prevRun) return;          /* eerste lading: niets naspelen */
+        var t0 = null;
+        rows.filter(function (r) { return !seen[key(r)]; }).forEach(function (r) {
+          var to = S.byWf[r.workflow]; if (!to || NOOP_RE.test(String(r.summary || ""))) return;
+          var t = ms(r.run_at), fr = callerOf(to.agent_id, t, r.summary || "", 0);
+          if (!fr || !fr._p) return;            /* geen aanroeper met bureau gevonden */
+          if (t0 == null) t0 = t;
+          var delay = 300 + Math.min(REFRESH_MS - 25000, Math.max(0, t - t0));   /* volgorde en ritme van de echte runs */
+          setTimeout(function () { enqueueTrip(fr.agent_id, { to: to.agent_id, dur: Number(r.duration_ms) || 0, at: Date.now() }); }, delay);
+        });
+      });
+  }
+  /* één persoon, één plek: per aanroeper één tocht tegelijk; zit hij al op een extra werkplek, dan
+     werkt hij de nieuwe aanroep daar ook af, anders wacht die in zijn rij */
+  function enqueueTrip(fromId, item) {
+    if (document.hidden || REDUCED) return;
+    var q = S.trips[fromId] = S.trips[fromId] || { q: [], busy: false, ctl: null };
+    if (q.ctl && !q.ctl.leaving) { if (q.ctl.batch.length < TRIP_MAX) q.ctl.batch.push(item); return; }
+    q.q.push(item); if (q.q.length > TRIP_MAX) q.q.shift();
+    if (!q.busy) nextTrip(fromId);
+  }
+  function nextTrip(fromId) {
+    var q = S.trips[fromId]; if (!q) return;
+    var now = Date.now();
+    q.q = q.q.filter(function (it) { return now - it.at < TRIP_TTL; });
+    if (!q.q.length || document.hidden) { q.q = []; q.busy = false; q.ctl = null; return; }
+    var ctl = { batch: q.q.splice(0, q.q.length), leaving: false };
+    q.busy = true; q.ctl = ctl;
+    runTrip(fromId, ctl, function () {
+      if (q.ctl === ctl) q.ctl = null;
+      q.busy = false;
+      setTimeout(function () { if (!q.busy) nextTrip(fromId); }, 600);
     });
   }
   function subLayer() {
@@ -1835,14 +1953,13 @@
       : '<image class="sprite" href="' + deskHref(a) + '" x="' + f1(DX0) + '" y="' + f1(DY0) + '" width="' + f1(DESK_W) + '" height="' + f1(DESK_H) + '" preserveAspectRatio="none"/>');
   }
 
-  function runSub(fromId, toId, working, tries) {
-    if (document.hidden || REDUCED) return;
-    var fr = S.byId[fromId], to = S.byId[toId], d = fr && deptOf(fr);
-    if (!fr || !to || !d || !d.agents) return;
-    /* één persoon, één plek: is de aanroeper al onderweg, dan straks opnieuw proberen */
-    if (S.pose[fromId]) { if ((tries || 0) < 3) setTimeout(function () { runSub(fromId, toId, working, (tries || 0) + 1); }, 15000); return; }
-    var b = subSpot(d); if (!b) return;
-    var ses = { to: toId, box: b, live: true }; S.subs.push(ses);
+  /* Eén tocht van de aanroeper naar een extra werkplek bij zijn eigen afdeling. ctl.batch = de sub-runs die
+     hij daar na elkaar afwerkt (er kunnen er bijkomen zolang hij zit); done() wordt altijd aangeroepen. */
+  function runTrip(fromId, ctl, done) {
+    var fr = S.byId[fromId], d = fr && deptOf(fr), toId = ctl.batch[0] && ctl.batch[0].to, to = S.byId[toId];
+    if (document.hidden || REDUCED || !fr || !to || !d || !fr._p || S.pose[fromId]) return done();
+    var b = subSpot(d); if (!b) return done();
+    var ses = { to: toId, from: fromId, box: b, live: true }; S.subs.push(ses);
     var SL = Math.round(SLAB * 0.8), x0 = b.x, y0 = b.y, x1 = b.x + b.w, y1 = b.y + b.d;
     var mid = b.side === "E" || b.side === "W" ? [null, y0 + b.d / 2] : [x0 + b.w / 2, null];
     /* loopbrug tussen afdelingsrand en sub-platform */
@@ -1963,18 +2080,26 @@
       return playStand(function (f) { subPose("stand", f); }, true).then(function () {
         if (!alive()) return;
         subPose("seat"); g.classList.add("busy");
-        var bw = document.createElementNS(NS, "g");
-        bw.innerHTML = bubbleSvg(dp[0] + DESK_W * 0.1, dp[1] + DY0 + 6, "→ " + (to.agent_name.length > 28 ? to.agent_name.slice(0, 27) + "…" : to.agent_name), d.color);
-        g.appendChild(bw);
-        var until = performance.now() + 9000, cap = performance.now() + 5 * 60000;
-        return (function wait() {
-          return sleep(1000).then(function () {
-            var x = S.byId[toId], still = working && x && st(x) === "working";
-            if (alive() && (performance.now() < until || (still && performance.now() < cap))) return wait();
-          });
+        var i = 0, bw = null;
+        /* elke aanroep in de batch: label + ballon naar die sub-workflow, powerbal als hij AI gebruikt */
+        return (function work() {
+          if (!alive() || i >= ctl.batch.length) return;
+          var it = ctl.batch[i++], x = S.byId[it.to]; if (!x) return work();
+          var nm = String(x.agent_name || it.to), n = ctl.batch.length;
+          g.setAttribute("data-sub", it.to);
+          var tl = g.querySelector("title"); if (tl) tl.textContent = fr.agent_name + " → " + nm;
+          var ln = g.querySelector(".sub-name");
+          if (ln) ln.textContent = "↳ " + (nm.length > 22 ? nm.slice(0, 21) + "…" : nm).toUpperCase() + (n > 1 ? " · " + i + "/" + n : "");
+          if (bw) bw.remove();
+          bw = document.createElementNS(NS, "g");
+          bw.innerHTML = bubbleSvg(dp[0] + DESK_W * 0.1, dp[1] + DY0 + 6, "→ " + (nm.length > 28 ? nm.slice(0, 27) + "…" : nm), d.color);
+          g.appendChild(bw);
+          if (usesBrain(x)) fireBall(it.to, { p: dp, d: d });
+          return sleep(Math.max(SUB_MIN, Math.min(SUB_MAX, it.dur || SUB_DEF))).then(work);
         })();
       });
     }).then(function () {
+      ctl.leaving = true;   /* vanaf hier gaan nieuwe aanroepen in de rij voor een volgende tocht */
       if (!alive()) return;
       /* 5. opstaan op het sub-bureau en teruglopen */
       g.classList.remove("busy");
@@ -1992,7 +2117,10 @@
     }).then(function () {
       home(); renderBubbles();
       return sleep(750);
-    }, function () { home(); }).then(function () { w.remove(); g.remove(); ses.live = false; S.subs = S.subs.filter(function (s) { return s.live; }); });
+    }, function () { home(); }).then(function () {
+      w.remove(); g.remove(); ses.live = false; ctl.leaving = true; S.subs = S.subs.filter(function (s) { return s.live; });
+      done();
+    });
   }
 
   /* aankomst: een ring in de afdelingskleur die vanuit het brein uitdijt */
@@ -2116,7 +2244,7 @@
   function queueAutoCam(prevRun, prevSt) {
     if (!AC.on || !prevRun) return;                                  /* niet bij de eerste lading */
     S.agents.filter(function (a) {
-      if (isNoop(a)) return false;
+      if (isNoop(a) || isSub(a)) return false;
       var now = st(a) === "working", was = prevSt && prevSt[a.agent_id] === "working";
       var fresh = !!a.last_run_at && a.last_run_at !== (prevRun[a.agent_id] || "");
       return !was && (now || fresh);
@@ -2367,6 +2495,11 @@
       l.agents.forEach(function (a) { h += agentRow(a, a.schedule_human || "", maxRuns); });
       h += "</ul>";
     });
+    if (d.subs && d.subs.length) {
+      h += '<div class="lanehd">SUB-WORKFLOWS · EXTRA WERKPLEK</div><ul class="list">';
+      d.subs.forEach(function (a) { h += agentRow(a, a.schedule_human || "", maxRuns); });
+      h += "</ul>";
+    }
     return h + "</div>";
   }
   function panelState(k) {
