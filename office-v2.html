@@ -97,6 +97,16 @@
   Brein-waakhond (15-10): de video bleef stilstaan als de browser hem ooit pauzeerde (play() ging maar één keer).
   kickBrain() + interval van 4 s: loopt currentTime niet op, dan opnieuw play(); twee keer vast = bron opnieuw
   laden. Ook bij terugkeer naar tab/venster, pause/stalled/error-events en de eerste klik. Niet bij reduced motion.
+  Overleghoek (15-10): roept één hoofdagent binnen MEET_WINDOW (10 min) DRIE of meer verschillende
+  sub-workflows aan (MEET_MIN; nu Reels Builder en Story Builder: Schrijf Copy + Fidelity Guard + Propose,
+  en via Propose ook Notify), dan krijgt hij geen losse extra werkplekken maar één gedeelde koffiehoek
+  (groter platform met statafel en koffiekopjes, label ☕ OVERLEG) bij zijn afdeling. De hoofdagent staat
+  op en loopt erheen; de sub-agents (geen bureau) verschijnen aan de overkant van de hoek en lopen naar
+  de tafel, in hun eigen afdelingskleur. Ze staan om de tafel en praten om de beurt (ballon = begin van
+  hun laatste samenvatting); helpers die AI gebruiken sturen een powerbal. Daarna lopen de helpers weg,
+  de hoofdagent terug naar zijn stoel en de hoek vervaagt. Aanroepen die binnenkomen terwijl de hoek
+  bezig is schuiven aan (max. 5 helpers). Per hoofdagent hooguit één overleg per venster (S.metAt);
+  telt een groep nog geen 3, dan gewoon de losse extra werkplek. Elke afdeling/aanroeper eigen hoek.
   Achtergrondfoto (15-10): office-v2-assets/bg-ripple.webp (1080 x 1000, rimpelend water + geluidsgolven; de
   zwevende druppel en de opspattende kolom zijn eruit geretoucheerd) ligt als #bgPhoto beeldvullend onder de
   SVG. Het brein vervangt de druppel: placeBrainLive() legt het druppelpunt van de foto (BG_DROP) op het
@@ -311,6 +321,14 @@
   .subdept .sub-name{font:700 7.5px var(--mono);letter-spacing:.1em;fill:var(--c);text-anchor:middle}
   .subdept .sd-img{transition:opacity .25s,filter .25s}
   .subdept .sd-img.vacant{opacity:.9}
+  .subdept.meet .mt-rug{fill:color-mix(in srgb,var(--c) 18%,transparent);stroke:color-mix(in srgb,var(--c) 45%,transparent);stroke-width:.6}
+  .subdept.meet .mt-sh{fill:#000;opacity:.35}
+  .subdept.meet .mt-leg{fill:#3a4452}
+  .subdept.meet .mt-edge{fill:#5b4433}
+  .subdept.meet .mt-top{fill:#8a6a4c;stroke:color-mix(in srgb,var(--c) 50%,#c9a27a);stroke-width:.5}
+  .subdept.meet.busy .mt-rug{stroke:var(--c);stroke-opacity:.9}
+  .walker.ghost{opacity:0;transition:opacity .6s ease}
+  .walker.ghost.in{opacity:1}
   .subdept .sd-screen{fill:var(--c);opacity:0;mix-blend-mode:screen;transition:opacity .3s}
   .subdept.busy .sd-screen{animation:pulse 1.2s ease-in-out infinite}
   /* tekstballonnen boven werkende agents */
@@ -1804,8 +1822,10 @@
   var SUB_CHAIN = 15000;            /* sub roept sub aan (Propose -> Notify): runs liggen binnen 15 s */        /* run-cache: sub-runs van het afgelopen half uur */
   var SUB_MIN = 6000, SUB_MAX = 20000, SUB_DEF = 9000;   /* werktijd per aanroep op de extra werkplek */
   var TRIP_MAX = 6, TRIP_TTL = 5 * 60000;                 /* wachtrij per aanroeper */
+  var MEET_MIN = 3, MEET_WINDOW = 10 * 60000, MEET_MAX = 5;   /* overleghoek: vanaf 3 helpers binnen 10 min */
+  var MEET_BASE = 10000, MEET_PER = 2500, MEET_W = 3.6, MEET_D = 3.2;
   var WALK = 3.4;                   /* loopsnelheid in cellen per seconde (vlot) */
-  var SW = 2.6, SD = 2.3, SGAP = 1.1;   /* 13-10: iets ruimer, zodat er naast de stoel plek is om te staan */
+  var SW = 2.6, SD = 2.3, SGAP = 1.1, SW_ = SW, SD_ = SD;   /* 13-10: iets ruimer, zodat er naast de stoel plek is om te staan */
   /* loper op dezelfde schaal als de opstaande agent (laatste opsta-frame ~76 wereld-eenheden hoog;
      figuur = ~90% van het frame, voeten op 96%). 4 frames per rij = één pas -> 8 fps. */
   var WALK_H = 84, WALK_W = WALK_H * 256 / 384, WALK_FPS = 8, WALK_ROW_FR = [4, 4], WALK_COLS = 4;
@@ -1813,6 +1833,7 @@
   var STAND_OFF = unIso(DX0 + STAND_FEET[0] * DESK_W, DY0 + STAND_FEET[1] * STAND_BOX_H);
   var HOLO_SCALE = 2.8;
   S.subs = S.subs || []; S.subRuns = S.subRuns || []; S.subSeen = S.subSeen || null; S.trips = S.trips || {}; S.subClaim = S.subClaim || {};
+  S.calls = S.calls || {}; S.metAt = S.metAt || {};
   function ms(t) { return t ? new Date(t).getTime() : 0; }
 
   /* ---- wie riep aan? naam in de samenvatting, anders tijd; sub-aanroeper -> diens aanroeper ---- */
@@ -1893,14 +1914,40 @@
         rows.forEach(function (r) { now[key(r)] = 1; if (S.subClaim[key(r)]) claim[key(r)] = 1; });
         S.subRuns = rows; S.subSeen = now; S.subClaim = claim;
         if (!seen || !prevRun) return;          /* eerste lading: niets naspelen */
-        var t0 = null;
+        var t0 = null, got = [];
         rows.filter(function (r) { return !seen[key(r)]; }).forEach(function (r) {
           var to = S.byWf[r.workflow]; if (!to || NOOP_RE.test(String(r.summary || ""))) return;
           var t = ms(r.run_at), fr = callerOf(to.agent_id, t, r.summary || "", 0);
           if (!fr || !fr._p) return;            /* geen aanroeper met bureau gevonden */
           if (t0 == null) t0 = t;
           var delay = 300 + Math.min(REFRESH_MS - 25000, Math.max(0, t - t0));   /* volgorde en ritme van de echte runs */
-          setTimeout(function () { enqueueTrip(fr.agent_id, { to: to.agent_id, dur: Number(r.duration_ms) || 0, at: Date.now() }); }, delay);
+          got.push({ fr: fr.agent_id, to: to.agent_id, t: t, dur: Number(r.duration_ms) || 0, delay: delay });
+        });
+        /* overleghoek: per aanroeper de aanroepen van de afgelopen MEET_WINDOW (ook uit eerdere verversingen,
+           want één Story Builder-run duurt ~3,5 min); 3+ verschillende helpers sinds het vorige overleg = hoek */
+        var meet = {};
+        got.forEach(function (x) {
+          var c = (S.calls[x.fr] || []).filter(function (y) { return x.t - y.t < MEET_WINDOW; });
+          c.push({ to: x.to, t: x.t }); S.calls[x.fr] = c;
+        });
+        got.forEach(function (x) {
+          if (meet[x.fr] !== undefined) return;
+          var q = S.trips[x.fr];
+          if (q && (q.meet || q.pendingMeet)) { meet[x.fr] = null; return; }   /* loopt al: aansluiten via enqueueTrip */
+          var cut = S.metAt[x.fr] || 0, ids = [], last = 0;
+          S.calls[x.fr].forEach(function (y) { if (y.t > cut) { if (ids.indexOf(y.to) < 0) ids.push(y.to); last = Math.max(last, y.t); } });
+          if (ids.length >= MEET_MIN) { meet[x.fr] = { ids: ids.slice(0, MEET_MAX), delay: x.delay }; S.metAt[x.fr] = last; }
+          else meet[x.fr] = null;
+        });
+        got.forEach(function (x) {
+          if (meet[x.fr]) return;               /* gaat naar de overleghoek */
+          setTimeout(function () { enqueueTrip(x.fr, { to: x.to, dur: x.dur, at: Date.now() }); }, x.delay);
+        });
+        Object.keys(meet).forEach(function (fid) {
+          var m = meet[fid]; if (!m) return;
+          var q = S.trips[fid] = S.trips[fid] || { q: [], busy: false, ctl: null };
+          q.pendingMeet = m.ids.slice();
+          setTimeout(function () { startMeeting(fid, 0); }, m.delay);
         });
       });
   }
@@ -1909,6 +1956,8 @@
   function enqueueTrip(fromId, item) {
     if (document.hidden || REDUCED) return;
     var q = S.trips[fromId] = S.trips[fromId] || { q: [], busy: false, ctl: null };
+    if (q.meet && !q.meet.leaving) { q.meet.add(item.to); return; }
+    if (q.pendingMeet) { if (q.pendingMeet.indexOf(item.to) < 0 && q.pendingMeet.length < MEET_MAX) q.pendingMeet.push(item.to); return; }
     if (q.ctl && !q.ctl.leaving) { if (q.ctl.batch.length < TRIP_MAX) q.ctl.batch.push(item); return; }
     q.q.push(item); if (q.q.length > TRIP_MAX) q.q.shift();
     if (!q.busy) nextTrip(fromId);
@@ -1931,9 +1980,227 @@
     if (!g) { g = document.createElementNS("http://www.w3.org/2000/svg", "g"); g.id = "subLayer"; var bl = $("ballLayer"); elWorld.insertBefore(g, bl || null); }
     return g;
   }
+  /* ---------------------------------------------------------- overleghoek (15-10) */
+  var SVGNS = "http://www.w3.org/2000/svg";
+  function startMeeting(fid, tries) {
+    var q = S.trips[fid]; if (!q || !q.pendingMeet) return;
+    if (document.hidden || REDUCED) { q.pendingMeet = null; return; }
+    /* de hoofdagent is nog onderweg (losse werkplek): even wachten, max. ~1 min */
+    if (q.busy || S.pose[fid]) {
+      if (tries < 20) setTimeout(function () { startMeeting(fid, tries + 1); }, 3000);
+      else q.pendingMeet = null;
+      return;
+    }
+    var ids = q.pendingMeet; q.pendingMeet = null;
+    var m = { helpers: [], leaving: false, add: null };
+    q.busy = true; q.meet = m;
+    runMeeting(fid, ids, m, function () {
+      if (q.meet === m) q.meet = null;
+      q.busy = false;
+      setTimeout(function () { if (!q.busy) nextTrip(fid); }, 600);
+    });
+  }
+  function makeWalker(color, cloth, hair) {
+    var w = document.createElementNS(SVGNS, "g");
+    w.setAttribute("class", "walker"); w.setAttribute("style", "--c:" + color);
+    w.innerHTML = AV.walk
+      ? '<ellipse class="w-sh" rx="15" ry="6"/><svg class="w-spr" x="' + f1(-WALK_W / 2) + '" y="' + f1(-WALK_H * 0.96) + '" width="' + f1(WALK_W) + '" height="' + f1(WALK_H)
+        + '" viewBox="0 0 256 384" preserveAspectRatio="none" overflow="hidden"><image href="' + tinted("walk", cloth, hair) + '" width="' + (256 * WALK_COLS) + '" height="768" preserveAspectRatio="none"/></svg>'
+      : '<g transform="scale(' + HOLO_SCALE + ')"><ellipse class="w-sh" rx="5.5" ry="2.4"/><g class="w-up"><ellipse class="w-glow" cx="0" cy="-12" rx="8" ry="13"/>'
+        + '<g class="w-legs"><line class="w-leg" x1="-1.6" y1="-8" x2="-1.6" y2="-1"/><line class="w-leg" x1="1.6" y1="-8" x2="1.6" y2="-1"/></g>'
+        + '<rect class="w-body" x="-4.2" y="-19" width="8.4" height="12" rx="3.6"/><circle class="w-body" cx="0" cy="-23.5" r="3.6"/></g></g>';
+    return w;
+  }
+  /* lopen langs rt = [[[wx, wy], z], ...]; blijft daarna staan (laatste rij, frame 0). place(w, wx, wy) regelt diepte. */
+  function walkAlong(w, rt, place, alive) {
+    return new Promise(function (res) {
+      if (rt.length < 2) { var p0 = iso(rt[0][0][0], rt[0][0][1], rt[0][1]); place(w, rt[0][0][0], rt[0][0][1]); w.setAttribute("transform", "translate(" + p0[0].toFixed(1) + "," + p0[1].toFixed(1) + ")"); return res(); }
+      var P = rt.map(function (r) { return iso(r[0][0], r[0][1], r[1]); }), L = [], T = 0, i, row = 0;
+      for (i = 1; i < rt.length; i++) { var l = Math.hypot(rt[i][0][0] - rt[i - 1][0][0], rt[i][0][1] - rt[i - 1][0][1]); L.push(l); T += l; }
+      var dur = Math.max(500, T / WALK * 1000), t0 = performance.now(), spr = w.querySelector(".w-spr");
+      place(w, rt[0][0][0], rt[0][0][1]);
+      (function step(now) {
+        if (!alive()) return res();
+        var f = Math.min(1, (now - t0) / dur), dist = f * T; i = 0;
+        while (i < L.length - 1 && dist > L[i]) { dist -= L[i]; i++; }
+        var k = L[i] ? Math.min(1, dist / L[i]) : 1;
+        var x = P[i][0] + (P[i + 1][0] - P[i][0]) * k, y = P[i][1] + (P[i + 1][1] - P[i][1]) * k;
+        var wx = rt[i][0][0] + (rt[i + 1][0][0] - rt[i][0][0]) * k, wy = rt[i][0][1] + (rt[i + 1][0][1] - rt[i][0][1]) * k;
+        var dx = P[i + 1][0] - P[i][0], dy = P[i + 1][1] - P[i][1];
+        place(w, wx, wy);
+        w.setAttribute("transform", "translate(" + x.toFixed(1) + "," + y.toFixed(1) + ") scale(" + (dx < 0 ? -1 : 1) + ",1)");
+        w._sx = x; w._sy = y;
+        if (spr) { row = dy < 0 ? 1 : 0; var fr = Math.floor((now - t0) / 1000 * WALK_FPS) % WALK_ROW_FR[row]; spr.setAttribute("viewBox", (fr * 256) + " " + (row * 384) + " 256 384"); }
+        if (f < 1) requestAnimationFrame(step); else { if (spr) spr.setAttribute("viewBox", "0 " + (row * 384) + " 256 384"); res(); }
+      })(t0);
+    });
+  }
+  /* stilstaand naar een punt (scherm) kijken: rij 1 = van de kijker af, gespiegeld naar links */
+  function faceTo(w, tx, ty) {
+    if (w._sx == null) return;
+    w.setAttribute("transform", "translate(" + w._sx.toFixed(1) + "," + w._sy.toFixed(1) + ") scale(" + (tx < w._sx ? -1 : 1) + ",1)");
+    var spr = w.querySelector(".w-spr"); if (spr) spr.setAttribute("viewBox", "0 " + (ty < w._sy ? 384 : 0) + " 256 384");
+  }
+  /* route van de eigen stoel via de gangpaden en de brug tot op het platform (eindpunt end), zelfde lijnen als runTrip */
+  function routeToPlatform(fr, d, b, mid, SL, end) {
+    var x0 = b.x, y0 = b.y, x1 = b.x + b.w, y1 = b.y + b.d;
+    var LX = fr._lx, LY = fr._ly, ER = 0.4;
+    var ISLE = (0.75 + AGENT_DX - 0.95) / 2, ROWI = (0.59 + AGENT_DY - 1.41) / 2;
+    var start = [d.x + LX + STAND_OFF[0], d.y + LY + STAND_OFF[1]];
+    var ax = d.x + LX + ISLE, rowAisle = d.y + Math.min(d.d - 1.0, LY + ROWI);
+    var R = [[start, SLAB], [[ax, start[1]], SLAB]];
+    if (b.side === "S") R.push([[ax, d.y + d.d - 1.0], SLAB], [[mid[0], d.y + d.d - 1.0], SLAB], [[mid[0], d.y + d.d - 0.3], SLAB], [[mid[0], y0 + 0.3], SL]);
+    if (b.side === "N") R.push([[ax, d.y + WALK_BACK], SLAB], [[mid[0], d.y + WALK_BACK], SLAB], [[mid[0], d.y + 0.3], SLAB], [[mid[0], y1 - 0.3], SL]);
+    if (b.side === "E") R.push([[ax, rowAisle], SLAB], [[d.x + d.w - ER, rowAisle], SLAB], [[d.x + d.w - ER, mid[1]], SLAB], [[d.x + d.w - 0.3, mid[1]], SLAB], [[x0 + 0.3, mid[1]], SL]);
+    if (b.side === "W") R.push([[ax, rowAisle], SLAB], [[d.x + WALK_BACK, rowAisle], SLAB], [[d.x + WALK_BACK, mid[1]], SLAB], [[d.x + 0.3, mid[1]], SLAB], [[x1 - 0.3, mid[1]], SL]);
+    R.push([end, SL]);
+    return R.filter(function (r, i) { return !i || Math.hypot(r[0][0] - R[i - 1][0][0], r[0][1] - R[i - 1][0][1]) > 0.02 || r[1] !== R[i - 1][1]; });
+  }
+  function runMeeting(fid, ids, m, done) {
+    var fr = S.byId[fid], d = fr && deptOf(fr);
+    if (document.hidden || REDUCED || !fr || !d || !fr._p || S.pose[fid]) return done();
+    var b = subSpot(d, MEET_W, MEET_D); if (!b) return done();
+    var ses = { to: ids[0], from: fid, box: b, live: true, meet: true }; S.subs.push(ses);
+    var SL = Math.round(SLAB * 0.8), x0 = b.x, y0 = b.y, x1 = b.x + b.w, y1 = b.y + b.d;
+    var mid = b.side === "E" || b.side === "W" ? [null, y0 + b.d / 2] : [x0 + b.w / 2, null];
+    var br;
+    if (b.side === "E") br = [[d.x + d.w, mid[1] - 0.35], [x0, mid[1] - 0.35], [x0, mid[1] + 0.35], [d.x + d.w, mid[1] + 0.35]];
+    if (b.side === "W") br = [[x1, mid[1] - 0.35], [d.x, mid[1] - 0.35], [d.x, mid[1] + 0.35], [x1, mid[1] + 0.35]];
+    if (b.side === "S") br = [[mid[0] - 0.35, d.y + d.d], [mid[0] + 0.35, d.y + d.d], [mid[0] + 0.35, y0], [mid[0] - 0.35, y0]];
+    if (b.side === "N") br = [[mid[0] - 0.35, y1], [mid[0] + 0.35, y1], [mid[0] + 0.35, d.y], [mid[0] - 0.35, d.y]];
+    var entry = b.side === "E" ? [x0 + 0.3, mid[1]] : b.side === "W" ? [x1 - 0.3, mid[1]] : b.side === "S" ? [mid[0], y0 + 0.3] : [mid[0], y1 - 0.3];
+    var tc = [x0 + b.w / 2, y0 + b.d / 2], tp = iso(tc[0], tc[1], SL), TH = 15;
+    var far = [Math.min(x1 - 0.35, Math.max(x0 + 0.35, x0 + x1 - entry[0])), Math.min(y1 - 0.35, Math.max(y0 + 0.35, y0 + y1 - entry[1]))];
+    /* plekken rond de tafel: 6 posities, hoofdagent aan de kant van de brug */
+    var a0 = Math.atan2(entry[1] - tc[1], entry[0] - tc[0]), ORDER = [0, 3, 2, 4, 1, 5], RAD = 1.05;
+    function slot(i) {
+      var a = a0 + ORDER[i % 6] * Math.PI / 3;
+      return [Math.min(x1 - 0.32, Math.max(x0 + 0.32, tc[0] + RAD * Math.cos(a))), Math.min(y1 - 0.32, Math.max(y0 + 0.32, tc[1] + RAD * Math.sin(a)))];
+    }
+    var lp = iso(x0 + b.w / 2, y1, 0);
+    var g = document.createElementNS(SVGNS, "g");
+    g.setAttribute("class", "subdept meet"); g.setAttribute("data-sub", ids[0]); g.setAttribute("style", "--c:" + d.color);
+    var cups = "";
+    [[-0.18, -0.08, "#f1ece4"], [0.16, -0.12, "#d9a441"], [0.02, 0.17, "#3f7d6e"], [-0.2, 0.14, "#f1ece4"]].forEach(function (c) {
+      var p = iso(tc[0] + c[0], tc[1] + c[1], SL + TH + 1);
+      cups += '<rect x="' + f1(p[0] - 2) + '" y="' + f1(p[1] - 4) + '" width="4" height="4" rx="1" fill="' + c[2] + '"/><ellipse cx="' + f1(p[0]) + '" cy="' + f1(p[1] - 4) + '" rx="2" ry=".9" fill="#3a2a1e"/>';
+    });
+    var rx = 0.5 * HW * 1.414, ry = 0.5 * HH * 1.414;
+    g.innerHTML = '<title>' + esc("Overleg · " + fr.agent_name) + '</title>'
+      + '<polygon class="bridge" points="' + pts(br.map(function (p) { return iso(p[0], p[1], SL); })) + '"/>'
+      + '<polygon class="sub-l" points="' + pts([iso(x0, y1, SL), iso(x1, y1, SL), iso(x1, y1), iso(x0, y1)]) + '"/>'
+      + '<polygon class="sub-r" points="' + pts([iso(x1, y1, SL), iso(x1, y0, SL), iso(x1, y0), iso(x1, y1)]) + '"/>'
+      + '<polygon class="sub-top" points="' + pts([iso(x0, y0, SL), iso(x1, y0, SL), iso(x1, y1, SL), iso(x0, y1, SL)]) + '"/>'
+      + '<ellipse class="mt-rug" cx="' + f1(tp[0]) + '" cy="' + f1(tp[1]) + '" rx="' + f1(rx * 2.6) + '" ry="' + f1(ry * 2.6) + '"/>'
+      + '<g class="mt-back"></g>'
+      + '<g class="mt-table"><ellipse class="mt-sh" cx="' + f1(tp[0]) + '" cy="' + f1(tp[1]) + '" rx="' + f1(rx * 0.7) + '" ry="' + f1(ry * 0.7) + '"/>'
+      + '<rect class="mt-leg" x="' + f1(tp[0] - 1.6) + '" y="' + f1(tp[1] - TH) + '" width="3.2" height="' + TH + '"/>'
+      + '<ellipse class="mt-edge" cx="' + f1(tp[0]) + '" cy="' + f1(tp[1] - TH + 1.6) + '" rx="' + f1(rx) + '" ry="' + f1(ry) + '"/>'
+      + '<ellipse class="mt-top" cx="' + f1(tp[0]) + '" cy="' + f1(tp[1] - TH) + '" rx="' + f1(rx) + '" ry="' + f1(ry) + '"/>' + cups + '</g>'
+      + '<g class="mt-front"></g>'
+      + '<text class="sub-name" x="' + f1(lp[0]) + '" y="' + f1(lp[1] + 12) + '">☕ OVERLEG · ' + esc(String(fr.agent_name).toUpperCase()) + '</text>';
+    subLayer().appendChild(g);
+    requestAnimationFrame(function () { g.classList.add("on"); });
+    var gBack = g.querySelector(".mt-back"), gFront = g.querySelector(".mt-front");
+    function alive() { return g.isConnected; }
+    function place(w, wx, wy) {
+      var de = elWorld.querySelector('.dept[data-dept="' + CSS.escape(d.name) + '"]');
+      if (de && wx > d.x && wx < d.x + d.w && wy > d.y && wy < d.y + d.d) {
+        var k = (wx - d.x) + (wy - d.y), before = null, i, els = de.querySelectorAll(":scope > [data-k]");
+        for (i = 0; i < els.length; i++) { if (parseFloat(els[i].getAttribute("data-k")) > k) { before = els[i]; break; } }
+        if (!before) { var last = els[els.length - 1]; before = last ? last.nextSibling : null; }
+        if (w.parentNode !== de || w.nextSibling !== before) de.insertBefore(w, before);
+      } else if (wx >= x0 - 0.05 && wx <= x1 + 0.05 && wy >= y0 - 0.05 && wy <= y1 + 0.05) {
+        var grp = (wx + wy) < (tc[0] + tc[1]) ? gBack : gFront;
+        if (w.parentNode !== grp) grp.appendChild(w);
+      } else if (w.parentNode !== subLayer() || w.nextSibling !== g) subLayer().insertBefore(w, g);
+    }
+    var people = [], bw = null, hostW = makeWalker(d.color, colorOf(fr), hairOf(fr));
+    var hostSpot = slot(0), hostRoute = routeToPlatform(fr, d, b, mid, SL, hostSpot);
+    var until = 0;
+    /* een helper (sub-agent zonder bureau) verschijnt aan de overkant en loopt naar zijn plek */
+    function addHelper(id) {
+      var x = S.byId[id];
+      if (!x || m.leaving || people.length >= MEET_MAX || people.some(function (p) { return p.id === id; })) return;
+      var n = people.length, spot = slot(n + 1);
+      var start = [Math.min(x1 - 0.3, Math.max(x0 + 0.3, far[0] + ((n % 3) - 1) * 0.45)), Math.min(y1 - 0.3, Math.max(y0 + 0.3, far[1] + ((n % 3) - 1) * 0.45))];
+      var hw = makeWalker(colorOf(x), colorOf(x), hairOf(x)); hw.classList.add("ghost");
+      var p = { id: id, w: hw, start: start, spot: spot, arrived: null };
+      people.push(p);
+      if (until) until = Math.max(until, performance.now() + 4000);
+      var lines = g.querySelector("title"); if (lines) lines.textContent = "Overleg · " + fr.agent_name + " + " + people.map(function (q) { return S.byId[q.id].agent_name; }).join(", ");
+      p.arrived = sleep(400 + n * 650).then(function () {
+        if (!alive()) return;
+        var r0 = [[start, SL]]; walkAlong(hw, r0, place, alive);
+        requestAnimationFrame(function () { hw.classList.add("in"); });
+        return walkAlong(hw, [[start, SL], [spot, SL]], place, alive).then(function () { faceTo(hw, tp[0], tp[1]); });
+      });
+    }
+    m.add = addHelper;
+    ids.forEach(addHelper);
+    function say(w, text, color) {
+      if (bw) { bw.remove(); bw = null; }
+      if (!w || w._sx == null || !alive()) return;
+      bw = document.createElementNS(SVGNS, "g");
+      bw.innerHTML = bubbleSvg(w._sx + 6, w._sy - WALK_H * 0.9, text.length > 34 ? text.slice(0, 33) + "…" : text, color);
+      g.appendChild(bw);
+    }
+    function home() { if (S.pose[fid]) setOwnPose(fr, null); }
+    /* 1. hoofdagent staat op en loopt naar de hoek (helpers komen tegelijk aan de overkant binnen) */
+    playStand(function (f) { setOwnPose(fr, "stand", f); }, false).then(function () {
+      if (!alive()) return;
+      setOwnPose(fr, "empty"); renderBubbles();
+      return walkAlong(hostW, hostRoute, place, alive);
+    }).then(function () {
+      if (!alive()) return;
+      faceTo(hostW, tp[0], tp[1]);
+      return Promise.all(people.map(function (p) { return p.arrived; }));
+    }).then(function () {
+      /* 2. overleg: om de beurt aan het woord; AI-helpers sturen een powerbal naar het brein */
+      if (!alive()) return;
+      g.classList.add("busy");
+      people.forEach(function (p, i) { var x = S.byId[p.id]; if (x && usesBrain(x)) setTimeout(function () { fireBall(p.id, { p: tp, d: d }); }, 600 + i * 900); });
+      until = performance.now() + MEET_BASE + MEET_PER * people.length;
+      var turn = 0;
+      return (function talk() {
+        if (!alive() || performance.now() >= until) return;
+        var who = turn % (people.length + 1), t;
+        if (who === 0) say(hostW, (people.length > 1 ? "Overleg met " + people.length + " helpers" : "Overleg"), d.color);
+        else {
+          var p = people[who - 1], x = S.byId[p.id];
+          if (p.w._sx != null && x) { t = doingText(x) || x.agent_name; say(p.w, x.agent_name + ": " + t, colorOf(x)); }
+        }
+        turn++;
+        return sleep(2600).then(talk);
+      })();
+    }).then(function () {
+      /* 3. uit elkaar: helpers lopen weg en vervagen, de hoofdagent loopt terug */
+      m.leaving = true;
+      say(null); g.classList.remove("busy");
+      if (!alive()) return;
+      people.forEach(function (p) {
+        walkAlong(p.w, [[p.spot, SL], [p.start, SL]], place, alive).then(function () { p.w.classList.remove("in"); setTimeout(function () { p.w.remove(); }, 700); });
+      });
+      return walkAlong(hostW, hostRoute.slice().reverse(), place, alive);
+    }).then(function () {
+      if (!alive()) return;
+      hostW.remove();
+      g.classList.remove("on");
+      return playStand(function (f) { setOwnPose(fr, "stand", f); }, true);
+    }).then(function () {
+      home(); renderBubbles();
+      return sleep(750);
+    }, function () { home(); }).then(function () {
+      m.leaving = true; hostW.remove(); people.forEach(function (p) { p.w.remove(); });
+      g.remove(); ses.live = false; S.subs = S.subs.filter(function (x) { return x.live; });
+      done();
+    });
+  }
+
   /* plek: aan de buitenkant (weg van de Brain), anders een andere zijde; geen overlap met afdelingen of
      andere actieve sub-platforms */
-  function subSpot(d) {
+  function subSpot(d, bw, bd) {
+    var SW = bw || SW_, SD = bd || SD_;
     var cx = d.x + d.w / 2, cy = d.y + d.d / 2;
     var sides = Math.abs(cx) > Math.abs(cy) ? (cx > 0 ? ["E", "S", "N", "W"] : ["W", "N", "S", "E"]) : (cy > 0 ? ["S", "E", "W", "N"] : ["N", "W", "E", "S"]);
     var taken = S.subs.filter(function (s) { return s.live; }).map(function (s) { return s.box; });
