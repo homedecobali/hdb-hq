@@ -97,6 +97,12 @@
   Brein-waakhond (15-10): de video bleef stilstaan als de browser hem ooit pauzeerde (play() ging maar één keer).
   kickBrain() + interval van 4 s: loopt currentTime niet op, dan opnieuw play(); twee keer vast = bron opnieuw
   laden. Ook bij terugkeer naar tab/venster, pause/stalled/error-events en de eerste klik. Niet bij reduced motion.
+  Achtergrondfoto (15-10): office-v2-assets/bg-ripple.webp (1080 x 1000, rimpelend water + geluidsgolven; de
+  zwevende druppel en de opspattende kolom zijn eruit geretoucheerd) ligt als #bgPhoto beeldvullend onder de
+  SVG. Het brein vervangt de druppel: placeBrainLive() legt het druppelpunt van de foto (BG_DROP) op het
+  middelpunt van het brein en schaalt mee met zoom/pan (druppelgebied ≈ breinbreedte), maar minstens zo groot
+  als het zichtbare vloerdeel; de donkere randen lopen via een radiaal masker over in de scènekleur. De donkere vloerpolygoon, vloertextuur en het raster zijn weg zodat de foto
+  zichtbaar is. Video, waakhond en afspelen van het brein zijn niet aangeraakt.
 -->
 <html lang="nl">
 <head>
@@ -190,7 +196,12 @@
 
   .scene{flex:1;min-height:0;position:relative;overflow:hidden;background:
     radial-gradient(ellipse 70% 60% at 50% 48%,rgba(0,212,255,.06),transparent 70%),var(--ground);touch-action:none}
-  #floor{display:block;width:100%;height:100%;font-family:var(--font);cursor:grab;user-select:none;-webkit-user-select:none}
+  /* 15-10: achtergrondfoto, positie/schaal zet placeBrainLive() (druppelpunt = middelpunt brein) */
+  .bg-photo{position:absolute;left:0;top:0;width:1080px;height:1000px;z-index:0;pointer-events:none;opacity:0;
+    background:url(office-v2-assets/bg-ripple.webp) 0 0/100% 100% no-repeat;transform-origin:0 0;
+    -webkit-mask-image:radial-gradient(ellipse 58% 58% at 50% 50%,#000 72%,transparent 100%);mask-image:radial-gradient(ellipse 58% 58% at 50% 50%,#000 72%,transparent 100%);will-change:transform;transition:opacity .8s ease}
+  .bg-photo.on{opacity:1}
+  #floor{position:relative;z-index:1;display:block;width:100%;height:100%;font-family:var(--font);cursor:grab;user-select:none;-webkit-user-select:none}
   #floor.drag{cursor:grabbing}
   #wires{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:hidden}
   #wires path{fill:none;stroke:var(--cyan);stroke-width:1.1;stroke-opacity:.55;stroke-dasharray:1;stroke-dashoffset:1;animation:draw .32s ease-out forwards}
@@ -509,6 +520,7 @@
     <section class="stage" id="stage" aria-label="Kantoorvloer">
       <div class="tools" id="tools"><span class="lbl">Verbonden met</span></div>
       <div class="scene" id="scene">
+        <div id="bgPhoto" class="bg-photo" aria-hidden="true"></div>
         <svg id="floor" role="group" aria-label="Afdelingen en agents rond de Brain" preserveAspectRatio="xMidYMid meet">
           <defs>
             <linearGradient id="gBeam" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#00d4ff" stop-opacity=".0"/><stop offset=".35" stop-color="#00d4ff" stop-opacity=".35"/><stop offset="1" stop-color="#b58cff" stop-opacity=".0"/></linearGradient>
@@ -1485,10 +1497,9 @@
     var gx0 = Math.floor(Math.min.apply(null, allx)) - far, gx1 = Math.ceil(Math.max.apply(null, allx)) + far,
         gy0 = Math.floor(Math.min.apply(null, ally)) - far, gy1 = Math.ceil(Math.max.apply(null, ally)) + far, i, a, b;
     var gpoly = pts([iso(gx0, gy0), iso(gx1, gy0), iso(gx1, gy1), iso(gx0, gy1)]);
-    h += '<polygon class="ground" points="' + gpoly + '"/>'
-      + '<polygon class="ground-tex" fill="url(#pGround)" points="' + gpoly + '"/>';
-    for (i = gx0; i <= gx1; i += 2) { a = iso(i, gy0); b = iso(i, gy1); h += '<line class="grid" x1="' + f1(a[0]) + '" y1="' + f1(a[1]) + '" x2="' + f1(b[0]) + '" y2="' + f1(b[1]) + '"/>'; }
-    for (i = gy0; i <= gy1; i += 2) { a = iso(gx0, i); b = iso(gx1, i); h += '<line class="grid" x1="' + f1(a[0]) + '" y1="' + f1(a[1]) + '" x2="' + f1(b[0]) + '" y2="' + f1(b[1]) + '"/>'; }
+    /* 15-10: geen dichte vloer/raster meer — de achtergrondfoto (#bgPhoto) is de vloer. Transparant vlak
+       blijft staan zodat slepen/klikken op lege vloer werkt zoals voorheen. */
+    h += '<polygon class="ground-hit" fill="transparent" points="' + gpoly + '"/>';
 
     buildGlows();
 
@@ -1651,10 +1662,24 @@
     var r = a.getBoundingClientRect(), s = elScene.getBoundingClientRect();
     if (!r.width) return;
     elBrainLive.style.transform = "translate(" + (r.left - s.left).toFixed(1) + "px," + (r.top - s.top).toFixed(1) + "px) scale(" + (r.width / 600).toFixed(4) + ")";
+    placeBg(r.left - s.left, r.top - s.top, r.width, s.width, s.height);
     if (!elBrainLive.classList.contains("on")) {
       elBrainLive.classList.add("on");
       if (!REDUCED) { var pr = elBrainLive.play(); if (pr && pr.catch) pr.catch(function () {}); }
     }
+  }
+  /* 15-10: achtergrondfoto volgt het brein. BG_DROP = waar de druppel in de foto zat (px in 1080 x 1000),
+     BRAIN_C = middelpunt van het brein in het videobeeld (aandeel van 600 x 540), BG_SPAN = breedte van het
+     druppelgebied in de foto. Schaal: druppelgebied = breinbreedte, maar minstens beeldvullend. */
+  var elBg = $("bgPhoto"), BG_W = 1080, BG_H = 1000, BG_DROP = [540, 499], BG_SPAN = 260, BRAIN_C = [289 / 600, 247 / 540];
+  function placeBg(lx, ty, rw, W, H) {
+    if (!elBg || !rw || !W || !H) return;
+    var cx = lx + rw * BRAIN_C[0], cy = ty + rw * (540 / 600) * BRAIN_C[1], px = BG_DROP[0], py = BG_DROP[1];
+    /* minstens zo groot als het zichtbare vloerdeel (links van het zwevende paneel); de randen van de foto zijn
+       donker en lopen via het masker over in de scènekleur, dus geen harde naad als het brein uit het midden staat */
+    var k = Math.max(rw * 0.87 / BG_SPAN, visW() / BG_W, H / BG_H);
+    elBg.style.transform = "translate(" + (cx - px * k).toFixed(1) + "px," + (cy - py * k).toFixed(1) + "px) scale(" + k.toFixed(4) + ")";
+    if (!elBg.classList.contains("on")) elBg.classList.add("on");
   }
   if (window.ResizeObserver) new ResizeObserver(function () { placeBrainLive(); }).observe(elScene);
   /* 15-10: waakhond — het brein mag nooit stil blijven staan. play() ging maar één keer; pauzeerde de
