@@ -368,6 +368,87 @@
   #top #palBtn kbd{font:700 9.5px ui-monospace,Consolas,monospace;border:1px solid var(--line);border-radius:5px;padding:1px 5px;color:var(--muted)}
 
   /* ---- COCKPIT: max. 6 tegels, laatste volle dag vs dag ervoor ---- */
+  /* ---- OFFICE KPI Review (16-10): dagelijks oordeel van agent office-kpi-review (dewi_office_reviews) ---- */
+  #review{--acc:#06b6d4;--vc:var(--muted);margin:0 0 14px;background:linear-gradient(135deg,color-mix(in srgb,var(--vc) 9%,var(--panel)) 0%,var(--panel) 46%);
+    border:1px solid color-mix(in srgb,var(--vc) 38%,var(--line));border-radius:12px;padding:12px 14px 12px;position:relative;overflow:hidden}
+  #review.v-groen{--vc:var(--green)} #review.v-oranje{--vc:var(--orange)} #review.v-rood{--vc:var(--red)}
+  #review .rv-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+  #review .rv-t{font-size:12.5px;font-weight:800;letter-spacing:.22em;text-transform:uppercase;color:var(--acc)}
+  #review .rv-s{font-size:11px;color:var(--muted)}
+  #review .rv-tag{font-size:9.5px;font-weight:800;letter-spacing:.1em;padding:2px 7px;border-radius:5px;border:1px solid var(--line);color:var(--muted)}
+  #review .rv-tag.test{color:var(--yellow);border-color:color-mix(in srgb,var(--yellow) 50%,transparent)}
+  #review .rv-tag.rules{color:var(--orange);border-color:color-mix(in srgb,var(--orange) 50%,transparent)}
+  #review .rv-tag.old{color:var(--orange);border-style:dashed}
+  #review .rv-fold{margin-left:auto;appearance:none;background:none;border:1px solid var(--line);color:var(--muted);border-radius:7px;font:600 11px system-ui;padding:3px 9px;cursor:pointer}
+  #review .rv-fold:hover,#review .rv-fold:focus-visible{color:var(--text);border-color:var(--acc);outline:none}
+  #review .rv-top{display:grid;grid-template-columns:132px minmax(0,1fr) 220px;gap:16px;align-items:center}
+  #review .rv-ring{position:relative;width:132px;height:132px}
+  #review .rv-ring svg{width:132px;height:132px;transform:rotate(-90deg)}
+  #review .rv-ring .trk{fill:none;stroke:rgba(125,140,163,.16);stroke-width:11}
+  #review .rv-ring .arc{fill:none;stroke:var(--vc);stroke-width:11;stroke-linecap:round;filter:drop-shadow(0 0 6px color-mix(in srgb,var(--vc) 55%,transparent));transition:stroke-dashoffset 1.1s cubic-bezier(.2,.7,.2,1)}
+  #review .rv-ring .mid{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+  #review .rv-ring .sc{font-size:38px;font-weight:900;line-height:1;font-variant-numeric:tabular-nums;color:var(--text)}
+  #review .rv-ring .vd{margin-top:5px;font-size:11px;font-weight:800;letter-spacing:.22em;text-transform:uppercase;color:var(--vc)}
+  #review .rv-hl{font-size:19px;font-weight:800;line-height:1.25;color:var(--text);margin:0 0 6px}
+  #review .rv-sum{font-size:13px;line-height:1.5;color:color-mix(in srgb,var(--text) 82%,var(--muted));margin:0}
+  #review .rv-trend .tt{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+  #review .rv-bars{display:flex;align-items:flex-end;gap:4px;height:64px;padding-bottom:2px;border-bottom:1px solid var(--line)}
+  #review .rv-bars i{flex:1;min-width:6px;border-radius:3px 3px 0 0;background:var(--muted);opacity:.85;position:relative}
+  #review .rv-bars i.v-groen{background:var(--green)} #review .rv-bars i.v-oranje{background:var(--orange)} #review .rv-bars i.v-rood{background:var(--red)}
+  #review .rv-bars i.cur{opacity:1;box-shadow:0 0 0 1px var(--text)}
+  #review .rv-trend .tl{display:flex;justify-content:space-between;font-size:10px;color:var(--muted);margin-top:3px}
+  #review .rv-zones{display:grid;grid-template-columns:repeat(9,minmax(0,1fr));gap:6px;margin:14px 0 12px}
+  #review .rv-z{--zc:var(--muted);appearance:none;text-align:left;cursor:pointer;font:inherit;color:inherit;min-width:0;
+    background:color-mix(in srgb,var(--zc) 13%,#0b1119);border:1px solid color-mix(in srgb,var(--zc) 45%,var(--line));border-top:3px solid var(--zc);border-radius:8px;padding:7px 8px 8px}
+  #review .rv-z:hover,#review .rv-z:focus-visible{outline:none;background:color-mix(in srgb,var(--zc) 22%,#0b1119)}
+  #review .rv-z.s-groen{--zc:var(--green)} #review .rv-z.s-oranje{--zc:var(--orange)} #review .rv-z.s-rood{--zc:var(--red)} #review .rv-z.s-grijs{--zc:#556274}
+  #review .rv-z .zn{display:flex;align-items:center;gap:6px;font-size:10px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--zc)}
+  #review .rv-z .zn .d{width:8px;height:8px;border-radius:50%;background:var(--zc);box-shadow:0 0 6px var(--zc)}
+  #review .rv-z.s-rood .zn .d{animation:pulse 1.4s ease-in-out infinite}
+  #review .rv-z .zl{font-size:11.5px;line-height:1.35;color:var(--text);margin-top:4px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical}
+  #review .rv-cols{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:14px}
+  #review .rv-h{font-size:10.5px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);margin:0 0 6px}
+  #review .rv-ins{--ic:var(--cyan);border-left:3px solid var(--ic);background:rgba(0,0,0,.18);border-radius:0 8px 8px 0;padding:7px 10px;margin-bottom:6px}
+  #review .rv-ins.sv-kans{--ic:var(--green)} #review .rv-ins.sv-let_op{--ic:var(--orange)} #review .rv-ins.sv-alarm{--ic:var(--red)}
+  #review .rv-ins .it{font-size:13px;font-weight:700;color:var(--text)}
+  #review .rv-ins .ib{font-size:12px;line-height:1.45;color:color-mix(in srgb,var(--text) 78%,var(--muted));margin-top:2px}
+  #review .rv-ins .iz{display:flex;gap:4px;flex-wrap:wrap;margin-top:4px}
+  #review .rv-chipz{font-size:9.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:1px 6px;border-radius:4px;border:1px solid var(--line);color:var(--muted);cursor:pointer;background:none}
+  #review .rv-chipz:hover{color:var(--text);border-color:var(--acc)}
+  #review .rv-act{display:grid;grid-template-columns:30px minmax(0,1fr) auto;gap:10px;align-items:start;padding:8px 0;border-top:1px solid rgba(28,41,64,.6)}
+  #review .rv-act:first-of-type{border-top:0}
+  #review .rv-act .nr{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:900;color:#04070d;background:var(--muted)}
+  #review .rv-act.p-hoog .nr{background:var(--red);box-shadow:0 0 8px color-mix(in srgb,var(--red) 60%,transparent)}
+  #review .rv-act.p-middel .nr{background:var(--yellow)}
+  #review .rv-act .at{font-size:13px;font-weight:700;line-height:1.35;color:var(--text)}
+  #review .rv-act .aw{font-size:12px;line-height:1.45;color:color-mix(in srgb,var(--text) 75%,var(--muted));margin-top:2px}
+  #review .rv-act .am{display:flex;gap:8px;flex-wrap:wrap;margin-top:4px;font-size:11px;color:var(--muted)}
+  #review .rv-act .am b{color:var(--text);font-weight:600}
+  #review .rv-act .am .late{color:var(--red);font-weight:700}
+  #review .rv-own{font-size:10px;font-weight:800;letter-spacing:.08em;padding:3px 8px;border-radius:999px;border:1px solid var(--line);color:var(--text);white-space:nowrap}
+  #review .rv-own.o-Rick{border-color:color-mix(in srgb,var(--cyan) 60%,transparent);color:var(--cyan)}
+  #review .rv-own.o-Marco{border-color:color-mix(in srgb,var(--z-shop) 60%,transparent);color:var(--z-shop)}
+  #review .rv-own.o-DEWI{border-color:color-mix(in srgb,var(--z-dewi) 60%,transparent);color:var(--z-dewi)}
+  #review details.rv-sig{margin-top:10px;border-top:1px dashed var(--line);padding-top:8px}
+  #review details.rv-sig summary{cursor:pointer;font-size:11px;color:var(--muted);letter-spacing:.06em}
+  #review details.rv-sig summary:hover{color:var(--text)}
+  #review .rv-sgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:4px 14px;margin-top:8px}
+  #review .rv-sg{display:grid;grid-template-columns:8px minmax(0,1fr) auto;gap:7px;align-items:center;font-size:11.5px;padding:3px 0;border-bottom:1px solid rgba(28,41,64,.45)}
+  #review .rv-sg .d{width:8px;height:8px;border-radius:50%;background:var(--muted)}
+  #review .rv-sg.sv-alarm .d{background:var(--red)} #review .rv-sg.sv-let_op .d{background:var(--orange)} #review .rv-sg.sv-positief .d{background:var(--green)}
+  #review .rv-sg .l{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:color-mix(in srgb,var(--text) 85%,var(--muted))}
+  #review .rv-sg .v{font-variant-numeric:tabular-nums;white-space:nowrap;color:var(--text)}
+  #review .rv-sg .v .up{color:var(--green)} #review .rv-sg .v .down{color:var(--red)}
+  #review .rv-empty{font-size:12.5px;color:var(--muted);padding:6px 2px}
+  #review.folded .rv-body{display:none}
+  .rv-zchip{font-size:9.5px;font-weight:800;letter-spacing:.06em;padding:3px 7px;border-radius:5px;white-space:nowrap;cursor:pointer;
+    border:1px solid currentColor;background:color-mix(in srgb,currentColor 10%,transparent)}
+  .rv-zchip.s-groen{color:var(--green)} .rv-zchip.s-oranje{color:var(--orange)} .rv-zchip.s-rood{color:var(--red)} .rv-zchip.s-grijs{color:var(--muted)}
+  @media (max-width:1400px){ #review .rv-zones{grid-template-columns:repeat(5,minmax(0,1fr))} }
+  @media (max-width:1100px){ #review .rv-top{grid-template-columns:110px minmax(0,1fr)} #review .rv-trend{grid-column:1 / -1}
+    #review .rv-ring,#review .rv-ring svg{width:110px;height:110px} #review .rv-ring .sc{font-size:31px} #review .rv-cols{grid-template-columns:1fr} }
+  @media (max-width:640px){ #review .rv-zones{grid-template-columns:repeat(3,minmax(0,1fr))} #review .rv-hl{font-size:16px} }
+  @media (prefers-reduced-motion:reduce){ #review .rv-ring .arc{transition:none} #review .rv-z.s-rood .zn .d{animation:none} }
   #cockpit{margin-bottom:12px}
   .ck-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 2px 9px}
   .ck-head .ck-t{font-size:12.5px;font-weight:800;letter-spacing:.22em;text-transform:uppercase;color:var(--cyan)}
@@ -549,6 +630,17 @@
         <span class="ck-ok" id="ck-ok"></span>
       </div>
       <div class="ck-grid" id="ck-grid"><div class="tile"><div class="tl">laden&hellip;</div><div class="tv">&mdash;</div></div></div>
+    </section>
+    <!-- ==================== OORDEEL VAN DE DAG (16-10): agent office-kpi-review, tabel dewi_office_reviews ==================== -->
+    <section id="review" aria-label="Oordeel van de dag">
+      <div class="rv-head">
+        <span class="rv-t">Oordeel van de dag</span>
+        <span class="rv-s" id="rv-when">OFFICE &middot; KPI Review</span>
+        <span id="rv-tags" style="display:contents"></span>
+        <span class="zerr" id="zerr-review"></span>
+        <button type="button" class="rv-fold" id="rv-fold" aria-expanded="true">inklappen</button>
+      </div>
+      <div class="rv-body" id="rv-body"><div class="rv-empty">laden&hellip;</div></div>
     </section>
     <!-- ==================== ACTIELIJST (28-09): beslissingen + taken die Rick vragen ==================== -->
     <section id="actions" aria-label="Actielijst">
@@ -1541,7 +1633,7 @@
      met 'var' declareren in load() of een render-functie — hoisting maakt hem dan
      undefined. Render-functies staan daarom los, met eigen unieke lokale namen. */
   var ZONE_ERRS = {};                       // { zone: { label: message } }
-  var ZONE_NAME = { cockpit:'Cockpit', shop:'Shopify', meta:'Meta', google:'Google', stats:'Stats & Social', dewi:'DEWI' };
+  var ZONE_NAME = { review:'Oordeel', cockpit:'Cockpit', shop:'Shopify', meta:'Meta', google:'Google', stats:'Stats & Social', dewi:'DEWI' };
   function paintZoneErr(zone){
     var el = $('zerr-' + zone); if(!el) return;
     var m = ZONE_ERRS[zone] || {}, keys = Object.keys(m);
@@ -2446,6 +2538,147 @@
     var cls = sign === 0 ? 'flat' : (dir === 0 ? 'neu' : ((sign * dir) > 0 ? 'up' : 'down'));
     return { cls: cls, txt: txt, sign: sign * (dir || 0) };
   }
+  /* ================= OORDEEL VAN DE DAG (OFFICE KPI Review, 16-10) =================
+     Bron: dewi_office_reviews (RLS: authenticated, niet-team) — 1 rij per dag van agent office-kpi-review
+     (n8n LJaMI1grp7YUlS5M, dagelijks 09:05). Toont de nieuwste dag; op dezelfde dag wint de productierij,
+     een nieuwere handmatige testrij krijgt label TEST. Trend = alleen productie. Puur weergave. */
+  var RV_ZONES = {
+    shop:      { n: 'Shop',      k: 'shop',   a: 'shop-nums' },
+    stats:     { n: 'Website',   k: 'stats',  a: 'web-nums' },
+    meta:      { n: 'Meta',      k: 'meta',   a: 'ads-nums' },
+    google:    { n: 'Google',    k: 'google', a: 'gads-when' },
+    social:    { n: 'Social',    k: 'stats',  a: 'social-nums' },
+    mail:      { n: 'Mail',      k: 'stats',  a: 'mail-nums' },
+    pinterest: { n: 'Pinterest', k: 'stats',  a: 'pin-nums' },
+    ops:       { n: 'Orders',    k: 'shop',   a: 'ro-nums' },
+    data:      { n: 'Data',      k: 'dewi',   a: 'system' }
+  };
+  var RV_ORDER = ['shop', 'stats', 'meta', 'google', 'social', 'mail', 'pinterest', 'ops', 'data'];
+  var RV_RANK = { rood: 3, oranje: 2, groen: 1, grijs: 0 };
+  function rvE(s){ return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+  function rvDM(iso){ var p = String(iso || '').split('-'); return p.length === 3 ? p[2] + '/' + p[1] : String(iso || ''); }
+  function rvNum(v){ if(typeof v !== 'number') return rvE(v); var a = Math.abs(v); return a >= 1000 ? Math.round(v).toLocaleString('nl-NL') : (a >= 100 ? String(Math.round(v)) : String(Math.round(v * 100) / 100).replace('.', ',')); }
+  (function(){
+    var f = $('rv-fold'); if(!f) return;
+    var st = null; try { st = localStorage.getItem('dewi_kpi_review_fold'); } catch(e){}
+    function apply(folded){ $('review').classList.toggle('folded', folded); f.textContent = folded ? 'uitklappen' : 'inklappen'; f.setAttribute('aria-expanded', folded ? 'false' : 'true'); }
+    apply(st === '1');
+    f.addEventListener('click', function(){ var nf = !$('review').classList.contains('folded'); apply(nf); try { localStorage.setItem('dewi_kpi_review_fold', nf ? '1' : '0'); } catch(e){} });
+    $('review').addEventListener('click', function(ev){
+      var t = ev.target.closest('[data-rvz]'); if(!t) return;
+      var z = RV_ZONES[t.getAttribute('data-rvz')]; if(z) gotoZone(z.k, z.a);
+    });
+  })();
+
+  async function loadReview(){
+    var r = await sb.from('dewi_office_reviews')
+      .select('review_date,dry_run,created_at,verdict,score,headline,summary,zones,insights,actions,signals,model,llm_ok,stop_reason')
+      .order('review_date', { ascending: false }).order('dry_run', { ascending: true }).limit(40);
+    need(r, 'dewi_office_reviews');
+    renderReview(r.data || []);
+  }
+
+  function renderReview(rows){
+    var sec = $('review'), body = $('rv-body'), tags = $('rv-tags');
+    var prod = rows.filter(function(x){ return !x.dry_run; });
+    var cur = rows[0] || null;   // nieuwste dag; bij gelijke datum wint productie (order dry_run asc)
+    sec.classList.remove('v-groen', 'v-oranje', 'v-rood');
+    rvZoneChips(null);
+    if(!cur){
+      tags.innerHTML = '';
+      $('rv-when').textContent = 'OFFICE · KPI Review';
+      body.innerHTML = '<div class="rv-empty">Nog geen oordeel. De KPI Review draait dagelijks om 09:05, na de metrics-ophalers, en zet hier het eerste oordeel neer.</div>';
+      return;
+    }
+    sec.classList.add('v-' + cur.verdict);
+    var today = madDayIso(0);
+    var age = isoDiff(today, cur.review_date);
+    var created = cur.created_at ? new Date(cur.created_at).toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Madrid' }) : '';
+    $('rv-when').textContent = 'OFFICE · KPI Review · ' + wdDM(cur.review_date) + (created ? ' ' + created : '');
+    tags.innerHTML = (cur.dry_run ? '<span class="rv-tag test" title="Handmatige testrun; productierun volgt om 09:05">TEST</span>' : '') +
+      (cur.llm_ok === false ? '<span class="rv-tag rules" title="Taalmodel niet beschikbaar (' + rvE(cur.stop_reason || '') + '); oordeel uit vaste drempels">REGELS</span>' : '') +
+      (age >= 1 ? '<span class="rv-tag old" title="Er is vandaag nog geen nieuw oordeel">' + age + 'd oud</span>' : '');
+
+    // ring
+    var sc = Math.max(0, Math.min(100, Number(cur.score) || 0)), R = 54, C = 2 * Math.PI * R;
+    var ring = '<div class="rv-ring" role="img" aria-label="Score ' + sc + ' van 100, ' + rvE(cur.verdict) + '">' +
+      '<svg viewBox="0 0 132 132"><circle class="trk" cx="66" cy="66" r="' + R + '"/>' +
+      '<circle class="arc" cx="66" cy="66" r="' + R + '" stroke-dasharray="' + C.toFixed(1) + '" stroke-dashoffset="' + C.toFixed(1) + '" data-off="' + (C * (1 - sc / 100)).toFixed(1) + '"/></svg>' +
+      '<div class="mid"><div class="sc">' + sc + '</div><div class="vd">' + rvE(cur.verdict) + '</div></div></div>';
+
+    // trend (laatste 14 productie-oordelen, oud -> nieuw)
+    var hist = prod.slice(0, 14).reverse();
+    var trend = '<div class="rv-trend"><div class="tt">Score laatste ' + (hist.length || 0) + ' dagen</div><div class="rv-bars">' +
+      (hist.length ? hist.map(function(h){
+        var s = Math.max(4, Math.min(100, Number(h.score) || 0));
+        return '<i class="v-' + rvE(h.verdict) + (h === cur ? ' cur' : '') + '" style="height:' + s + '%" title="' + rvE(wdDM(h.review_date) + ' · ' + h.score + ' · ' + (h.headline || '')) + '"></i>';
+      }).join('') : '<i style="height:4%"></i>') +
+      '</div><div class="tl"><span>' + (hist[0] ? rvDM(hist[0].review_date) : '') + '</span><span>' + (hist.length ? rvDM(hist[hist.length - 1].review_date) : '') + '</span></div></div>';
+
+    var top = '<div class="rv-top">' + ring + '<div><h3 class="rv-hl">' + rvE(cur.headline) + '</h3><p class="rv-sum">' + rvE(cur.summary) + '</p></div>' + trend + '</div>';
+
+    // zones-heatstrip
+    var zmap = {}; (cur.zones || []).forEach(function(z){ if(z && z.zone) zmap[z.zone] = z; });
+    var zones = '<div class="rv-zones">' + RV_ORDER.map(function(k){
+      var z = zmap[k] || { status: 'grijs', line: '' }, st = RV_RANK[z.status] != null ? z.status : 'grijs';
+      return '<button type="button" class="rv-z s-' + st + '" data-rvz="' + k + '" title="Naar ' + rvE(RV_ZONES[k].n) + '">' +
+        '<div class="zn"><span class="d"></span>' + rvE(RV_ZONES[k].n) + '</div><div class="zl">' + rvE(z.line || (st === 'grijs' ? 'geen oordeel' : '')) + '</div></button>';
+    }).join('') + '</div>';
+
+    // inzichten
+    var ins = (cur.insights || []);
+    var insH = '<div><div class="rv-h">Verbanden</div>' + (ins.length ? ins.map(function(i){
+      return '<div class="rv-ins sv-' + rvE(i.severity || 'info') + '"><div class="it">' + rvE(i.title) + '</div><div class="ib">' + rvE(i.body) + '</div>' +
+        ((i.zones || []).length ? '<div class="iz">' + i.zones.filter(function(z){ return RV_ZONES[z]; }).map(function(z){ return '<button type="button" class="rv-chipz" data-rvz="' + z + '">' + rvE(RV_ZONES[z].n) + '</button>'; }).join('') + '</div>' : '') + '</div>';
+    }).join('') : '<div class="rv-empty">Geen verbanden in dit oordeel.</div>') + '</div>';
+
+    // acties (hoog eerst)
+    var pr = { hoog: 0, middel: 1, laag: 2 };
+    var acts = (cur.actions || []).slice().sort(function(a, b){ return (pr[a.priority] == null ? 3 : pr[a.priority]) - (pr[b.priority] == null ? 3 : pr[b.priority]); });
+    var actH = '<div><div class="rv-h">Acties &middot; DEWI observeert, jij beslist</div>' + (acts.length ? acts.map(function(a, i){
+      var late = a.check_by && a.check_by < today;
+      var meta = [];
+      if(a.kpi) meta.push('KPI <b>' + rvE(a.kpi) + '</b>');
+      if(a.check_by) meta.push('<span' + (late ? ' class="late"' : '') + '>check ' + rvE(wdDM(a.check_by)) + '</span>');
+      if(a.zone && RV_ZONES[a.zone]) meta.push('<button type="button" class="rv-chipz" data-rvz="' + a.zone + '">' + rvE(RV_ZONES[a.zone].n) + '</button>');
+      return '<div class="rv-act p-' + rvE(a.priority || 'laag') + '"><span class="nr" title="prioriteit ' + rvE(a.priority || '') + '">' + (i + 1) + '</span>' +
+        '<div><div class="at">' + rvE(a.title) + '</div><div class="aw">' + rvE(a.why) + '</div><div class="am">' + meta.join('') + '</div></div>' +
+        '<span class="rv-own o-' + rvE(a.owner || '') + '">' + rvE(a.owner || '') + '</span></div>';
+    }).join('') : '<div class="rv-empty">Geen acties.</div>') + '</div>';
+
+    // signalen (inklapbaar)
+    var sig = (cur.signals || []).slice().sort(function(a, b){ var o = { alarm: 0, let_op: 1, positief: 2, ok: 3 }; return (o[a.sev] == null ? 4 : o[a.sev]) - (o[b.sev] == null ? 4 : o[b.sev]); });
+    var nBad = sig.filter(function(s){ return s.sev === 'alarm' || s.sev === 'let_op'; }).length;
+    var sigH = '<details class="rv-sig"><summary>Alle ' + sig.length + ' signalen (' + nBad + ' afwijkend) &middot; ' + rvE(cur.model || '') + '</summary><div class="rv-sgrid">' +
+      sig.map(function(s){
+        var d = (typeof s.delta_pct === 'number') ? ' <span class="' + (s.delta_pct > 0 ? 'up' : (s.delta_pct < 0 ? 'down' : '')) + '">' + (s.delta_pct > 0 ? '+' : '') + String(s.delta_pct).replace('.', ',') + '%</span>' : '';
+        return '<div class="rv-sg sv-' + rvE(s.sev) + '" title="' + rvE((s.note || '') + (s.ref != null ? ' · vorige ' + s.ref : '')) + '"><span class="d"></span><span class="l">' + rvE(s.label) + '</span><span class="v">' + rvNum(s.value) + d + '</span></div>';
+      }).join('') + '</div></details>';
+
+    body.innerHTML = top + zones + '<div class="rv-cols">' + insH + actH + '</div>' + sigH;
+    // ring animeren
+    requestAnimationFrame(function(){ var a = body.querySelector('.rv-ring .arc'); if(a) a.setAttribute('stroke-dashoffset', a.getAttribute('data-off')); });
+    rvZoneChips(zmap);
+  }
+
+  // klein oordeel-chipje in de kop van elke cockpit-zone (ergste status van de review-zones die erin vallen)
+  function rvZoneChips(zmap){
+    ['shop', 'meta', 'google', 'stats', 'dewi'].forEach(function(k){
+      var zone = $('z-' + k); if(!zone) return;
+      var host = zone.querySelector('.zone-head .zmeta') || zone.querySelector('.zone-head');
+      var el = $('rvz-' + k);
+      if(!zmap){ if(el) el.remove(); return; }
+      var worst = null;
+      RV_ORDER.forEach(function(rk){ if(RV_ZONES[rk].k !== k || !zmap[rk]) return; var s = zmap[rk].status; if(worst === null || (RV_RANK[s] || 0) > (RV_RANK[worst] || 0)) worst = s; });
+      if(worst === null){ if(el) el.remove(); return; }
+      if(!el){ el = document.createElement('span'); el.id = 'rvz-' + k; el.className = 'rv-zchip'; host.insertBefore(el, host.firstChild);
+        el.addEventListener('click', function(ev){ ev.stopPropagation(); var s = $('review'); var sc = $('kpiScroll'); if(s && sc) sc.scrollTo({ top: Math.max(0, s.offsetTop - 6), behavior: 'smooth' }); }); }
+      el.className = 'rv-zchip s-' + worst;
+      el.textContent = 'OORDEEL ' + worst.toUpperCase();
+      el.title = RV_ORDER.filter(function(rk){ return RV_ZONES[rk].k === k && zmap[rk]; }).map(function(rk){ return RV_ZONES[rk].n + ': ' + zmap[rk].status + (zmap[rk].line ? ' — ' + zmap[rk].line : ''); }).join('\n');
+    });
+  }
+
   function renderCockpit(c){
     need(c.kpiRes, 'bridge_kpi_daily');
     var shop = c.shop, web = c.web, pad = c.pad, gpv = c.gpv, F = c.fresh;
@@ -3536,6 +3769,7 @@
     }
     function loadAll(){
       guardAsync('cockpit', 'Laden', load);
+      guardAsync('review', 'Oordeel', loadReview);
       guardAsync('shop',  'Omzet & winst',   loadSales);
       guardAsync('stats', 'Omzet per kanaal', loadChannels);
       guardAsync('stats', 'Kanalen (UTM)',    loadUtm);
