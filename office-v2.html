@@ -1966,6 +1966,7 @@
   var MEET_BASE = 10000, MEET_PER = 2500, MEET_W = 3.6, MEET_D = 3.2;
   var WALK = 3.4;                   /* loopsnelheid in cellen per seconde (vlot) */
   var SW = 2.6, SD = 2.3, SGAP = 1.1, SW_ = SW, SD_ = SD;   /* 13-10: iets ruimer, zodat er naast de stoel plek is om te staan */
+  var SGAP_BACK = 2.0;              /* 17-10: achter de afdeling (N/W) meer afstand, anders plakt de werkplek tegen de achtermuur */
   /* loper op dezelfde schaal als de opstaande agent (laatste opsta-frame ~76 wereld-eenheden hoog;
      figuur = ~90% van het frame, voeten op 96%). 4 frames per rij = één pas -> 8 fps. */
   var WALK_H = 84, WALK_W = WALK_H * 256 / 384, WALK_FPS = 8, WALK_ROW_FR = [4, 4], WALK_COLS = 4;
@@ -2239,7 +2240,7 @@
       + '<ellipse class="mt-top" cx="' + f1(tp[0]) + '" cy="' + f1(tp[1] - TH) + '" rx="' + f1(rx) + '" ry="' + f1(ry) + '"/>' + cups + '</g>'
       + '<g class="mt-front"></g>'
       + '<text class="sub-name" x="' + f1(lp[0]) + '" y="' + f1(lp[1] + 12) + '">☕ OVERLEG · ' + esc(String(fr.agent_name).toUpperCase()) + '</text>';
-    subLayer().appendChild(g);
+    mountSub(g, d, b);
     requestAnimationFrame(function () { g.classList.add("on"); });
     var gBack = g.querySelector(".mt-back"), gFront = g.querySelector(".mt-front");
     function alive() { return g.isConnected; }
@@ -2253,7 +2254,7 @@
       } else if (wx >= x0 - 0.05 && wx <= x1 + 0.05 && wy >= y0 - 0.05 && wy <= y1 + 0.05) {
         var grp = (wx + wy) < (tc[0] + tc[1]) ? gBack : gFront;
         if (w.parentNode !== grp) grp.appendChild(w);
-      } else if (w.parentNode !== subLayer() || w.nextSibling !== g) subLayer().insertBefore(w, g);
+      } else if (w.nextSibling !== g) g.parentNode.insertBefore(w, g);
     }
     var people = [], bw = null, hostW = makeWalker(d.color, colorOf(fr), hairOf(fr));
     var hostSpot = slot(0), hostRoute = routeToPlatform(fr, d, b, mid, SL, hostSpot);
@@ -2348,9 +2349,9 @@
     for (var i = 0; i < sides.length; i++) for (var k = 0; k < (sides[i] === "N" || sides[i] === "W" ? 1 : 3); k++) {   /* N/W: alleen recht voor de doorgang */
       var o = (k === 0 ? 0 : (k === 1 ? 1 : -1)) * (SD + 0.7), b;
       if (sides[i] === "E") b = { x: d.x + d.w + SGAP, y: cy - SD / 2 + o, w: SW, d: SD };
-      if (sides[i] === "W") b = { x: d.x - SGAP - SW, y: cy - SD / 2 + o, w: SW, d: SD };
+      if (sides[i] === "W") b = { x: d.x - SGAP_BACK - SW, y: cy - SD / 2 + o, w: SW, d: SD };
       if (sides[i] === "S") b = { x: cx - SW / 2 + o, y: d.y + d.d + SGAP, w: SW, d: SD };
-      if (sides[i] === "N") b = { x: cx - SW / 2 + o, y: d.y - SGAP - SD, w: SW, d: SD };
+      if (sides[i] === "N") b = { x: cx - SW / 2 + o, y: d.y - SGAP_BACK - SD, w: SW, d: SD };
       var clash = S.depts.some(function (q) { return overlaps(b, q, 0.4); }) || overlaps(b, S.brain, 0.6)
         || taken.some(function (t) { return overlaps(b, t, 0.3); });
       if (!clash) { b.side = sides[i]; return b; }
@@ -2358,6 +2359,12 @@
     return null;
   }
   function sleep(t) { return new Promise(function (r) { setTimeout(r, t); }); }
+  /* 17-10: een werkplek áchter de afdeling (N/W) hoort in de tekenvolgorde vóór die afdeling, anders ligt hij
+     over de achtermuur heen; de muur dekt hem dan af en alleen de deuropening blijft vrij. Voor (S/E): bovenlaag. */
+  function mountSub(g, d, b) {
+    var de = (b.side === "N" || b.side === "W") && elWorld.querySelector('.dept[data-dept="' + CSS.escape(d.name) + '"]:not(.dcard)');
+    if (de) de.parentNode.insertBefore(g, de); else subLayer().appendChild(g);
+  }
   /* ---- opstaan / gaan zitten: speelt de opsta-strip af op een bureau-element ---- */
   function swapEl(old, markup) {
     var t = document.createElementNS("http://www.w3.org/2000/svg", "g"); t.innerHTML = markup;
@@ -2415,7 +2422,7 @@
       + '<g class="sd-desk" transform="translate(' + f1(dp[0]) + ',' + f1(dp[1]) + ')">' + poseImg("sd-img vacant", "empty", 0, cloth, hair)
       + '<rect class="sd-screen" x="' + f1(DX0) + '" y="' + f1(DY0) + '" width="' + f1(DESK_W) + '" height="' + f1(DESK_H) + '" mask="url(#mScreen)"/></g>'
       + '<text class="sub-name" x="' + f1(lp[0]) + '" y="' + f1(lp[1] + 12) + '">↳ ' + esc(name.toUpperCase()) + '</text>';
-    subLayer().appendChild(g);
+    mountSub(g, d, b);
     requestAnimationFrame(function () { g.classList.add("on"); });
     var sdDesk = g.querySelector(".sd-desk");
     function subPose(pose, f) {
@@ -2472,7 +2479,7 @@
         var behind = (wx + wy) < (desk[0] + desk[1]);
         if (behind) { if (w.nextSibling !== sdDesk) g.insertBefore(w, sdDesk); }
         else if (w.parentNode !== g || w.nextSibling !== g.querySelector(".sub-name")) g.insertBefore(w, g.querySelector(".sub-name"));
-      } else if (w.parentNode !== subLayer() || w.nextSibling !== g) subLayer().insertBefore(w, g);
+      } else if (w.nextSibling !== g) g.parentNode.insertBefore(w, g);
     }
     function walk(rt) {
       return new Promise(function (res) {
