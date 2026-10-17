@@ -2616,8 +2616,7 @@
     var age = isoDiff(today, cur.review_date);
     var created = cur.created_at ? new Date(cur.created_at).toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Madrid' }) : '';
     $('rv-when').textContent = 'OFFICE · KPI Review · ' + wdDM(cur.review_date) + (created ? ' ' + created : '');
-    tags.innerHTML = (cur.dry_run ? '<span class="rv-tag test" title="Handmatige testrun; productierun volgt om 09:05">TEST</span>' : '') +
-      (cur.llm_ok === false ? '<span class="rv-tag rules" title="Taalmodel niet beschikbaar (' + rvE(cur.stop_reason || '') + '); oordeel uit vaste drempels">REGELS</span>' : '') +
+    tags.innerHTML = (cur.llm_ok === false ? '<span class="rv-tag rules" title="Taalmodel niet beschikbaar (' + rvE(cur.stop_reason || '') + '); oordeel uit vaste drempels">REGELS</span>' : '') +
       (age >= 1 ? '<span class="rv-tag old" title="Er is vandaag nog geen nieuw oordeel">' + age + 'd oud</span>' : '');
 
     // ring
