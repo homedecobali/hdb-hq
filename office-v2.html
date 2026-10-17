@@ -108,6 +108,28 @@
   bezig is schuiven aan (max. 5 helpers). Per hoofdagent hooguit één overleg per venster (S.metAt);
   telt een groep nog geen 3, dan gewoon de losse extra werkplek. Elke afdeling/aanroeper eigen hoek.
   Achtergrondfoto (15-10) is op 16-10 weer verwijderd (te druk): vloer, vloertextuur en raster zijn terug.
+  Sfeer (17-10), bewust ingetogen:
+  - Dag/nacht: lichtstand volgt de zonnehoogte in Madrid (sunElev). 's Nachts een donkere laag over de vloer
+    (#nightLayer) met daarboven gloed (#glowLayer) van staande lampen, bureaulampjes en schermen; rond zons-
+    op/-ondergang een warme tint. Agents zonder run in de laatste 45 min zijn 's nachts naar huis (leeg bureau,
+    class .away); wie werkt of een fout heeft blijft. Kop: zonnetje/maan + Madrid-tijd (#skyc).
+  - Bali-aankleding: frangipani (kamboja) en monstera tussen de planten. Elk bureau heeft een plantje dat
+    meegroeit met runs_7d (dewi_runs_stats_7d); slap en geel bij een fout, droog zonder runs. 7 dagen 100%
+    geslaagd (min. 5 runs) = canang sari met wierookje op het bureau. Fout = rookwolkje boven het scherm.
+  - Weer = Oordeel van de dag (dewi_office_reviews, alleen met ingelogde sessie via supabase-js; RLS):
+    groen zonlicht door bladeren (nacht: vuurvliegjes), oranje drijvende wolkschaduwen, rood regen op het glas
+    (canvas #fxSky). Krijtbord bij het brein met score; klik = kpi.html#review.
+  - Gong: nieuwe online order (bridge_open_orders, source_name = 'web', gevuld door Open Orders Sync, elk uur)
+    = toast + confetti uit het brein (+ gong als geluid aan staat). Gezien-lijst in localStorage.
+  - Wall of fame: lijstjes aan de wanden tonen de best bereikte posts (v_dewi_feed, 60 dgn, op reach).
+  - Klusjesman: staat een agent op fout, dan loopt Self-Heal (overdag) via de vloer om het brein naar dat
+    bureau, kijkt even met zijn gereedschapskist en loopt terug. Per agent hooguit eens per 20 min.
+  - Replay 24u (knop in de kop): speelt dewi_runs_public van de afgelopen 24 uur versneld af; elke run licht
+    op (ring, powerbal bij AI), de zon gaat onder en op, wie niet draait gaat naar huis. Schuifbalk met
+    runs-histogram (nacht donker, fouten rood), snelheid 1/2/4x, LIVE = terug.
+  - Geluid (knop, standaard uit, localStorage 'dewi.office2.sound'): WebAudio-gamelan (pelog), zachte regen
+    bij rood weer, gong bij een order. Geen audiobestanden.
+  Reduced motion: geen animaties, wel de stilstaande lichtstand en aankleding.
 -->
 <html lang="nl">
 <head>
@@ -116,6 +138,8 @@
 <title>Office v2 · DEWI</title>
 <script src="dewi-config.js"></script>
 <script src="dewi-frame.js"></script><!-- uniforme paneel-toggle + menu -->
+<!-- 17-10: alleen voor de ingelogde extra's (oordeel/weer, online-ordergong); zelfde client als kpi.html -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
   :root{
     --bg:#06090f; --ground:#080c14; --slab:#101826; --line:#1c2636; --panel:#0b1019; --panel2:#0f1623;
@@ -497,6 +521,51 @@
     .metrics{gap:13px} .upd{display:none}
     .hint{display:none}
   }
+  /* ---- sfeer (17-10) ---- */
+  .skyc{display:flex;align-items:center;gap:7px;font:600 11.5px var(--mono);color:var(--dim);white-space:nowrap;cursor:default}
+  .skyc b{color:var(--text);font-weight:700;font-variant-numeric:tabular-nums}
+  .skyc .wx{border-left:1px solid var(--line);padding-left:7px}
+  .skyc .rp{color:var(--gold);letter-spacing:.12em}
+  #fxSky{position:absolute;inset:0;width:100%;height:100%;z-index:2;pointer-events:none}
+  #nightLayer,#glowLayer{pointer-events:none}
+  #subLayer{filter:brightness(var(--nb,1))}
+  .ag.away .m-screen{opacity:.05} .ag.away .m-glow{display:none}
+  .walls .wof{pointer-events:auto;cursor:default}
+  .chalk{cursor:pointer;outline:none}
+  .chalk text{font-family:"Segoe Print","Bradley Hand","Comic Sans MS",cursive;fill:#eef3ea;text-anchor:middle}
+  .chalk:hover .ck-board,.chalk:focus-visible .ck-board{stroke:#ffd166;stroke-width:1.2}
+  .dx{pointer-events:none}
+  .smoke circle{fill:#a7b0ba;opacity:0;animation:puff 2.6s ease-out infinite;transform-box:fill-box;transform-origin:center}
+  .smoke circle:nth-child(2){animation-delay:.85s} .smoke circle:nth-child(3){animation-delay:1.7s}
+  @keyframes puff{0%{opacity:0;transform:translate(0,0) scale(.45)}22%{opacity:.6}100%{opacity:0;transform:translate(5px,-17px) scale(1.7)}}
+  .canang .wisp{fill:none;stroke:#e3e9ee;stroke-width:.45;stroke-linecap:round;opacity:.55;stroke-dasharray:3 4;animation:wisp 2.4s linear infinite}
+  @keyframes wisp{to{stroke-dashoffset:-14}}
+  .rp-ring{fill:none;stroke-width:2.2;pointer-events:none;animation:rpr 1.2s ease-out forwards;transform-box:fill-box;transform-origin:center}
+  @keyframes rpr{from{opacity:.95;transform:scale(.55)}to{opacity:0;transform:scale(1.35)}}
+  .sparks line{stroke:#ffe27a;stroke-width:1;stroke-linecap:round;animation:spark .5s steps(2,jump-none) infinite}
+  .sparks line:nth-child(2){animation-delay:.17s} .sparks line:nth-child(3){animation-delay:.33s}
+  @keyframes spark{from{opacity:1}to{opacity:0}}
+  .toast{position:absolute;top:14px;left:calc((100% - var(--pw,420px) - 24px) / 2);transform:translate(-50%,-8px);z-index:6;pointer-events:none;
+    background:rgba(7,11,18,.94);border:1px solid var(--gold);border-radius:999px;padding:7px 16px;font:600 13px var(--font);color:#fff4d6;
+    box-shadow:0 0 22px -6px var(--gold),0 6px 18px rgba(0,0,0,.5);opacity:0;transition:opacity .35s,transform .35s;white-space:nowrap}
+  .toast.on{opacity:1;transform:translate(-50%,0)}
+  .rpbar{position:absolute;left:66px;right:calc(var(--pw,420px) + 70px);bottom:14px;z-index:5;display:none;align-items:center;gap:10px;
+    background:rgba(7,11,18,.92);border:1px solid rgba(255,209,102,.45);border-radius:12px;padding:8px 12px;box-shadow:0 6px 18px rgba(0,0,0,.5)}
+  .rpbar.on{display:flex}
+  .rpbar button{appearance:none;height:28px;min-width:30px;padding:0 9px;border-radius:7px;border:1px solid var(--line);background:rgba(7,11,18,.9);color:var(--text);cursor:pointer;font:700 11px var(--mono);letter-spacing:.08em}
+  .rpbar button:hover{border-color:var(--gold);color:var(--gold)}
+  .rpbar .rpt{font:700 12px var(--mono);color:var(--gold);min-width:92px;font-variant-numeric:tabular-nums}
+  .rpbar .rpn{font:11px var(--mono);color:var(--dim);white-space:nowrap;min-width:96px;text-align:right}
+  .rpbar .rps{position:relative;flex:1;min-width:120px;height:30px}
+  .rpbar .rph{position:absolute;left:0;right:0;top:0;height:16px;width:100%;display:block}
+  .rpbar input{position:absolute;left:0;right:0;bottom:-2px;width:100%;margin:0;accent-color:var(--gold);cursor:pointer}
+  .scene.replay .hint{opacity:0}
+  @media (max-width:880px){ .rpbar{right:60px;left:60px;gap:6px} .rpbar .rpn{display:none} .skyc .tx{display:none} }
+  @media (prefers-reduced-motion:reduce){
+    .smoke circle,.canang .wisp,.rp-ring,.sparks line{animation:none}
+    .smoke circle:first-child{opacity:.4}
+    .toast{transition:none}
+  }
   @media (prefers-reduced-motion:reduce){
     #floor.intro .dept,#floor.intro .brain,.pipe-flow,.link.live,.brain .halo,.brain .beam,.bub .b-pop,.bub .b-in,.bub .dots circle,.ag .m-glow,.ag.s-error .m-screen,.ag.s-silent .m-screen,#wires path,.cursor::after,.motion.live .md,.acbar .lv i,.ag .m-code .roll{animation:none}
     .pcard{transition:none}
@@ -511,8 +580,11 @@
 <div id="app">
   <header>
     <div class="brand"><span class="dot" id="live"></span><span class="ttl">DEWI</span><span class="sub">Office</span><span class="ver">V2</span></div>
+    <div class="skyc" id="skyc" aria-live="off"></div>
     <div class="spacer"></div>
     <button type="button" class="motion" id="motion" aria-pressed="true" title="Motion: zoomt 10 s in op de afdeling waar een agent aan het werk gaat. Klik om aan/uit te zetten."><span class="md"></span>Motion</button>
+    <button type="button" class="motion" id="replayBtn" aria-pressed="false" title="Replay: speelt de afgelopen 24 uur versneld af. Elke run licht op, de zon gaat onder en weer op." aria-label="Replay afgelopen 24 uur"><span class="md"></span>24u</button>
+    <button type="button" class="motion" id="soundBtn" aria-pressed="false" title="Geluid: zachte gamelan-sfeer, regen bij een rood oordeel en een gong bij een online bestelling. Standaard uit." aria-label="Geluid aan of uit"><span class="md"></span>♪</button>
     <div class="pz" id="pz" role="group" aria-label="Paneel leesbaarheid">
       <span class="lb">Paneel</span>
       <button type="button" data-pz="-" title="Tekst kleiner" aria-label="Tekst kleiner">A−</button>
@@ -563,6 +635,13 @@
               <stop offset=".62" stop-color="#fff" stop-opacity=".16"/><stop offset="1" stop-color="#000" stop-opacity=".42"/>
             </linearGradient>
             <radialGradient id="gWarm"><stop offset="0" stop-color="#ffd38a" stop-opacity=".28"/><stop offset="1" stop-color="#ffd38a" stop-opacity="0"/></radialGradient>
+            <!-- 17-10: gloed in het donker (lampen, schermen, brein) -->
+            <radialGradient id="gGlowWarm"><stop offset="0" stop-color="#ffcf7a" stop-opacity=".55"/><stop offset=".45" stop-color="#ffb85c" stop-opacity=".18"/><stop offset="1" stop-color="#ffb85c" stop-opacity="0"/></radialGradient>
+            <radialGradient id="gGlowCyan"><stop offset="0" stop-color="#00d4ff" stop-opacity=".32"/><stop offset=".55" stop-color="#00d4ff" stop-opacity=".08"/><stop offset="1" stop-color="#00d4ff" stop-opacity="0"/></radialGradient>
+            <radialGradient id="gGlow-working"><stop offset="0" stop-color="#00d4ff" stop-opacity=".6"/><stop offset="1" stop-color="#00d4ff" stop-opacity="0"/></radialGradient>
+            <radialGradient id="gGlow-ok"><stop offset="0" stop-color="#3ee08f" stop-opacity=".34"/><stop offset="1" stop-color="#3ee08f" stop-opacity="0"/></radialGradient>
+            <radialGradient id="gGlow-error"><stop offset="0" stop-color="#ff5d5d" stop-opacity=".6"/><stop offset="1" stop-color="#ff5d5d" stop-opacity="0"/></radialGradient>
+            <radialGradient id="gGlow-silent"><stop offset="0" stop-color="#ffb547" stop-opacity=".42"/><stop offset="1" stop-color="#ffb547" stop-opacity="0"/></radialGradient>
             <g id="glowDefs"></g>
           </defs>
           <g id="world"></g>
@@ -576,6 +655,17 @@
           <button type="button" data-cam="in" title="Inzoomen">+</button>
           <button type="button" data-cam="out" title="Uitzoomen">−</button>
           <button type="button" data-cam="fit" title="Alles in beeld">⤢</button>
+        </div>
+        <canvas id="fxSky" aria-hidden="true"></canvas>
+        <div class="toast" id="toast" role="status" aria-live="polite"></div>
+        <div class="rpbar" id="rpbar" role="group" aria-label="Replay afgelopen 24 uur">
+          <button type="button" id="rpPlay" title="Afspelen / pauzeren" aria-label="Afspelen of pauzeren">❚❚</button>
+          <span class="rpt" id="rpTime">--:--</span>
+          <div class="rps"><svg class="rph" id="rpHist" viewBox="0 0 96 16" preserveAspectRatio="none" aria-hidden="true"></svg>
+            <input type="range" id="rpSlider" min="0" max="1000" value="0" aria-label="Tijdstip in de afgelopen 24 uur"></div>
+          <span class="rpn" id="rpCount"></span>
+          <button type="button" id="rpSpeed" title="Snelheid">1×</button>
+          <button type="button" id="rpClose" title="Terug naar live">LIVE</button>
         </div>
         <div class="acbar" id="acbar" role="status" aria-live="polite" title="Klik om deze agent te openen"></div>
         <div class="hint" id="hint">scroll = zoom · sleep = verschuif · klik = details</div>
@@ -683,6 +773,9 @@
 
   var S = { depts: [], agents: [], tools: [], links: [], panels: {}, byId: {}, byWf: {}, toolsByWf: {}, sig: "",
             focus: null, hoverTool: null, runs: {}, loops: {}, loadedAt: null, first: true, cam: null, fitBox: null };
+  /* 17-10 sfeer: lichtstand (FX) en replay (RP); de functies staan onderaan bij "SFEER" */
+  var FX = { light: 1, dark: 0, gold: 0, el: 30, lamps: [], fame: [], fameSlots: 0, awaySig: "", glowSig: "", stats7: {}, review: null, authed: false };
+  var RP = { on: false, playing: false, t: 0, t0: 0, t1: 0, i: 0, runs: [], orders: [], last: {}, speed: 1440, balls: 0, raf: 0, n: 0, err: 0 };
 
   var $ = function (id) { return document.getElementById(id); };
   var elFloor = $("floor"), elWorld = $("world"), elStage = $("stage"), elScene = $("scene"), elTools = $("tools"),
@@ -736,8 +829,10 @@
       settle(rest("v_office_agents?select=*")),
       settle(rest("v_office_tools?select=tool,workflows")),
       settle(rest("v_office_links?select=from_agent,to_agent,kind,via")),
-      settle(rest("v_office_panels?select=dept_name,agents,doing,next,done,labels,waarden"))
+      settle(rest("v_office_panels?select=dept_name,agents,doing,next,done,labels,waarden")),
+      settle(rest("dewi_runs_stats_7d?select=workflow,runs_7d,ok_7d,pct_ok"))
     ]).then(function (res) {
+      if (res[5] && res[5].ok) { FX.stats7 = {}; (res[5].v || []).forEach(function (r) { FX.stats7[r.workflow] = r; }); }
       if (!res[0].ok || !res[1].ok) {
         var e = (res[1].ok ? res[0].e : res[1].e) || {};
         showMsg("De office-data kon niet geladen worden (" + (e.message || e) + "). Nieuwe poging over een minuut.");
@@ -768,6 +863,7 @@
     agents.forEach(function (a) { S.prevSt[a.agent_id] = st(a); });
     S.agents = agents; S.byId = {}; S.byWf = {};
     agents.forEach(function (a) { S.byId[a.agent_id] = a; S.byWf[a.workflow_name] = a; });
+    skyState(true);   /* lichtstand vóór het tekenen: wie is 's nachts naar huis */
 
     var seen = {};
     S.depts = depts.map(function (d) { seen[d.dept_name] = 1; return { name: d.dept_name, color: d.dept_color || "#8aa0b5", icon: d.dept_icon || "", sort: d.dept_sort }; });
@@ -810,11 +906,11 @@
     if (sig !== S.sig) { S.sig = sig; layout(); renderFloor(); } else { carryLayout(oldById, oldDepts); patchAgents(); patchPipes(); patchCards(); }
 
     S.loadedAt = new Date();
-    queueBalls(prevRun);
-    queueSubs(prevRun);
+    if (!RP.on) { queueBalls(prevRun); queueSubs(prevRun); }   /* tijdens de replay speelt de replay */
     queueAutoCam(prevRun, prevSt);
     renderBubbles();
     renderHeader(); renderTools(); renderPanel(); applyFocus();
+    fxAfterIngest();
     if (S.focus && S.focus.type === "agent") loadRuns(S.byId[S.focus.id]);
     if (S.first) {
       S.first = false;
@@ -996,7 +1092,7 @@
   }
   S.pose = S.pose || {};
   /* leeg bureau voor wie gepauzeerd is, nog nooit draaide, of op dit moment elders zit */
-  function isVacant(a) { var s = st(a), p = S.pose[a.agent_id]; return s === "paused" || s === "idle" || (p && p.p === "empty"); }
+  function isVacant(a) { var s = st(a), p = S.pose[a.agent_id]; return s === "paused" || s === "idle" || (p && p.p === "empty") || (!p && isAway(a)); }
   function deskHref(a) { return isVacant(a) ? EMPTY : AV.ready ? tinted("desk", colorOf(a), hairOf(a)) : ASSETS + "desk.webp"; }
   /* het beeldelement van een bureau in een pose: 'seat' (zittend), 'empty', of 'stand' met frame f */
   function poseImg(cls, pose, f, cloth, hair) {
@@ -1065,8 +1161,10 @@
     return '<rect class="hit" x="' + f1(DX0) + '" y="' + f1(DY0 + DESK_H * 0.18) + '" width="' + f1(DESK_W) + '" height="' + f1(DESK_H * 0.82) + '"/>'
       + '<ellipse class="selring" cx="' + f1(DESK_W * 0.06) + '" cy="' + f1(-DESK_H * 0.07) + '" rx="' + f1(DESK_W * 0.46) + '" ry="' + f1(DESK_W * 0.23) + '"/>'
       + '<g class="spr">' + deskSprite(a) + '</g>'
+      + '<g class="dx">' + deskExtras(a) + '</g>'
       + '<g class="marks">' + deskMarks(a) + '</g>';
   }
+  function agClass(a) { return "ag s-" + st(a) + (isAway(a) && !S.pose[a.agent_id] ? " away" : ""); }
   function agentLabel(a) { return a.agent_name + ", " + STATES[st(a)].l.toLowerCase() + ", afdeling " + a.dept_name; }
 
   function deptStats(d) {
@@ -1223,12 +1321,13 @@
     bookcase: { w: 1.1, d: 0.42, h: 64 }, locker: { w: 0.8, d: 0.45, h: 68 }, sideboard: { w: 1.4, d: 0.42, h: 19, lo: 1 },
     coffee: { w: 1.2, d: 0.48, h: 23, lo: 1 }, cooler: { w: 0.45, d: 0.42, h: 44 }, lamp: { w: 0.45, d: 0.42, h: 60 },
     snake: { w: 0.5, d: 0.45, h: 40, pl: 1 }, palm: { w: 0.8, d: 0.62, h: 60, pl: 1 }, bush: { w: 0.55, d: 0.5, h: 28, lo: 1, pl: 1 },
+    frangi: { w: 0.75, d: 0.6, h: 56, pl: 1 }, monstera: { w: 0.75, d: 0.6, h: 46, pl: 1 },   /* 17-10: Bali */
     cactus: { w: 0.42, d: 0.4, h: 26, lo: 1, pl: 1 }, plant: { w: 0.62, d: 0.55, h: 48, img: "prop-plant", iw: 36, ar: 361 / 256, pl: 1 },
     cabinet: { w: 0.72, d: 0.5, h: 44, img: "prop-cabinet", iw: 33, ar: 371 / 256, nat: "W" },
     rack: { w: 0.62, d: 0.55, h: 60, img: "prop-rack", iw: 30, ar: 521 / 256, nat: "W" },
     board: { w: 1.0, d: 0.36, h: 58, img: "prop-board", iw: 36, ar: 429 / 256, nat: "N" }
   };
-  var PLANTS = ["plant", "palm", "snake", "bush", "cactus", "plant", "palm"];
+  var PLANTS = ["frangi", "palm", "monstera", "plant", "snake", "frangi", "bush", "monstera", "palm", "cactus"];
   function furnPool(name) {
     var n = String(name).toUpperCase(), p = ["bookcase", "bookcase", "locker", "sideboard", "cabinet", "cabinet", "cooler", "lamp", "coffee", "board"];
     if (/PLATFORM|DATA|OFFICE/.test(n)) p.push("rack", "rack", "locker", "cabinet");
@@ -1314,6 +1413,7 @@
       } else {                  /* stapel mappen + bureaulamp */
         for (i = 0; i < 3; i++) h += wbox(F, u + 0.18, u + 0.6, 0.06, 0.36, top + i * 2.4, 2.2, BOOK[(R() * BOOK.length) | 0]);
         var lp = F.w(u + 1.05, 0.2), lq = iso(lp[0], lp[1], top);
+        FX.lamps.push([lq[0], lq[1] - 12, 0.45]);
         h += el(lq[0], lq[1], 3, 1.4, "#22272e") + rc(lq[0] - 0.6, lq[1] - 12, 1.2, 12, "#3a4048")
           + '<polygon fill="#f3d9a4" points="' + pts([[lq[0] - 4, lq[1] - 10], [lq[0] - 2, lq[1] - 15], [lq[0] + 2, lq[1] - 15], [lq[0] + 4, lq[1] - 10]]) + '"/>';
       }
@@ -1329,6 +1429,7 @@
     }
     if (kind === "lamp") {
       var g = iso(mid[0], mid[1], Z);
+      FX.lamps.push([g[0], g[1] - 48, 1]);
       return '<ellipse cx="' + f1(g[0]) + '" cy="' + f1(g[1] - 40) + '" rx="26" ry="30" fill="url(#gWarm)"/>' + sh
         + el(g[0], g[1], 6, 2.6, "#1f242b") + rc(g[0] - 0.8, g[1] - 50, 1.6, 50, "#2e343c")
         + '<polygon fill="#f0d39b" points="' + pts([[g[0] - 9, g[1] - 44], [g[0] - 5.5, g[1] - 60], [g[0] + 5.5, g[1] - 60], [g[0] + 9, g[1] - 44]]) + '"/>'
@@ -1362,6 +1463,47 @@
       }
       return h;
     }
+    if (kind === "frangi") {         /* frangipani (kamboja) in stenen pot — de bloem van Bali */
+      h = sh + pot(b, 6.5, 7.6, 11, "#8f8b83");
+      var tb = [b[0], b[1] - 10], tips = [];
+      h += '<path fill="none" stroke="#7a6048" stroke-width="2.4" stroke-linecap="round" d="M' + f1(tb[0]) + "," + f1(tb[1]) + " q-1,-7 0.6,-14" + '"/>';
+      for (i = 0; i < 4; i++) {
+        var fa = -Math.PI / 2 + (i - 1.5) * 0.6 + (R() - 0.5) * 0.25, fl = 13 + R() * 9, sy0 = tb[1] - 11 - R() * 4;
+        var fx2 = tb[0] + Math.cos(fa) * fl, fy2 = sy0 + Math.sin(fa) * fl * 0.85;
+        h += '<path fill="none" stroke="#7a6048" stroke-width="1.5" stroke-linecap="round" d="M' + f1(tb[0]) + "," + f1(sy0) + " Q" + f1(tb[0] + Math.cos(fa) * fl * 0.25) + "," + f1(sy0 - fl * 0.55) + " " + f1(fx2) + "," + f1(fy2) + '"/>';
+        tips.push([fx2, fy2]);
+      }
+      tips.forEach(function (t) {
+        for (var k = 0; k < 6; k++) {
+          var la = k * 60 + R() * 25 - 90, ll = 6 + R() * 3;
+          h += '<ellipse cx="' + f1(t[0]) + '" cy="' + f1(t[1] - ll / 2) + '" rx="1.5" ry="' + f1(ll / 2) + '" fill="' + LEAF[(R() * 2) | 0] + '" transform="rotate(' + la.toFixed(0) + " " + f1(t[0]) + " " + f1(t[1]) + ')"/>';
+        }
+        for (var q2 = 0; q2 < 2; q2++) {
+          var bx = t[0] + (R() - 0.5) * 5, by = t[1] - 1.5 - R() * 3;
+          for (var pe = 0; pe < 5; pe++) h += '<ellipse cx="' + f1(bx) + '" cy="' + f1(by - 1.3) + '" rx=".85" ry="1.4" fill="#fffaf0" transform="rotate(' + (pe * 72 + q2 * 20) + " " + f1(bx) + " " + f1(by) + ')"/>';
+          h += '<circle cx="' + f1(bx) + '" cy="' + f1(by) + '" r=".75" fill="#ffd23f"/>';
+        }
+      });
+      return h;
+    }
+    if (kind === "monstera") {       /* monstera in rotan mand of terracotta */
+      var mc = R() < 0.5 ? "#b08850" : "#c8743f";
+      h = sh + pot(b, 7, 8.2, 12, mc);
+      if (mc === "#b08850") for (i = 0; i < 3; i++) h += '<path fill="none" stroke="#7a5a32" stroke-width=".7" d="M' + f1(b[0] - 7.6 + i * 0.4) + "," + f1(b[1] - 3 - i * 3) + " Q" + f1(b[0]) + "," + f1(b[1] + 1 - i * 3) + " " + f1(b[0] + 7.6 - i * 0.4) + "," + f1(b[1] - 3 - i * 3) + '"/>';
+      var mb = [b[0], b[1] - 11];
+      for (i = 0; i < 6; i++) {
+        var ma = -Math.PI / 2 + (i - 2.5) * 0.44 + (R() - 0.5) * 0.15, ml = 15 + R() * 12;
+        var mx = mb[0] + Math.cos(ma) * ml, my = mb[1] + Math.sin(ma) * ml * 0.95, deg = ma * 180 / Math.PI + 90;
+        var lc3 = LEAF[[0, 1, 3][(R() * 3) | 0]];
+        h += '<path fill="none" stroke="#3b6e3a" stroke-width=".9" d="M' + f1(mb[0]) + "," + f1(mb[1]) + " Q" + f1(mb[0] + Math.cos(ma) * ml * 0.4) + "," + f1(mb[1] - ml * 0.55) + " " + f1(mx) + "," + f1(my) + '"/>';
+        h += '<g transform="rotate(' + deg.toFixed(0) + " " + f1(mx) + " " + f1(my) + ')"><ellipse cx="' + f1(mx) + '" cy="' + f1(my) + '" rx="6.4" ry="4.4" fill="' + lc3 + '"/>'
+          + '<path stroke="' + shade(lc3, 0.55) + '" stroke-width=".5" fill="none" d="M' + f1(mx) + "," + f1(my - 4.2) + " v8.4" + '"/>';
+        for (var s2 = -1; s2 <= 1; s2 += 2) for (var k2 = 0; k2 < 2; k2++)
+          h += '<path stroke="#0d1710" stroke-width=".7" stroke-linecap="round" d="M' + f1(mx + s2 * 6.2) + "," + f1(my - 1.6 + k2 * 2.6) + " l" + f1(-s2 * 2.4) + ",0" + '"/>';
+        h += "</g>";
+      }
+      return h;
+    }
     if (kind === "bush") {
       h = sh + wbox(F, u + 0.08, u + 0.47, 0.06, 0.45, Z, 11, POTC[(R() * POTC.length) | 0]);
       var bb = iso(mid[0], mid[1], Z + 11);
@@ -1383,9 +1525,19 @@
     return h;
   }
   /* wanddecoratie op het wandvlak; lokaal x in cellen, y in px boven de vloer van het platform */
-  var DECOR = { screen: 1.0, art: 0.6, rattan: 0.55, cork: 0.9, clock: 0.36, shelf: 0.85, art2: 0.45 };
+  var DECOR = { screen: 1.0, art: 0.6, rattan: 0.55, cork: 0.9, clock: 0.36, shelf: 0.85, art2: 0.45, fame: 0.95 };
   function drawDecor(F, kind, u, R, dc, low) {
     var W = DECOR[kind], h = face(F, u, 0.004, SLAB), z = low ? low + 4 : 16 + R() * 5, k = 1 / EDGE;
+    if (kind === "fame") {
+      /* 17-10 wall of fame: lijst met een best bereikte post (updateFame vult het beeld; tot dan een warm vlak).
+         Het beeld staat in een eigen px-frame (x / EDGE, y omgekeerd) zodat 'slice' de echte verhouding kent. */
+      var fz = 9, fh = 23, slot = FX.fameSlots++;
+      h += rc(0, fz, W, fh, "#d9c7a5") + rc(0.035, fz + 1.5, W - 0.07, fh - 3, "#2b2119") + rc(0.06, fz + 2.6, W - 0.12, fh - 5.2, mix(dc, "#3a2c22", 0.22));
+      h += '<g transform="translate(0,' + (fz + fh - 2.6).toFixed(2) + ") scale(" + k.toFixed(5) + ',-1)"><image class="wof" data-slot="' + slot + '" x="' + (0.06 * EDGE).toFixed(2)
+        + '" y="0" width="' + ((W - 0.12) * EDGE).toFixed(2) + '" height="' + (fh - 5.2).toFixed(1) + '" preserveAspectRatio="xMidYMid slice" visibility="hidden"><title></title></image></g>';
+      h += rc(W / 2 - 0.1, fz - 2.4, 0.2, 1.4, "#c9a24a");
+      return h + "</g>";
+    }
     if (kind === "screen") {
       h += rc(0, z, W, 18, "#0b0f16") + rc(0.04, z + 1.4, W - 0.08, 15.2, mix(dc, "#0b1220", 0.16));
       for (var i = 0; i < 6; i++) { var bh = 3 + R() * 10; h += rc(0.1 + i * 0.13, z + 3, 0.08, bh, dc, ' fill-opacity="' + (0.55 + R() * 0.4).toFixed(2) + '"'); }
@@ -1477,11 +1629,12 @@
         cur = Math.max(cur, p[1] + 0.04);
       });
       if (L - 0.15 - cur > 0.3) free.push([cur, L - 0.15, 0]);
-      var dk = ["screen", "art", "rattan", "cork", "clock", "shelf", "art2", "rattan"], lastD = "";
+      var dk = ["screen", "fame", "rattan", "cork", "clock", "shelf", "fame", "rattan", "art2"], lastD = "";
       free.forEach(function (f) {
         var u = f[0];
         while (true) {
           var kd = dk[(R() * dk.length) | 0]; if (kd === lastD) kd = dk[(R() * dk.length) | 0];
+          if (kd === "fame" && f[2]) kd = "art";      /* boven een laag meubel past geen grote lijst */
           var W = DECOR[kd];
           if (u + W > f[1]) { if (u + DECOR.clock <= f[1] && lastD !== "clock") { kd = "clock"; W = DECOR.clock; } else break; }
           if (f[2] && f[2] + 4 + 18 > WALL_H) break;
@@ -1500,6 +1653,7 @@
 
   function renderFloor() {
     var h = "", far = 60, allx = [], ally = [];
+    FX.lamps = []; FX.fameSlots = 0;
     S.depts.forEach(function (d) { allx.push(d.x, d.x + d.w); ally.push(d.y, d.y + d.d); });
     var gx0 = Math.floor(Math.min.apply(null, allx)) - far, gx1 = Math.ceil(Math.max.apply(null, allx)) + far,
         gy0 = Math.floor(Math.min.apply(null, ally)) - far, gy1 = Math.ceil(Math.max.apply(null, ally)) + far, i, a, b;
@@ -1517,12 +1671,13 @@
     });
 
     /* laag 2: platforms + bureaus + Brain, van achter naar voor */
+    var cards = "";
     var items = S.paint.map(function (d) { return { k: d.x + d.w / 2 + d.y + d.d / 2, d: d }; });
     items.push({ k: 0, brain: true });
     items.sort(function (p, q) { return p.k - q.k; });
     var di = 0;
     items.forEach(function (it) {
-      if (it.brain) { h += '<g class="brain" style="--i:' + (di++) + '">' + brainInner() + "</g>"; return; }
+      if (it.brain) { h += '<g class="brain" style="--i:' + (di++) + '">' + brainInner() + '<g id="chalk">' + chalkInner() + "</g></g>"; return; }
       var d = it.d, x0 = d.x, y0 = d.y, x1 = d.x + d.w, y1 = d.y + d.d;
       h += '<g class="dept" data-dept="' + esc(d.name) + '" style="--c:' + esc(d.color) + ";--i:" + (di++) + '">';
       var cc = iso((x0 + x1) / 2, (y0 + y1) / 2, 0);
@@ -1552,21 +1707,29 @@
       h += '<g class="walls">' + fu.walls + "</g>";
       var layer = d.desks.map(function (ag) {
         return { k: ag._lx + ag._ly,
-          h: '<g class="ag s-' + st(ag) + '" data-id="' + esc(ag.agent_id) + '" data-k="' + (ag._lx + ag._ly).toFixed(2) + '" tabindex="0" role="button" aria-label="' + esc(agentLabel(ag)) +
+          h: '<g class="' + agClass(ag) + '" data-id="' + esc(ag.agent_id) + '" data-k="' + (ag._lx + ag._ly).toFixed(2) + '" tabindex="0" role="button" aria-label="' + esc(agentLabel(ag)) +
              '" transform="translate(' + f1(ag._p[0]) + "," + f1(ag._p[1]) + ')">' + deskInner(ag) + "</g>" };
       }).concat(fu.items);
       layer.sort(function (p, q) { return p.k - q.k; }).forEach(function (o) { h += o.h; });
-      /* zwevend kaartje boven de achterste hoek */
+      /* zwevend kaartje boven de achterste hoek — 17-10: in een eigen bovenlaag (#cardLayer), zodat de
+         nachtlaag het niet verduistert; de wrapper heet ook .dept (data-dept) en volgt cur/hl-d via syncCardWraps */
       var tp = iso(x0, y0, SLAB);
-      h += '<g class="card pf' + (d._gi || 0) + '" data-card="' + esc(d.name) + '" tabindex="0" role="button" aria-label="Afdeling ' + esc(d.name) + '" transform="translate(' + f1(tp[0]) + "," + f1(tp[1] - CARD_LIFT) + ')">'
-        + '<line class="stem" x1="0" y1="0" x2="0" y2="26"/><circle class="pin" r="2" cy="26"/>' + cardInner(d) + "</g>";
+      cards += '<g class="dept dcard" data-dept="' + esc(d.name) + '" style="--c:' + esc(d.color) + ";--i:" + (di - 1) + '">'
+        + '<g class="card pf' + (d._gi || 0) + '" data-card="' + esc(d.name) + '" tabindex="0" role="button" aria-label="Afdeling ' + esc(d.name) + '" transform="translate(' + f1(tp[0]) + "," + f1(tp[1] - CARD_LIFT) + ')">'
+        + '<line class="stem" x1="0" y1="0" x2="0" y2="26"/><circle class="pin" r="2" cy="26"/>' + cardInner(d) + "</g></g>";
       h += "</g>";
     });
+
+    /* 17-10: nacht over de vloer, daarboven de gloed van lampen en schermen */
+    h += '<g id="nightLayer"><polygon id="nightRect" points="' + gpoly + '" fill="#030817" fill-opacity="0"/>'
+      + '<polygon id="goldRect" points="' + gpoly + '" fill="#ff9a4d" fill-opacity="0"/></g><g id="glowLayer" opacity="0"></g>'
+      + '<g id="cardLayer">' + cards + "</g>";
 
     /* laag 3: sub-workflow-bogen */
     h += '<g id="linksLayer">' + linksInner() + "</g>";
 
     elWorld.innerHTML = h;
+    FX.glowSig = ""; applySky(); renderGlows(); updateFame();
     $("loading").style.display = "none";
     computeFit();
     setCam(S.fitBox, false);
@@ -1609,11 +1772,12 @@
   function patchAgents() {
     S.agents.forEach(function (a) {
       var el = agentEl(a.agent_id); if (!el) return;
-      var keep = el.classList.contains("sel");
-      el.setAttribute("class", "ag s-" + st(a) + (keep ? " sel" : ""));
+      var keep = el.classList.contains("sel"), keepHl = el.classList.contains("hl");
+      el.setAttribute("class", agClass(a) + (keep ? " sel" : "") + (keepHl ? " hl" : ""));
       el.setAttribute("aria-label", agentLabel(a));
-      var spr = el.querySelector(".spr"), mk = el.querySelector(".marks");
+      var spr = el.querySelector(".spr"), mk = el.querySelector(".marks"), dx = el.querySelector(".dx");
       if (spr) { var want = deskSprite(a); if (spr.innerHTML !== want) spr.innerHTML = want; }
+      if (dx) { var wd = deskExtras(a); if (dx._w !== wd) { dx.innerHTML = wd; dx._w = wd; } }
       if (mk) mk.innerHTML = deskMarks(a);
     });
   }
@@ -2496,7 +2660,7 @@
     if (zoomOut && was && !S.focus && S.fitBox) setCam(S.fitBox, true);
     motionUi();
   }
-  function acBlocked() { return !AC.on || document.hidden || !!S.focus || Date.now() - AC.lastUser < AUTO_IDLE; }
+  function acBlocked() { return !AC.on || RP.on || document.hidden || !!S.focus || Date.now() - AC.lastUser < AUTO_IDLE; }
   function acNext() {
     if (AC.busy || !AC.q.length) return;
     if (acBlocked()) { AC.q = []; return; }
@@ -2538,7 +2702,7 @@
   var drag = null;
   elScene.addEventListener("pointerdown", function (e) {
     if (e.button !== 0 && e.pointerType === "mouse") return;
-    if (closest(e.target, ".cam,.acbar")) return;
+    if (closest(e.target, ".cam,.acbar,.rpbar")) return;
     userActed();
     drag = { x: e.clientX, y: e.clientY, cam: S.cam ? S.cam.slice() : null, moved: false, id: e.pointerId };
   });
@@ -2564,6 +2728,7 @@
   elScene.addEventListener("pointerup", endDrag);
   elScene.addEventListener("pointercancel", endDrag);
   elScene.addEventListener("wheel", function (e) {
+    if (closest(e.target, ".rpbar")) return;
     e.preventDefault();
     userActed();
     var r = elScene.getBoundingClientRect();
@@ -2666,6 +2831,15 @@
       e.classList.add("hl"); if (e.parentNode) e.parentNode.classList.add("hl-d");
     });
     S.pairs = pairs; drawWires();
+    syncCardWraps();
+  }
+  /* 17-10: kaartjes staan in #cardLayer; geef hun wrapper dezelfde cur/hl-d als de afdeling zelf */
+  function syncCardWraps() {
+    Array.prototype.forEach.call(elWorld.querySelectorAll("#cardLayer > .dcard"), function (w) {
+      var de = elWorld.querySelector('.dept[data-dept="' + CSS.escape(w.getAttribute("data-dept")) + '"]:not(.dcard)');
+      w.classList.toggle("cur", !!(de && de.classList.contains("cur")));
+      w.classList.toggle("hl-d", !!(de && de.classList.contains("hl-d")));
+    });
   }
   function drawWires() {
     var pairs = S.pairs || [], h = "";
@@ -2887,6 +3061,7 @@
 
   elFloor.addEventListener("click", function (e) {
     if (suppressClick) return;
+    if (closest(e.target, ".chalk")) { location.href = "kpi.html#review"; return; }
     var ag = closest(e.target, ".ag");
     if (ag) { if (!window.matchMedia("(hover: hover)").matches) hideTip(); var id = ag.getAttribute("data-id"); setFocus(same(S.focus, "agent", id) ? null : { type: "agent", id: id }, true); return; }
     var sl = closest(e.target, ".slab,.card");
@@ -2898,7 +3073,7 @@
   });
   elFloor.addEventListener("keydown", function (e) {
     if (e.key !== "Enter" && e.key !== " ") return;
-    var t = closest(e.target, ".ag,.slab,.card"); if (!t) return;
+    var t = closest(e.target, ".ag,.slab,.card,.chalk"); if (!t) return;
     e.preventDefault(); t.dispatchEvent(new MouseEvent("click", { bubbles: true }));
   });
   elFloor.addEventListener("pointerover", function (e) { if (drag && drag.moved) return; var ag = closest(e.target, ".ag"); if (ag) tipFor(ag); });
@@ -3000,6 +3175,668 @@
       applyFocus();
     }, 220);
   });
+
+  /* ==================================================================================== SFEER (17-10)
+     Dag/nacht, Bali-aankleding, weer (Oordeel van de dag), ordergong, wall of fame, Self-Heal-klusjesman,
+     replay van de afgelopen 24 uur en ambient geluid. Bewust ingetogen; alles vervalt netjes zonder data. */
+  var SVG_NS = "http://www.w3.org/2000/svg";
+  var SKY_LAT = 40.42, SKY_LON = -3.70;            /* Madrid: daar loopt de dashboardklok (Europe/Madrid) */
+  var AWAY_AFTER = 45 * 60000;                     /* 's nachts naar huis als de laatste run langer geleden is */
+  var fmtHM = new Intl.DateTimeFormat("nl-NL", { timeZone: "Europe/Madrid", hour: "2-digit", minute: "2-digit" });
+  var fmtDHM = new Intl.DateTimeFormat("nl-NL", { timeZone: "Europe/Madrid", weekday: "short", hour: "2-digit", minute: "2-digit" });
+  var fmtDM = new Intl.DateTimeFormat("nl-NL", { timeZone: "Europe/Madrid", day: "2-digit", month: "2-digit" });
+  var SBX = null;
+  try { if (window.supabase && SB_KEY) SBX = window.supabase.createClient(SB_URL, SB_KEY); } catch (e) { SBX = null; }
+
+  function fxNow() { return RP.on ? RP.t : Date.now(); }
+  function clamp01(v) { return Math.max(0, Math.min(1, v)); }
+  function smooth(a, b, x) { var t = clamp01((x - a) / (b - a)); return t * t * (3 - 2 * t); }
+  /* zonnehoogte in graden (benadering NOAA, ruim nauwkeurig genoeg voor licht) */
+  function sunElev(t) {
+    var rad = Math.PI / 180, d = (t - Date.UTC(2000, 0, 1, 12)) / 864e5;
+    var g = (357.529 + 0.98560028 * d) * rad, q = 280.459 + 0.98564736 * d;
+    var L = (q + 1.915 * Math.sin(g) + 0.020 * Math.sin(2 * g)) * rad, e = (23.439 - 0.00000036 * d) * rad;
+    var ra = Math.atan2(Math.cos(e) * Math.sin(L), Math.cos(L)), dec = Math.asin(Math.sin(e) * Math.sin(L));
+    var gmst = ((18.697374558 + 24.06570982441908 * d) % 24 + 24) % 24;
+    var ha = (gmst * 15 + SKY_LON) * rad - ra, lat = SKY_LAT * rad;
+    return Math.asin(Math.sin(lat) * Math.sin(dec) + Math.cos(lat) * Math.cos(dec) * Math.cos(ha)) / rad;
+  }
+  function skyState(store) {
+    var el = sunElev(fxNow()), light = smooth(-7, 5, el);
+    var gold = el > -6 && el < 10 ? clamp01(1 - Math.abs(el - 1.5) / 7.5) : 0;
+    if (store) { FX.el = el; FX.light = light; FX.dark = 1 - light; FX.gold = gold; }
+    return { el: el, light: light, dark: 1 - light, gold: gold };
+  }
+  function isAway(a) {
+    if (!a || FX.dark < 0.55) return false;
+    if (RP.on) { var l = RP.last[a.workflow_name] || 0; return !l || RP.t - l > AWAY_AFTER; }
+    var s = st(a); if (s === "working" || s === "error") return false;
+    var lr = a.last_run_at ? new Date(a.last_run_at).getTime() : 0;
+    return !lr || Date.now() - lr > AWAY_AFTER;
+  }
+  function awaySig() { return S.agents.filter(function (a) { return a._p && isAway(a); }).map(function (a) { return a.agent_id; }).join(","); }
+  function applySky() {
+    var n = $("nightRect"), g = $("goldRect"), gl = $("glowLayer");
+    if (n) n.setAttribute("fill-opacity", (FX.dark * 0.6).toFixed(3));
+    if (g) g.setAttribute("fill-opacity", (FX.gold * 0.09).toFixed(3));
+    if (gl) gl.setAttribute("opacity", Math.min(1, FX.dark * 1.15).toFixed(3));
+    elFloor.style.setProperty("--nb", (1 - FX.dark * 0.42).toFixed(3));
+  }
+  /* gloed: staande lampen en bureaulampjes, schermen van wie aan zijn bureau zit, het brein */
+  var MON_C = [292, 168], MON_TOP = [300, 58], DESK_LAMP = [430, 335];
+  function dpt(p) { return [DX0 + p[0] * SX, DY0 + p[1] * SY]; }
+  function renderGlows() {
+    var gl = $("glowLayer"); if (!gl) return;
+    var seated = S.agents.filter(function (a) { return a._p && !isSub(a) && !isVacant(a); });
+    var sig = FX.lamps.length + "|" + seated.map(function (a) { return a.agent_id + ":" + st(a); }).join(",");
+    if (sig === FX.glowSig) return;
+    FX.glowSig = sig;
+    var c = iso(0, 0, 0), ck = iso(-BRAIN / 2 + 0.55, BRAIN / 2 + 0.55, 0);
+    var h = '<ellipse cx="' + f1(c[0]) + '" cy="' + f1(c[1] - 40) + '" rx="230" ry="140" fill="url(#gGlowCyan)"/>'
+      + '<ellipse cx="' + f1(ck[0]) + '" cy="' + f1(ck[1] - 28) + '" rx="34" ry="30" fill="url(#gGlowWarm)"/>';
+    FX.lamps.forEach(function (l) {
+      h += '<ellipse cx="' + f1(l[0]) + '" cy="' + f1(l[1] + 30 * l[2]) + '" rx="' + f1(80 * l[2]) + '" ry="' + f1(50 * l[2]) + '" fill="url(#gGlowWarm)"/>'
+        + '<ellipse cx="' + f1(l[0]) + '" cy="' + f1(l[1]) + '" rx="' + f1(20 * l[2]) + '" ry="' + f1(16 * l[2]) + '" fill="url(#gGlowWarm)"/>';
+    });
+    seated.forEach(function (a) {
+      var s = st(a), m = dpt(MON_C), w = dpt(DESK_LAMP);
+      if (s === "ok" || s === "working" || s === "error" || s === "silent")
+        h += '<ellipse cx="' + f1(a._p[0] + m[0]) + '" cy="' + f1(a._p[1] + m[1]) + '" rx="' + (s === "ok" ? 22 : 30) + '" ry="' + (s === "ok" ? 15 : 20) + '" fill="url(#gGlow-' + s + ')"/>';
+      h += '<ellipse cx="' + f1(a._p[0] + w[0]) + '" cy="' + f1(a._p[1] + w[1]) + '" rx="34" ry="17" fill="url(#gGlowWarm)" opacity=".7"/>';
+    });
+    gl.innerHTML = h;
+  }
+  function fxTick(force) {
+    var prevL = FX.light, prevG = FX.gold;
+    skyState(true);
+    if (force || Math.abs(FX.light - prevL) > 0.003 || Math.abs(FX.gold - prevG) > 0.01) applySky();
+    var sig = awaySig();
+    if (sig !== FX.awaySig) {
+      FX.awaySig = sig;
+      if (S.agents.length && elWorld.firstChild) { patchAgents(); renderBubbles(); }
+    }
+    renderGlows();
+    renderSkyChip();
+    wxStart();
+  }
+  function renderSkyChip() {
+    var el = $("skyc"); if (!el) return;
+    var t = fxNow(), ic = FX.el > 4 ? "☀" : FX.el > -6 ? "◐" : "☾";
+    var vtxt = { groen: "zon", oranje: "bewolkt", rood: "regen" }, vic = { groen: "☀️", oranje: "⛅", rood: "🌧" }, rv = FX.review;
+    var h = "<span>" + ic + "</span><b>" + (RP.on ? esc(fmtDHM.format(new Date(t))) : esc(fmtHM.format(new Date(t)))) + '</b>'
+      + (RP.on ? '<span class="rp">REPLAY</span>' : "");
+    if (rv && vic[rv.verdict]) h += '<span class="wx">' + vic[rv.verdict] + ' <b>' + esc(rv.score == null ? "–" : rv.score) + "</b></span>";
+    if (el._h !== h) { el.innerHTML = h; el._h = h; }
+    el.title = "Licht volgt de zon in Madrid (zonnehoogte " + Math.round(FX.el) + "°). 's Nachts zijn agents zonder run in de laatste 45 min naar huis."
+      + (rv ? "\nWeer = Oordeel van de dag " + abs2(rv.review_date) + ": " + rv.verdict + " (" + (vtxt[rv.verdict] || "—") + "), score " + rv.score + "." : FX.authed ? "" : "\nWeer en ordergong verschijnen als je ingelogd bent (Cockpit).");
+  }
+  function abs2(d) { try { return fmtDM.format(new Date(d + "T12:00:00Z")); } catch (e) { return String(d || ""); } }
+  setInterval(function () { if (!document.hidden && !RP.on) fxTick(false); }, 30000);
+
+  /* ---- bureau-aankleding: plantje dat meegroeit, canang sari, rookwolkje -------------------------- */
+  var DPOS_PLANT = [690, 250], DPOS_CANANG = [120, 392];
+  function deskExtras(a) {
+    var s = st(a), k = FX.stats7[a.workflow_name], r7 = k ? Number(k.runs_7d) || 0 : 0, h = "";
+    var mood = s === "error" ? "err" : (s === "paused" || s === "idle" || !r7) ? "dry" : s === "silent" ? "thirsty" : "ok";
+    h += deskPlant(dpt(DPOS_PLANT), r7, mood, a);
+    if (k && r7 >= 5 && Number(k.pct_ok) >= 100 && s !== "error") h += canang(dpt(DPOS_CANANG), r7);
+    if (s === "error") { var m = dpt(MON_TOP); h += '<g class="smoke"><circle cx="' + f1(m[0]) + '" cy="' + f1(m[1]) + '" r="2.6"/><circle cx="' + f1(m[0] - 2) + '" cy="' + f1(m[1]) + '" r="2.2"/><circle cx="' + f1(m[0] + 2) + '" cy="' + f1(m[1]) + '" r="2.4"/></g>'; }
+    return h;
+  }
+  function droopLeaf(x, y, len, dir, w, col) {
+    var ex = x + dir * len * 0.95, ey = y + len * 0.2, cx = x + dir * len * 0.3, cy = y - len * 0.8;
+    return '<path fill="' + col + '" d="M' + f1(x - w) + "," + f1(y) + " Q" + f1(cx - w) + "," + f1(cy) + " " + f1(ex) + "," + f1(ey)
+      + " Q" + f1(cx + w) + "," + f1(cy + w * 1.8) + " " + f1(x + w) + "," + f1(y) + 'Z"/>';
+  }
+  function deskPlant(p, r7, mood, a) {
+    var s = mood === "dry" ? 0.55 : 0.6 + 0.6 * Math.min(1, Math.log(1 + r7) / Math.log(150));
+    var R = rng(hash(String(a.agent_id) + "|plant")), x = p[0], y = p[1];
+    var potc = ["#c8743f", "#b5714e", "#d9d4cc", "#8f8b83"][(R() * 4) | 0];
+    var tl = { ok: "groeit mee", err: "hangt slap: de laatste run is mislukt", dry: "staat droog: geen runs deze week", thirsty: "heeft dorst: de agent is stil" }[mood];
+    var h = '<g class="dplant"><title>' + esc("Bureauplant · " + r7 + " runs in 7 dagen · " + tl) + "</title>" + pot([x, y], 2.5 * s, 3 * s, 4.4 * s, potc);
+    var top = y - 4.4 * s, n = mood === "dry" ? 4 : 5 + Math.round(s * 3);
+    var cols = mood === "err" ? ["#b8a640", "#9c8a2e", "#c9b04a"] : mood === "dry" ? ["#8a7a4a", "#7d6a3e", "#9a8a58"] : mood === "thirsty" ? ["#7fa04a", "#6f8f3e", "#94b25a"] : LEAF;
+    for (var i = 0; i < n; i++) {
+      var off = (i - (n - 1) / 2), col = cols[(R() * cols.length) | 0], len = (8 + R() * 6) * s;
+      if (mood === "err" || mood === "thirsty") h += droopLeaf(x + off * 0.6 * s, top, len * (mood === "err" ? 0.95 : 1), off < 0 ? -1 : 1, 1.3 * s, col);
+      else h += leaf(x + off * 0.9 * s, top, len, off * 2.4 * s, 1.35 * s, col);
+    }
+    return h + "</g>";
+  }
+  function canang(p, r7) {
+    var x = p[0], y = p[1], w = 6.4, hh = 3.2, h = '<g class="canang"><title>' + esc("Canang sari · 7 dagen 100% geslaagd (" + r7 + " runs)") + "</title>";
+    h += '<polygon fill="#4f7d2c" points="' + pts([[x - w, y], [x, y - hh], [x + w, y], [x, y + hh]]) + '"/>'
+      + '<polygon fill="#86b44c" points="' + pts([[x - w * 0.8, y - 0.5], [x, y - hh * 0.85], [x + w * 0.8, y - 0.5], [x, y + hh * 0.55]]) + '"/>';
+    [[-2.7, -0.4, "#ff4d6d"], [0, -1.7, "#ffffff"], [2.7, -0.4, "#ffd23f"], [0, 0.9, "#b65fd6"], [0, -0.35, "#ff8c3a"]].forEach(function (f) {
+      h += '<circle cx="' + f1(x + f[0]) + '" cy="' + f1(y + f[1]) + '" r="1.2" fill="' + f[2] + '"/>';
+    });
+    var sx = x + 3.6, sy = y - 0.8, tx = x + 4.9, ty = y - 9;
+    h += '<line x1="' + f1(sx) + '" y1="' + f1(sy) + '" x2="' + f1(tx) + '" y2="' + f1(ty) + '" stroke="#8a5a32" stroke-width=".55"/>'
+      + '<circle cx="' + f1(tx) + '" cy="' + f1(ty) + '" r=".6" fill="#ff7a2a"/>'
+      + '<path class="wisp" d="M' + f1(tx) + "," + f1(ty - 0.6) + " c-1.6,-2 1.6,-3.4 0,-5.4 c-1.4,-1.8 1.2,-3 0,-4.6" + '"/>';
+    return h + "</g>";
+  }
+
+  /* ---- krijtbord bij het brein: Oordeel van de dag ------------------------------------------------ */
+  var VCOL = { groen: "#3ee08f", oranje: "#ffb547", rood: "#ff5d5d" };
+  function chalkInner() {
+    var p = iso(-BRAIN / 2 + 0.55, BRAIN / 2 + 0.55, 0), x = p[0], y = p[1], W = 44, H = 33, top = y - 47, rv = FX.review;
+    var tip = rv ? "Oordeel van de dag " + abs2(rv.review_date) + ": " + rv.verdict + ", score " + rv.score + (rv.headline ? "\n" + rv.headline : "") + "\nKlik voor het hele oordeel in de Cockpit."
+      : FX.authed ? "Nog geen oordeel gevonden." : "Oordeel van de dag: zichtbaar als je ingelogd bent (Cockpit).";
+    var h = '<g class="chalk" tabindex="0" role="link" aria-label="' + esc(rv ? "Oordeel van de dag: " + rv.verdict + ", score " + rv.score : "Oordeel van de dag") + '"><title>' + esc(tip) + "</title>"
+      + '<ellipse cx="' + f1(x) + '" cy="' + f1(y + 1) + '" rx="22" ry="6" fill="#000" fill-opacity=".35"/>'
+      + '<line x1="' + f1(x - 15) + '" y1="' + f1(top + H - 2) + '" x2="' + f1(x - 18) + '" y2="' + f1(y) + '" stroke="#5a4030" stroke-width="2"/>'
+      + '<line x1="' + f1(x + 15) + '" y1="' + f1(top + H - 2) + '" x2="' + f1(x + 18) + '" y2="' + f1(y) + '" stroke="#5a4030" stroke-width="2"/>'
+      + '<rect class="ck-board" x="' + f1(x - W / 2) + '" y="' + f1(top) + '" width="' + W + '" height="' + H + '" rx="2.5" fill="#7a5638"/>'
+      + '<rect x="' + f1(x - W / 2 + 2.4) + '" y="' + f1(top + 2.4) + '" width="' + (W - 4.8) + '" height="' + (H - 4.8) + '" rx="1.5" fill="#1f2b25"/>'
+      + '<text x="' + f1(x) + '" y="' + f1(top + 9) + '" font-size="5.2" letter-spacing=".6" opacity=".8">OORDEEL</text>';
+    if (rv) {
+      h += '<text x="' + f1(x) + '" y="' + f1(top + 22.5) + '" font-size="13" font-weight="700" style="fill:' + (VCOL[rv.verdict] || "#eef3ea") + '">' + esc(rv.score == null ? "–" : rv.score) + "</text>"
+        + '<text x="' + f1(x) + '" y="' + f1(top + 29) + '" font-size="4.6" opacity=".75">' + esc(abs2(rv.review_date) + " · " + rv.verdict) + "</text>";
+    } else h += '<text x="' + f1(x) + '" y="' + f1(top + 21) + '" font-size="9" opacity=".7">–</text>';
+    return h + "</g>";
+  }
+  function updateChalk() { var g = $("chalk"); if (g) g.innerHTML = chalkInner(); }
+
+  /* ---- ingelogde extra's: oordeel (weer) en online orders (gong) ---------------------------------- */
+  var ORD = { seen: null, rows: [] };
+  try { var so = JSON.parse(localStorage.getItem("dewi.office2.orders") || "null"); if (so && typeof so === "object") ORD.seen = so; } catch (e) {}
+  function loadPrivate() {
+    if (!SBX) return;
+    SBX.auth.getSession().then(function (r) {
+      var ses = r && r.data && r.data.session;
+      FX.authed = !!ses;
+      if (!ses) { if (FX.review) { FX.review = null; reviewChanged(); } else renderSkyChip(); return; }
+      var since = new Date(Date.now() - 48 * 3600e3).toISOString();
+      return Promise.all([
+        SBX.from("dewi_office_reviews").select("review_date,verdict,score,headline").eq("dry_run", false).order("review_date", { ascending: false }).limit(1),
+        SBX.from("bridge_open_orders").select("order_gid,order_name,order_created_at,line_item_count").eq("source_name", "web").gte("order_created_at", since)
+      ]).then(function (res) {
+        var rv = (res[0] && !res[0].error && res[0].data && res[0].data[0]) || null;
+        if (JSON.stringify(rv) !== JSON.stringify(FX.review)) { FX.review = rv; reviewChanged(); }
+        if (res[1] && !res[1].error) ingestOrders(res[1].data || []);
+      });
+    }).catch(function () {});
+  }
+  function reviewChanged() { updateChalk(); renderSkyChip(); wxStart(); sndRain(); }
+  function ingestOrders(rows) {
+    ORD.rows = rows;
+    var first = !ORD.seen, seen = ORD.seen || {}, fresh = [];
+    rows.forEach(function (o) {
+      if (!first && !seen[o.order_gid] && Date.now() - ms(o.order_created_at) < 12 * 3600e3) fresh.push(o);
+      seen[o.order_gid] = ms(o.order_created_at) || Date.now();
+    });
+    var cut = Date.now() - 7 * 864e5;                       /* gezien-lijst klein houden */
+    Object.keys(seen).forEach(function (k) { if (seen[k] < cut) delete seen[k]; });
+    ORD.seen = seen;
+    try { localStorage.setItem("dewi.office2.orders", JSON.stringify(seen)); } catch (e) {}
+    fresh.sort(function (p, q) { return ms(p.order_created_at) - ms(q.order_created_at); });
+    fresh.slice(0, 3).forEach(function (o, i) {
+      setTimeout(function () { celebrateOrder(o, i === 2 && fresh.length > 3 ? fresh.length - 3 : 0); }, 600 + i * 6500);
+    });
+  }
+  var toastT = null;
+  function toast(text, ms2) {
+    var el = $("toast"); if (!el) return;
+    el.textContent = text; el.classList.add("on");
+    clearTimeout(toastT); toastT = setTimeout(function () { el.classList.remove("on"); }, ms2 || 6500);
+  }
+  function celebrateOrder(o, more, quiet) {
+    var n = Number(o.line_item_count) || 0;
+    toast("🛎  Nieuwe online bestelling " + (o.order_name || "") + (n ? " · " + n + (n === 1 ? " artikel" : " artikelen") : "")
+      + (more ? " · +" + more + " meer" : "") + (quiet ? " (replay)" : ""), quiet ? 3200 : 7000);
+    confetti(quiet ? 28 : 70);
+    brainHit("#ffd166");
+    if (!quiet) sndOrder();
+  }
+  function confetti(n) {
+    if (REDUCED || document.hidden) return;
+    var c = iso(0, 0, 0), ox = c[0], oy = c[1] - LIVE_LIFT - LIVE_H * 0.5;
+    var cols = ["#fffaf0", "#ffd166", "#ff5d8f", "#3ec6c1", "#c4643f", "#ffffff", "#b58cff"];
+    var g = document.createElementNS(SVG_NS, "g"), P = [], h = "";
+    g.setAttribute("class", "confetti");
+    for (var i = 0; i < n; i++) {
+      var p = { x: ox + (Math.random() - 0.5) * 30, y: oy, vx: (Math.random() - 0.5) * 300, vy: -110 - Math.random() * 240, r: Math.random() * 360, vr: (Math.random() - 0.5) * 760 };
+      P.push(p);
+      h += Math.random() < 0.55 ? '<ellipse rx="1.6" ry="3.2" fill="' + cols[i % cols.length] + '"/>' : '<rect x="-1.8" y="-1.2" width="3.6" height="2.4" fill="' + cols[i % cols.length] + '"/>';
+    }
+    g.innerHTML = h; ballLayer().appendChild(g);
+    var els = g.children, t0 = performance.now(), last = t0, D = 3400;
+    (function step(now) {
+      var dt = Math.min(0.05, (now - last) / 1000), f = (now - t0) / D; last = now;
+      for (var i = 0; i < P.length; i++) {
+        var p = P[i]; p.vy += 300 * dt; p.vx *= 0.985; p.vy *= 0.99; p.x += p.vx * dt; p.y += p.vy * dt; p.r += p.vr * dt;
+        els[i].setAttribute("transform", "translate(" + p.x.toFixed(1) + "," + p.y.toFixed(1) + ") rotate(" + p.r.toFixed(0) + ")");
+      }
+      g.setAttribute("opacity", f > 0.75 ? (1 - (f - 0.75) / 0.25).toFixed(2) : "1");
+      if (f < 1 && g.isConnected) requestAnimationFrame(step); else g.remove();
+    })(t0);
+  }
+
+  /* ---- wall of fame: de best bereikte posts in de lijstjes aan de wanden -------------------------- */
+  function fameThumb(u, video) {
+    u = String(u || "");
+    if (!/res\.cloudinary\.com/.test(u)) return video ? "" : u;
+    var tr = "c_fill,w_220,h_220" + (video ? ",so_1" : ""), m = u.match(/\/v\d+\//);
+    if (m) u = u.slice(0, m.index) + "/" + tr + u.slice(m.index);
+    else if (/\/image\/fetch\//.test(u)) { var i = u.indexOf("/http", u.indexOf("/image/fetch/") + 12); if (i > 0) u = u.slice(0, i) + "/" + tr + u.slice(i); }
+    if (video) u = u.replace(/\.(mp4|mov|webm|m4v)(\?.*)?$/i, ".jpg");
+    return u;
+  }
+  function loadFame() {
+    var since = new Date(Date.now() - 60 * 864e5).toISOString();
+    rest("v_dewi_feed?select=title,media_type,media_url,reach,views,posted_at&posted_at=gte." + encodeURIComponent(since)
+      + "&media_url=not.is.null&order=reach.desc.nullslast&limit=24").then(function (rows) {
+      var list = [], seenU = {};
+      (rows || []).forEach(function (r) {
+        var vid = /video/i.test(r.media_type || "") || /\.(mp4|mov|webm|m4v)(\?|$)/i.test(r.media_url || "");
+        var u = fameThumb(r.media_url, vid); if (!u || seenU[u]) return; seenU[u] = 1;
+        list.push({ u: u, t: (r.title || "Post") + " · bereik " + (Number(r.reach) || 0).toLocaleString("nl-NL") + (r.views ? " · " + Number(r.views).toLocaleString("nl-NL") + " views" : "") + " · " + abs(r.posted_at).slice(0, 5) });
+      });
+      FX.fame = list.slice(0, 16); updateFame();
+    }, function () {});
+  }
+  function updateFame() {
+    var imgs = elWorld.querySelectorAll(".wof"), L = FX.fame;
+    if (!L.length) return;
+    Array.prototype.forEach.call(imgs, function (im) {
+      var it = L[Number(im.getAttribute("data-slot")) % L.length];
+      if (im.getAttribute("href") === it.u) return;
+      im.setAttribute("visibility", "hidden");
+      im.onload = function () { im.setAttribute("visibility", "visible"); };
+      im.onerror = function () { im.setAttribute("visibility", "hidden"); };
+      im.setAttribute("href", it.u);
+      var tl = im.querySelector("title"); if (tl) tl.textContent = "Wall of fame · " + it.t;
+    });
+  }
+
+  /* ---- weer op het glazen dak: canvas over de vloer ----------------------------------------------- */
+  var WX = { kind: null, cv: $("fxSky"), ctx: null, w: 0, h: 0, dpr: 1, raf: 0, last: 0, drawn: 0, drops: [], clouds: [], spots: [], flies: [] };
+  if (WX.cv) WX.ctx = WX.cv.getContext("2d");
+  function wxKind() { var v = FX.review && FX.review.verdict; return v === "groen" ? "sun" : v === "oranje" ? "clouds" : v === "rood" ? "rain" : null; }
+  function wxSize() {
+    if (!WX.cv) return;
+    var w = elScene.clientWidth, h = elScene.clientHeight, dpr = Math.min(2, window.devicePixelRatio || 1);
+    if (w === WX.w && h === WX.h && dpr === WX.dpr) return;
+    WX.w = w; WX.h = h; WX.dpr = dpr; WX.cv.width = Math.round(w * dpr); WX.cv.height = Math.round(h * dpr);
+    var R = Math.random, i;
+    WX.drops = []; for (i = 0; i < Math.round(w * h / 11000); i++) WX.drops.push({ x: R() * w, y: R() * h, r: 0.8 + R() * 2.4, v: 0, s: R() * 4 });
+    WX.clouds = []; for (i = 0; i < 4; i++) WX.clouds.push({ x: R() * w, y: R() * h, rx: w * (0.18 + R() * 0.2), ry: h * (0.16 + R() * 0.16), vx: 7 + R() * 9 });
+    WX.spots = []; for (i = 0; i < 16; i++) WX.spots.push({ x: R() * w, y: R() * h, r: 30 + R() * 70, ph: R() * 6.3, sp: 0.25 + R() * 0.5 });
+    WX.flies = []; for (i = 0; i < 22; i++) WX.flies.push({ x: R() * w, y: R() * h, vx: (R() - 0.5) * 14, vy: (R() - 0.5) * 10, ph: R() * 6.3 });
+  }
+  if (window.ResizeObserver && WX.cv) new ResizeObserver(function () { wxSize(); wxStart(true); }).observe(elScene);
+  function wxStart(redraw) {
+    var k = wxKind();
+    if (k !== WX.kind || redraw) {
+      WX.kind = k; wxSize();
+      if (WX.ctx) WX.ctx.clearRect(0, 0, WX.cv.width, WX.cv.height);
+    }
+    if (!WX.kind || !WX.ctx) return;
+    if (REDUCED) { wxDraw(performance.now(), 0); return; }
+    if (!WX.raf && !document.hidden) { WX.last = performance.now(); WX.raf = requestAnimationFrame(wxFrame); }
+  }
+  function wxFrame(now) {
+    WX.raf = 0;
+    if (!WX.kind || document.hidden) return;
+    if (now - WX.drawn >= 33) { var dt = Math.min(0.1, (now - WX.last) / 1000); WX.last = now; WX.drawn = now; wxDraw(now, dt); }
+    WX.raf = requestAnimationFrame(wxFrame);
+  }
+  document.addEventListener("visibilitychange", function () { if (!document.hidden) wxStart(); });
+  function wxDraw(now, dt) {
+    var c = WX.ctx, w = WX.w, h = WX.h, t = now / 1000, i, g;
+    c.setTransform(WX.dpr, 0, 0, WX.dpr, 0, 0); c.clearRect(0, 0, w, h);
+    if (WX.kind === "sun") {
+      if (FX.light > 0.1) {                              /* zon door bladeren: warme vlekken die zacht ademen */
+        WX.spots.forEach(function (s) {
+          var a = 0.05 * FX.light * (0.55 + 0.45 * Math.sin(t * s.sp + s.ph)), x = s.x + Math.sin(t * 0.07 + s.ph) * 18, y = s.y + Math.cos(t * 0.05 + s.ph) * 12;
+          g = c.createRadialGradient(x, y, 0, x, y, s.r); g.addColorStop(0, "rgba(255,226,168," + a.toFixed(3) + ")"); g.addColorStop(1, "rgba(255,226,168,0)");
+          c.fillStyle = g; c.beginPath(); c.arc(x, y, s.r, 0, 6.283); c.fill();
+        });
+      }
+      if (FX.dark > 0.3) {                               /* nacht: vuurvliegjes (kunang-kunang) */
+        WX.flies.forEach(function (f) {
+          f.vx += (Math.random() - 0.5) * 8 * dt; f.vy += (Math.random() - 0.5) * 8 * dt; f.vx *= 0.99; f.vy *= 0.99;
+          f.x = (f.x + f.vx * dt + w) % w; f.y = (f.y + f.vy * dt + h) % h;
+          var a = FX.dark * (0.35 + 0.35 * Math.sin(t * 2.2 + f.ph));
+          g = c.createRadialGradient(f.x, f.y, 0, f.x, f.y, 6); g.addColorStop(0, "rgba(220,255,140," + Math.max(0, a).toFixed(3) + ")"); g.addColorStop(1, "rgba(220,255,140,0)");
+          c.fillStyle = g; c.beginPath(); c.arc(f.x, f.y, 6, 0, 6.283); c.fill();
+        });
+      }
+    } else if (WX.kind === "clouds") {                   /* drijvende wolkschaduwen */
+      WX.clouds.forEach(function (k) {
+        k.x += k.vx * dt; if (k.x - k.rx > w) k.x = -k.rx;
+        var a = 0.1 + 0.08 * FX.light;
+        c.save(); c.translate(k.x, k.y); c.scale(1, k.ry / k.rx);
+        g = c.createRadialGradient(0, 0, 0, 0, 0, k.rx); g.addColorStop(0, "rgba(6,10,20," + a.toFixed(3) + ")"); g.addColorStop(1, "rgba(6,10,20,0)");
+        c.fillStyle = g; c.beginPath(); c.arc(0, 0, k.rx, 0, 6.283); c.fill(); c.restore();
+      });
+    } else if (WX.kind === "rain") {                     /* regen op het glas: druppels die blijven hangen en dan glijden */
+      c.fillStyle = "rgba(20,32,52,.07)"; c.fillRect(0, 0, w, h);
+      for (i = 0; i < WX.drops.length; i++) {
+        var d = WX.drops[i];
+        if (d.s > 0) d.s -= dt; else { d.v += 46 * dt; d.y += d.v * dt * (0.4 + d.r / 3); if (Math.random() < 0.015) { d.s = Math.random() * 1.6; d.v = 0; } }
+        if (d.y > h + 12) { d.y = -6 - Math.random() * 40; d.x = Math.random() * w; d.v = 0; d.s = Math.random() * 2; }
+        if (d.v > 4) {
+          c.strokeStyle = "rgba(200,225,255,.07)"; c.lineWidth = d.r * 0.8; c.beginPath();
+          c.moveTo(d.x, d.y - Math.min(70, d.v * 1.1)); c.lineTo(d.x, d.y); c.stroke();
+        }
+        c.fillStyle = "rgba(205,228,255,.16)"; c.beginPath(); c.arc(d.x, d.y, d.r, 0, 6.283); c.fill();
+        c.fillStyle = "rgba(255,255,255,.32)"; c.beginPath(); c.arc(d.x - d.r * 0.35, d.y - d.r * 0.35, d.r * 0.32, 0, 6.283); c.fill();
+      }
+    }
+  }
+
+  /* ---- klusjesman: Self-Heal loopt naar een bureau met een fout ----------------------------------- */
+  var HEAL = { busy: false, at: {}, tok: 0, timer: null, first: false };
+  var HEAL_EVERY = 20 * 60000;
+  var ISLE2 = (0.75 + AGENT_DX - 0.95) / 2, ROWI2 = (0.59 + AGENT_DY - 1.41) / 2;
+  function healer() { return S.byId["self-heal"] || S.agents.filter(function (a) { return /self.?heal/i.test(a.agent_name || ""); })[0] || null; }
+  function fxAfterIngest() {
+    FX.glowSig = ""; fxTick(true);
+    clearTimeout(HEAL.timer); HEAL.timer = setTimeout(healCheck, HEAL.first ? 2500 : 6000); HEAL.first = true;
+  }
+  function healCheck() {
+    if (REDUCED || document.hidden || RP.on || HEAL.busy) return;
+    var me = healer(); if (!me || !me._p || !deptOf(me) || isVacant(me) || S.pose[me.agent_id]) return;
+    var q = S.trips[me.agent_id]; if (q && q.busy) return;
+    var tg = S.agents.filter(function (a) {
+      return st(a) === "error" && a._p && a.agent_id !== me.agent_id && !S.pose[a.agent_id] && Date.now() - (HEAL.at[a.agent_id] || 0) > HEAL_EVERY;
+    })[0];
+    if (!tg) return;
+    HEAL.at[tg.agent_id] = Date.now();
+    healVisit(me, tg);
+  }
+  function spotOf(a, d) {
+    var start = [d.x + a._lx + STAND_OFF[0], d.y + a._ly + STAND_OFF[1]];
+    return { start: start, ax: d.x + a._lx + ISLE2, row: d.y + Math.min(d.d - 1.0, a._ly + ROWI2) };
+  }
+  /* uitgang naar de vloer: de rand richting het brein; door een achterwand alleen via de deur */
+  function exitOf(d) {
+    var p = d._port, e = 1e-6, side = Math.abs(p[1] - (d.y + d.d)) < e ? "S" : Math.abs(p[0] - (d.x + d.w)) < e ? "E" : Math.abs(p[1] - d.y) < e ? "N" : "W";
+    if (side === "N" && d.w < DOOR_MIN) side = "E";
+    if (side === "W" && d.d < DOOR_MIN) side = "S";
+    var x = Math.min(d.x + d.w - 0.6, Math.max(d.x + WALL + 0.4, p[0])), y = Math.min(d.y + d.d - 0.6, Math.max(d.y + WALL + 0.4, p[1]));
+    if (side === "N") x = d.x + d.w / 2;
+    if (side === "W") y = d.y + d.d / 2;
+    return { side: side, x: x, y: y };
+  }
+  function deskToExit(a, d) {
+    var sp = spotOf(a, d), ex = exitOf(d), R = [[sp.start, SLAB], [[sp.ax, sp.start[1]], SLAB]];
+    if (ex.side === "S") R.push([[sp.ax, d.y + d.d - 1.0], SLAB], [[ex.x, d.y + d.d - 1.0], SLAB], [[ex.x, d.y + d.d - 0.25], SLAB], [[ex.x, d.y + d.d + 0.5], 0]);
+    if (ex.side === "N") R.push([[sp.ax, d.y + WALK_BACK], SLAB], [[ex.x, d.y + WALK_BACK], SLAB], [[ex.x, d.y + 0.25], SLAB], [[ex.x, d.y - 0.5], 0]);
+    if (ex.side === "E") R.push([[sp.ax, sp.row], SLAB], [[d.x + d.w - 0.4, sp.row], SLAB], [[d.x + d.w - 0.4, ex.y], SLAB], [[d.x + d.w - 0.25, ex.y], SLAB], [[d.x + d.w + 0.5, ex.y], 0]);
+    if (ex.side === "W") R.push([[sp.ax, sp.row], SLAB], [[d.x + WALK_BACK, sp.row], SLAB], [[d.x + WALK_BACK, ex.y], SLAB], [[d.x + 0.25, ex.y], SLAB], [[d.x - 0.5, ex.y], 0]);
+    return R;
+  }
+  function ringPath(p, q) {                          /* over de vloer om het brein heen (kortste kant) */
+    var RAD = BRAIN / 2 + 1.5, a0 = Math.atan2(p[1], p[0]), a1 = Math.atan2(q[1], q[0]), da = a1 - a0, out = [];
+    while (da > Math.PI) da -= 2 * Math.PI; while (da < -Math.PI) da += 2 * Math.PI;
+    var n = Math.max(1, Math.ceil(Math.abs(da) / 0.22));
+    for (var i = 0; i <= n; i++) { var a = a0 + da * i / n; out.push([[RAD * Math.cos(a), RAD * Math.sin(a)], 0]); }
+    return out;
+  }
+  function healRoute(me, dA, tg, dB) {
+    var sa = spotOf(me, dA), sb = spotOf(tg, dB), stand = [sb.ax, sb.start[1]];
+    if (dA === dB) {
+      var mid = Math.abs(me._ly - tg._ly) < 0.01 ? sa.row : sb.row;
+      return [[sa.start, SLAB], [[sa.ax, sa.start[1]], SLAB], [[sa.ax, mid], SLAB], [[sb.ax, mid], SLAB], [stand, SLAB]];
+    }
+    var A = deskToExit(me, dA), B = deskToExit(tg, dB).slice(1).reverse();
+    return A.concat(ringPath(A[A.length - 1][0], B[0][0])).concat(B);
+  }
+  function placeAny(w, wx, wy) {
+    for (var i = 0; i < S.depts.length; i++) {
+      var d = S.depts[i];
+      if (wx > d.x && wx < d.x + d.w && wy > d.y && wy < d.y + d.d) {
+        var de = elWorld.querySelector('.dept[data-dept="' + CSS.escape(d.name) + '"]'); if (!de) break;
+        var k = (wx - d.x) + (wy - d.y), before = null, els = de.querySelectorAll(":scope > [data-k]");
+        for (var j = 0; j < els.length; j++) { if (parseFloat(els[j].getAttribute("data-k")) > k) { before = els[j]; break; } }
+        if (!before) { var last = els[els.length - 1]; before = last ? last.nextSibling : null; }
+        if (w.parentNode !== de || w.nextSibling !== before) de.insertBefore(w, before);
+        return;
+      }
+    }
+    var sl = subLayer(); if (w.parentNode !== sl) sl.appendChild(w);
+  }
+  function healVisit(me, tg) {
+    var dA = deptOf(me), dB = deptOf(tg); if (!dA || !dB) return;
+    var tok = ++HEAL.tok, q = S.trips[me.agent_id] = S.trips[me.agent_id] || { q: [], busy: false, ctl: null };
+    HEAL.busy = true; q.busy = true;
+    var route = healRoute(me, dA, tg, dB), w = makeWalker(dA.color, colorOf(me), hairOf(me)), kit = null;
+    function alive() { return HEAL.tok === tok && !document.hidden && !RP.on; }
+    var done = false;
+    function cleanup() {
+      if (done) return; done = true;
+      w.remove(); if (kit) kit.remove();
+      if (S.pose[me.agent_id]) setOwnPose(me, null);
+      renderBubbles(); HEAL.busy = false; q.busy = false;
+      setTimeout(function () { if (!q.busy) nextTrip(me.agent_id); }, 600);
+    }
+    playStand(function (f) { setOwnPose(me, "stand", f); }, false).then(function () {
+      if (!alive()) return;
+      setOwnPose(me, "empty"); renderBubbles();
+      return walkAlong(w, route, placeAny, alive);
+    }).then(function () {
+      if (!alive()) return;
+      var m = dpt(MON_C), mx = tg._p[0] + m[0], my = tg._p[1] + m[1];
+      faceTo(w, mx, my);
+      kit = document.createElementNS(SVG_NS, "g");
+      var kx = w._sx + 11, ky = w._sy - 1, nm = String(tg.agent_name || "");
+      kit.innerHTML = '<rect x="' + f1(kx - 4.5) + '" y="' + f1(ky - 5.5) + '" width="9" height="5.5" rx="1" fill="#d94b3d"/>'
+        + '<rect x="' + f1(kx - 4.5) + '" y="' + f1(ky - 5.5) + '" width="9" height="1.4" fill="#f07a62"/>'
+        + '<path d="M' + f1(kx - 2) + "," + f1(ky - 5.5) + " v-2 h4 v2" + '" fill="none" stroke="#5b2620" stroke-width=".9"/>'
+        + '<g class="sparks"><line x1="' + f1(mx - 4) + '" y1="' + f1(my - 6) + '" x2="' + f1(mx - 7) + '" y2="' + f1(my - 10) + '"/><line x1="' + f1(mx + 3) + '" y1="' + f1(my - 7) + '" x2="' + f1(mx + 6) + '" y2="' + f1(my - 11) + '"/><line x1="' + f1(mx) + '" y1="' + f1(my - 8) + '" x2="' + f1(mx) + '" y2="' + f1(my - 13) + '"/></g>'
+        + bubbleSvg(w._sx + 6, w._sy - WALK_H * 0.9, "🔧 even kijken bij " + (nm.length > 20 ? nm.slice(0, 19) + "…" : nm), dA.color);
+      subLayer().appendChild(kit);
+      return sleep(7500);
+    }).then(function () {
+      if (kit) { kit.remove(); kit = null; }
+      if (!alive()) return;
+      return walkAlong(w, route.slice().reverse(), placeAny, alive);
+    }).then(function () {
+      w.remove();
+      if (!alive()) return;
+      return playStand(function (f) { setOwnPose(me, "stand", f); }, true);
+    }).then(cleanup, cleanup);
+  }
+
+  /* ---- replay: de afgelopen 24 uur versneld -------------------------------------------------------- */
+  var RP_SPEEDS = [720, 1440, 2880], elRp = $("rpbar"), elRpBtn = $("replayBtn");
+  function rpUi() {
+    elRpBtn.setAttribute("aria-pressed", RP.on ? "true" : "false");
+    elRpBtn.style.setProperty("--mc", RP.on ? "var(--gold)" : "");
+    elRpBtn.classList.toggle("live", RP.on);
+    elRp.classList.toggle("on", RP.on);
+    elScene.classList.toggle("replay", RP.on);
+    if (!RP.on) return;
+    $("rpPlay").textContent = RP.playing ? "❚❚" : "▶";
+    $("rpSpeed").textContent = (RP.speed / 1440) + "×";
+    rpLabels();
+  }
+  function rpLabels() {
+    if (RP.loading) { $("rpTime").textContent = "laden…"; $("rpCount").textContent = ""; return; }
+    $("rpTime").textContent = fmtDHM.format(new Date(RP.t));
+    $("rpCount").textContent = RP.n + " runs" + (RP.err ? " · " + RP.err + " fout" : "");
+    var sl = $("rpSlider"); if (document.activeElement !== sl) sl.value = String(Math.round((RP.t - RP.t0) / (RP.t1 - RP.t0) * 1000));
+  }
+  function rpHist() {
+    var bins = [], errs = [], i, mx = 1, h = "", span = RP.t1 - RP.t0;
+    for (i = 0; i < 96; i++) { bins.push(0); errs.push(0); }
+    RP.runs.forEach(function (r) { var b = Math.min(95, Math.max(0, Math.floor((r.t - RP.t0) / span * 96))); bins[b]++; if (!r.ok) errs[b]++; });
+    bins.forEach(function (v) { mx = Math.max(mx, v); });
+    for (i = 0; i < 96; i++) {
+      var el = sunElev(RP.t0 + (i + 0.5) / 96 * span), dk = 1 - smooth(-7, 5, el);
+      if (dk < 0.95) h += '<rect x="' + i + '" y="0" width="1.02" height="16" fill="#8fc7ff" fill-opacity="' + ((1 - dk) * 0.13).toFixed(3) + '"/>';   /* daglicht licht, nacht donker */
+      var bh = bins[i] ? 2 + 13 * bins[i] / mx : 0;
+      if (bh) h += '<rect x="' + (i + 0.15) + '" y="' + (16 - bh).toFixed(1) + '" width=".7" height="' + bh.toFixed(1) + '" fill="' + (errs[i] ? "#ff5d5d" : "#ffd166") + '" fill-opacity=".85"/>';
+    }
+    $("rpHist").innerHTML = h;
+  }
+  function rpOpen() {
+    if (RP.on) return rpClose();
+    RP.on = true; RP.loading = true; RP.playing = false; acStop(true); rpUi();
+    var t1 = Date.now(), t0 = t1 - 24 * 3600e3;
+    rest("dewi_runs_public?select=workflow,run_at,status&run_at=gte." + encodeURIComponent(new Date(t0).toISOString()) + "&order=run_at.asc&limit=5000").then(function (rows) {
+      if (!RP.on) return;
+      RP.runs = (rows || []).map(function (r) { return { wf: r.workflow, t: ms(r.run_at), ok: r.status === "ok" }; })
+        .filter(function (r) { return r.t >= t0; });
+      RP.orders = (ORD.rows || []).map(function (o) { return { o: o, t: ms(o.order_created_at) }; }).filter(function (x) { return x.t >= t0; }).sort(function (p, q) { return p.t - q.t; });
+      RP.t0 = t0; RP.t1 = t1; RP.t = t0; RP.i = 0; RP.oi = 0; RP.last = {}; RP.n = 0; RP.err = 0;
+      RP.loading = false; RP.playing = true; RP.prev = performance.now(); RP.tick = 0;
+      rpHist(); fxTick(true); rpUi();
+      if (!RP.raf) RP.raf = requestAnimationFrame(rpLoop);
+    }, function (e) {
+      RP.on = false; RP.loading = false; rpUi();
+      showMsg("Replay kon de runs niet laden (" + ((e && e.message) || e) + ")."); setTimeout(function () { showMsg(""); }, 6000);
+    });
+  }
+  function rpClose() {
+    RP.on = false; RP.playing = false; RP.loading = false;
+    if (RP.raf) cancelAnimationFrame(RP.raf); RP.raf = 0;
+    rpUi(); FX.glowSig = ""; fxTick(true); patchAgents(); renderBubbles();
+  }
+  function rpSeek(t) {                              /* springen: geen effecten, wel wie er recent draaide */
+    RP.t = Math.max(RP.t0, Math.min(RP.t1, t)); RP.last = {}; RP.n = 0; RP.err = 0; RP.i = 0;
+    while (RP.i < RP.runs.length && RP.runs[RP.i].t <= RP.t) { var r = RP.runs[RP.i++]; RP.last[r.wf] = r.t; RP.n++; if (!r.ok) RP.err++; }
+    RP.oi = 0; while (RP.oi < RP.orders.length && RP.orders[RP.oi].t <= RP.t) RP.oi++;
+    fxTick(true); rpLabels();
+  }
+  function rpLoop(now) {
+    RP.raf = 0; if (!RP.on) return;
+    var dt = Math.min(250, now - (RP.prev || now)); RP.prev = now;
+    if (RP.playing && !document.hidden) {
+      RP.t = Math.min(RP.t1, RP.t + dt * RP.speed);
+      var fired = 0;
+      while (RP.i < RP.runs.length && RP.runs[RP.i].t <= RP.t) { rpFire(RP.runs[RP.i++], fired++ < 12); }
+      while (RP.oi < RP.orders.length && RP.orders[RP.oi].t <= RP.t) celebrateOrder(RP.orders[RP.oi++].o, 0, true);
+      if (RP.t >= RP.t1) { RP.playing = false; rpUi(); setTimeout(function () { if (RP.on && !RP.playing && RP.t >= RP.t1) rpClose(); }, 3500); }
+      if (now - RP.tick > 250) { RP.tick = now; fxTick(false); }
+      rpLabels();
+    }
+    RP.raf = requestAnimationFrame(rpLoop);
+  }
+  function rpFire(r, fx) {
+    RP.last[r.wf] = r.t; RP.n++; if (!r.ok) RP.err++;
+    var a = S.byWf[r.wf]; if (!a || !fx) return;
+    if (a._p) {
+      var el = agentEl(a.agent_id);
+      if (el) {
+        var ring = document.createElementNS(SVG_NS, "ellipse");
+        ring.setAttribute("class", "rp-ring"); ring.setAttribute("cx", f1(DESK_W * 0.06)); ring.setAttribute("cy", f1(-DESK_H * 0.07));
+        ring.setAttribute("rx", f1(DESK_W * 0.46)); ring.setAttribute("ry", f1(DESK_W * 0.23));
+        ring.setAttribute("style", "stroke:" + (r.ok ? colorOf(a) : "#ff5d5d"));
+        el.appendChild(ring); setTimeout(function () { ring.remove(); }, 1300);
+      }
+    }
+    if (r.ok && usesBrain(a) && a._p && RP.balls < 5 && !REDUCED) { RP.balls++; fireBall(a.agent_id); setTimeout(function () { RP.balls--; }, 2600); }
+  }
+  elRpBtn.addEventListener("click", function () { userActed(); rpOpen(); });
+  $("rpClose").addEventListener("click", rpClose);
+  $("rpPlay").addEventListener("click", function () {
+    if (RP.loading) return;
+    if (!RP.playing && RP.t >= RP.t1) rpSeek(RP.t0);
+    RP.playing = !RP.playing; RP.prev = performance.now(); rpUi();
+  });
+  $("rpSpeed").addEventListener("click", function () { RP.speed = RP_SPEEDS[(RP_SPEEDS.indexOf(RP.speed) + 1) % RP_SPEEDS.length]; rpUi(); });
+  $("rpSlider").addEventListener("input", function (e) { if (!RP.loading && RP.t1) rpSeek(RP.t0 + Number(e.target.value) / 1000 * (RP.t1 - RP.t0)); });
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape" && RP.on && !S.focus) rpClose(); });
+
+  /* ---- geluid: gamelan-sfeer, regen, gong (WebAudio, geen bestanden) ------------------------------ */
+  var SND = { on: false, want: false, ctx: null, out: null, t: null, rain: null };
+  try { SND.want = localStorage.getItem("dewi.office2.sound") === "1"; } catch (e) {}
+  var PELOG = [293.7, 318.5, 345.2, 403.3, 440.0, 587.3, 637.0];
+  var elSnd = $("soundBtn");
+  function sndCtx() {
+    if (SND.ctx) return SND.ctx;
+    var Ctor = window.AudioContext || window.webkitAudioContext; if (!Ctor) return null;
+    var c = SND.ctx = new Ctor(), lp = c.createBiquadFilter();
+    SND.out = c.createGain(); SND.out.gain.value = 0.9; lp.type = "lowpass"; lp.frequency.value = 5200;
+    SND.out.connect(lp); lp.connect(c.destination);
+    return c;
+  }
+  function bell(f, when, vol, dur) {
+    var c = SND.ctx; if (!c) return;
+    [[1, 1], [2.76, 0.28], [5.4, 0.07]].forEach(function (p) {
+      var o = c.createOscillator(), g = c.createGain(), d = dur / (p[0] > 1 ? 2.4 : 1);
+      o.type = "sine"; o.frequency.value = f * p[0];
+      g.gain.setValueAtTime(0.0001, when); g.gain.exponentialRampToValueAtTime(Math.max(0.0002, vol * p[1]), when + 0.006);
+      g.gain.exponentialRampToValueAtTime(0.0001, when + d);
+      o.connect(g); g.connect(SND.out); o.start(when); o.stop(when + d + 0.05);
+    });
+  }
+  function gong(when, vol) {
+    var c = SND.ctx; if (!c) return;
+    [[65.4, 1, 7], [66.6, 0.8, 7], [130.8, 0.32, 4.5], [197.2, 0.16, 3], [262.4, 0.07, 2]].forEach(function (p) {
+      var o = c.createOscillator(), g = c.createGain();
+      o.type = "sine"; o.frequency.value = p[0];
+      g.gain.setValueAtTime(0.0001, when); g.gain.exponentialRampToValueAtTime(vol * p[1], when + 0.03);
+      g.gain.exponentialRampToValueAtTime(0.0001, when + p[2]);
+      o.connect(g); g.connect(SND.out); o.start(when); o.stop(when + p[2] + 0.05);
+    });
+  }
+  function ambientTick() {
+    SND.t = null; if (!SND.on) return;
+    if (!document.hidden && SND.ctx && SND.ctx.state === "running") {
+      var now = SND.ctx.currentTime + 0.05, v = 0.03 * (1 - FX.dark * 0.45);
+      if (Math.random() < 0.1) gong(now, 0.045);
+      else {
+        var n = 1 + ((Math.random() * 3) | 0), b = (Math.random() * 4) | 0;
+        for (var i = 0; i < n; i++) bell(PELOG[(b + i * (1 + ((Math.random() * 2) | 0))) % PELOG.length], now + i * 0.34, v * (1 - i * 0.15), 2.3);
+      }
+    }
+    SND.t = setTimeout(ambientTick, (3600 + Math.random() * 4800) * (1 + FX.dark * 0.6));
+  }
+  function sndRain() {
+    var c = SND.ctx, on = SND.on && wxKind() === "rain"; if (!c) return;
+    if (on && !SND.rain) {
+      var len = c.sampleRate * 3, b = c.createBuffer(1, len, c.sampleRate), d = b.getChannelData(0), last = 0;
+      for (var i = 0; i < len; i++) { last = (last + 0.02 * (Math.random() * 2 - 1)) / 1.02; d[i] = last * 3.2; }
+      var s = c.createBufferSource(), f = c.createBiquadFilter(), g = c.createGain();
+      s.buffer = b; s.loop = true; f.type = "lowpass"; f.frequency.value = 1100;
+      g.gain.setValueAtTime(0.0001, c.currentTime); g.gain.linearRampToValueAtTime(0.045, c.currentTime + 2);
+      s.connect(f); f.connect(g); g.connect(SND.out); s.start();
+      SND.rain = { s: s, g: g };
+    } else if (!on && SND.rain) {
+      var r = SND.rain; SND.rain = null;
+      r.g.gain.linearRampToValueAtTime(0.0001, c.currentTime + 1.4);
+      setTimeout(function () { try { r.s.stop(); } catch (e) {} }, 1600);
+    }
+  }
+  function sndOrder() {
+    if (!SND.on || !SND.ctx) return;
+    var now = SND.ctx.currentTime + 0.05; gong(now, 0.16);
+    [3, 4, 5].forEach(function (k, i) { bell(PELOG[k], now + 0.7 + i * 0.22, 0.05, 2); });
+  }
+  function soundSet(v, save) {
+    SND.want = v;
+    if (v) {
+      var c = sndCtx();
+      if (c) {
+        SND.on = true;
+        if (c.state !== "running") c.resume();
+        if (!SND.t) SND.t = setTimeout(ambientTick, 900);
+        sndRain(); bell(PELOG[4], c.currentTime + 0.05, 0.035, 1.8);
+      }
+    } else {
+      SND.on = false; clearTimeout(SND.t); SND.t = null; sndRain();
+      setTimeout(function () { if (!SND.on && SND.ctx && SND.ctx.state === "running") SND.ctx.suspend(); }, 1800);
+    }
+    if (save) { try { localStorage.setItem("dewi.office2.sound", v ? "1" : "0"); } catch (e) {} }
+    elSnd.setAttribute("aria-pressed", SND.want ? "true" : "false");
+  }
+  elSnd.setAttribute("aria-pressed", SND.want ? "true" : "false");
+  elSnd.addEventListener("click", function () { soundSet(!SND.want, true); });
+  if (SND.want) {   /* een browser speelt pas geluid na een eerste handeling op de pagina */
+    var unlock = function () { document.removeEventListener("pointerdown", unlock); document.removeEventListener("keydown", unlock); if (SND.want && !SND.on) soundSet(true, false); };
+    document.addEventListener("pointerdown", unlock); document.addEventListener("keydown", unlock);
+  }
+
+  /* ---- start van de sfeer ---- */
+  renderSkyChip();
+  loadFame(); setInterval(function () { if (!document.hidden) loadFame(); }, 15 * 60000);
+  loadPrivate(); setInterval(function () { if (!document.hidden) loadPrivate(); }, 120000);
+  if (SBX) SBX.auth.onAuthStateChange(function (ev) { if (ev === "SIGNED_IN" || ev === "SIGNED_OUT") loadPrivate(); });
 
   /* ----------------------------------------------------------------- start */
   if (!SB_KEY) { $("loading").style.display = "none"; showMsg("dewi-config.js is niet geladen: geen Supabase-sleutel gevonden."); return; }
