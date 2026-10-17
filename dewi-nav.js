@@ -45,8 +45,7 @@
       { id: "z-shop",   label: "Paneel Shopify",        zone: "shop",      ic: "S", c: "#2fd47e", kw: "omzet winst orders onverzonden verkoop marge webshop winkel" },
       { id: "z-meta",   label: "Paneel Meta",           zone: "meta",      ic: "M", c: "#ff3f9a", kw: "facebook instagram ads spend mer budget advertenties" },
       { id: "z-google", label: "Paneel Google",         zone: "google",    ic: "G", c: "#4285f4", kw: "google ads pmax roas cpc conversies" },
-      { id: "z-stats",  label: "Paneel Stats & Social", zone: "stats",     ic: "\u25CF", c: "#00c8ff", kw: "ga4 sessies conversie funnel brevo mail utm kanalen instagram volgers pinterest" },
-      { id: "z-dewi",   label: "Paneel Dewi",           zone: "dewi",      ic: "D", c: "#a37bff", kw: "dewi to-do todo memos stille agents systeem voorstellen" }
+      { id: "z-stats",  label: "Paneel Stats & Social", zone: "stats",     ic: "\u25CF", c: "#00c8ff", kw: "ga4 sessies conversie funnel brevo mail utm kanalen instagram volgers pinterest" }
     ]},
     { id: "studios", label: "Studios", items: [
       { id: "st-social",    label: "Social-studio",    pane: "social",    url: "social-studio.html",    ic: "\u2726", c: "#ff9f40", kw: "social goedkeuring posts reels nieuwsbrief mail studio" },
@@ -79,9 +78,7 @@
     { label: "Funnel & rendement",       zone: "stats", anchor: "fun-steps",  kw: "mer cac conversie winkelwagen checkout" },
     { label: "Omzet per kanaal",         zone: "stats", anchor: "chan-body",  kw: "attributie following" },
     { label: "Kanalen (UTM)",            zone: "stats", anchor: "utm-body",   kw: "utm clicks bio" },
-    { label: "Pinterest (outreach)",     zone: "stats", anchor: "pin-body",   kw: "pins" },
-    { label: "Systeem — stilte-detectie", zone: "dewi", anchor: "system",     kw: "stil agents mislukt" },
-    { label: "To-do's (DEWI)",           zone: "dewi",  anchor: "memos",      kw: "memo taken" }
+    { label: "Pinterest (outreach)",     zone: "stats", anchor: "pin-body",   kw: "pins" }
   ];
 
   /* ------------------------------------------------------------- context */

@@ -929,29 +929,7 @@
       </div>
     </section>
 
-    <!-- ==================== ZONE 4 - DEWI ZELF ==================== -->
-    <section class="zone" id="z-dewi" style="--acc:var(--z-dewi)">
-      <div class="zone-head">
-        <span class="zi">D</span>
-        <span class="zt">DEWI</span>
-        <span class="zs">to-do&rsquo;s &middot; voorstellen &middot; systeem</span>
-        <span class="zmeta"><span id="zst-dewi"></span><span class="zerr" id="zerr-dewi"></span></span>
-        <span class="zkpi">
-          <div>Open to-do&rsquo;s<b id="zs-dewi-todo">&mdash;</b></div>
-          <div>Voorstellen<b id="zs-dewi-prop">&mdash;</b></div>
-          <div>Stille agents<b id="zs-dewi-silent">&mdash;</b></div>
-        </span>
-        <button class="fold" data-zone="dewi">&minus;</button>
-      </div>
-      <div class="zone-body">
-        <div class="card">
-          <h2><span class="dot" style="background:var(--red)"></span>Systeem &mdash; stilte-detectie</h2>
-          <div id="system"></div>
-        </div>
-        <!-- To-do's staan sinds 28-09 in de Actielijst bovenaan; stubs houden renderMemos() heel -->
-        <div hidden><span id="memo-count"></span><div id="memos"></div></div>
-      </div>
-    </section>
+    <!-- Paneel DEWI verwijderd 17-10 (Rick: puur informatief, office-v2 + organisation tonen agents/stilte). To-do's staan in de Actielijst. -->
 
     <div id="err"></div>
   </div>
@@ -1716,8 +1694,6 @@
     guard('stats',   'Mail (Brevo)',      renderMail, c);
     guard('stats',   'Mailings per type', renderMailTypes, c);
     guard('stats',   'Funnel & rendement', renderFunnel, c);
-    guard('dewi',    'To-do\u2019s',      renderMemos, c);
-    guard('dewi',    'Systeem',           renderSystem, c);
 
     $('stamp').textContent = 'bijgewerkt ' + madClockNow() + ' Madrid';
   }
@@ -2594,7 +2570,7 @@
     mail:      { n: 'Mail',      k: 'stats',  a: 'mail-nums' },
     pinterest: { n: 'Pinterest', k: 'stats',  a: 'pin-nums' },
     ops:       { n: 'Orders',    k: 'shop',   a: 'ro-nums' },
-    data:      { n: 'Data',      k: 'dewi',   a: 'system' }
+    data:      { n: 'Data',      url: 'office-v2.html' }
   };
   var RV_ORDER = ['shop', 'stats', 'meta', 'google', 'social', 'mail', 'pinterest', 'ops', 'data'];
   var RV_RANK = { rood: 3, oranje: 2, groen: 1, grijs: 0 };
@@ -2609,7 +2585,9 @@
     f.addEventListener('click', function(){ var nf = !$('review').classList.contains('folded'); apply(nf); try { localStorage.setItem('dewi_kpi_review_fold', nf ? '1' : '0'); } catch(e){} });
     $('review').addEventListener('click', function(ev){
       var t = ev.target.closest('[data-rvz]'); if(!t) return;
-      var z = RV_ZONES[t.getAttribute('data-rvz')]; if(z) gotoZone(z.k, z.a);
+      var z = RV_ZONES[t.getAttribute('data-rvz')]; if(!z) return;
+      if(z.url){ location.href = z.url; return; }
+      gotoZone(z.k, z.a);
     });
   })();
 
@@ -2706,7 +2684,7 @@
 
   // klein oordeel-chipje in de kop van elke cockpit-zone (ergste status van de review-zones die erin vallen)
   function rvZoneChips(zmap){
-    ['shop', 'meta', 'google', 'stats', 'dewi'].forEach(function(k){
+    ['shop', 'meta', 'google', 'stats'].forEach(function(k){
       var zone = $('z-' + k); if(!zone) return;
       var host = zone.querySelector('.zone-head .zmeta') || zone.querySelector('.zone-head');
       var el = $('rvz-' + k);
