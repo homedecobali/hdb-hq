@@ -3736,7 +3736,11 @@
       num('omzet (GA4)', eur2(tot.revenue), '') +
       num('pins zonder UTM', fmt(untagged), '', untagged ? 'warnval' : '');
 
-    var last = posted.slice().sort(function(a, b){ return String(b.published_at).localeCompare(String(a.published_at)); }).slice(0, 12);
+    // 17-10 (Rick): lijst toont alleen de pins van de 2 recentste plaatsingsdagen (alle pins van die dagen)
+    var sorted = posted.slice().sort(function(a, b){ return String(b.published_at).localeCompare(String(a.published_at)); });
+    var pinDays = []; sorted.forEach(function(r){ var d = madrid(r.published_at); if(pinDays.indexOf(d) < 0) pinDays.push(d); });
+    var keepDays = pinDays.slice(0, 2);
+    var last = sorted.filter(function(r){ return keepDays.indexOf(madrid(r.published_at)) >= 0; });
     body.innerHTML = last.length
       ? '<table class="adt"><thead><tr><th>Pin</th><th>Type</th><th>Geplaatst</th><th>UTM</th><th>Sessies</th></tr></thead><tbody>'
         + last.map(function(r){
