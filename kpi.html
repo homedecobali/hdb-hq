@@ -469,7 +469,7 @@
   .tile .td span{color:var(--muted);font-weight:500}
   .tile .tw{font-size:10px;color:var(--muted);margin-top:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .tile .tw b{color:var(--text);font-weight:600}
-  .tile.stale{filter:grayscale(1);opacity:.55}
+  .tile.stale{outline:1px dashed rgba(230,126,34,.6);outline-offset:-1px}   /* 17-10: geen grayscale meer - kleuren blijven leesbaar */
   .tile.stale .tw{color:var(--orange)}
 
   /* ---- AFWIJKINGEN (handel): alleen wat afwijkt — geest van de alarm-strip in organisation.html ---- */
@@ -498,7 +498,9 @@
   .zerr{display:none;font-size:9.5px;font-weight:800;letter-spacing:.08em;padding:3px 8px;border-radius:5px;cursor:help;
     background:rgba(255,93,93,.16);color:var(--red);border:1px solid rgba(255,93,93,.5);white-space:nowrap}
   .zerr.on{display:inline-block}
-  .zone .card.stale{filter:grayscale(1);opacity:.55}
+  .zone .card.stale{outline:1px dashed rgba(230,126,34,.6);outline-offset:-1px}   /* 17-10: geen grayscale meer */
+  .mail-bdlink{font-size:11px;font-weight:600;color:var(--cyan);margin-left:6px;white-space:nowrap}
+  .mail-bdlink:hover{text-decoration:underline}
   .zone .card.stale h2::after{content:'data ouder dan verwacht';margin-left:auto;font-size:9.5px;letter-spacing:.06em;
     color:var(--orange);text-transform:none}
   .zone.flash{animation:zflash 1.2s ease-out}
@@ -848,12 +850,14 @@
           <div class="card" data-src="brevo">
             <h2><span class="dot" style="background:var(--orange)"></span>Mail (Brevo)
               <span class="when" id="mail-when"></span>
+              <a href="#z-stats~mailbd-when" class="mail-bdlink" id="mail-bdlink">per type &darr;</a>
               <span class="src">bron: brevo</span></h2>
             <div class="nums" id="mail-nums"></div>
             <div class="chart" id="mail-chart"></div>
             <div class="legend"><span><i style="background:#ffd400"></i>Verzonden</span>
               <span><i style="background:var(--green)"></i>Delivered</span>
-              <span><i style="background:var(--red)"></i>Bounces &mdash; stippellijn</span></div>
+              <span><i style="background:var(--red)"></i>Bounces &mdash; stippellijn</span>
+              <span id="mail-typelegend" style="display:contents"></span></div>
           </div>
           <div class="card" data-src="meta_social">
             <h2><span class="dot" style="background:var(--green)"></span>Social (Meta)
@@ -1963,6 +1967,7 @@
           { label: 'Verzonden', values: mvals(mail, md, MAILK.sent),      color: CLR.yellow },
           { label: 'Delivered', values: mvals(mail, md, MAILK.delivered), color: CLR.green }
         ], { label: 'Bounces', values: mvals(mail, md, MAILK.bounces), color: CLR.red }, 230);
+        mailTypeMarks(md, mvals(mail, md, MAILK.sent), mvals(mail, md, MAILK.delivered), mvals(mail, md, MAILK.bounces), c.camp);
         hookHover($('mail-chart'), md, [
           { label: 'Verzonden', values: mvals(mail, md, MAILK.sent),      color: CLR.yellow },
           { label: 'Delivered', values: mvals(mail, md, MAILK.delivered), color: CLR.green },
@@ -1975,6 +1980,42 @@
       }
   }
 
+  // 17-10: welke mailing hoort bij welke kolom - pill boven de kolom in de typekleur (zelfde kleuren als Mailings per type)
+  var MAIL_TYPE_CLR = { product_news: '#ffd400', offer_news: '#e67e22', story_news: '#00d4ff', other: '#7d8ca3' };
+  var MAIL_TYPE_SHORT = { product_news: 'Product', offer_news: 'Aanbieding', story_news: 'Verhaal', other: 'Overig' };
+  function mailTypeMarks(dates, sent, deliv, bounces, campRes){
+    var el = $('mail-chart'), svg = el && el.querySelector('svg'), leg = $('mail-typelegend');
+    if(leg) leg.innerHTML = '';
+    if(!svg) return;
+    var camp = (campRes && !campRes.error) ? (campRes.data || []) : [];
+    var byDay = {};
+    camp.forEach(function(r){
+      if(!(Number(r.sent) > 0)) return;
+      var t = r.mailing_type || 'other', d = String(r.kpi_date).slice(0, 10);
+      var o = (byDay[d] = byDay[d] || {}); o[t] = (o[t] || 0) + Number(r.sent);
+    });
+    var w = 900, h = 230, padL = 46, padR = 10, padT = 12, padB = 26, iW = w - padL - padR, iH = h - padT - padB;
+    var max = 1; [sent, deliv, bounces].forEach(function(a){ a.forEach(function(v){ if(v > max) max = v; }); });
+    max = niceMax(max);
+    var n = dates.length, slot = iW / n, used = {}, out = '';
+    dates.forEach(function(d, i){
+      var t = byDay[d]; if(!t || !(sent[i] > 0)) return;
+      var keys = Object.keys(t).sort(function(a, b){ return t[b] - t[a]; });
+      var x = padL + i * slot + slot / 2, top = padT + iH - (Math.max(sent[i], deliv[i]) / max) * iH;
+      keys.forEach(function(k, j){
+        used[k] = 1;
+        var lbl = MAIL_TYPE_SHORT[k] || k, clr = MAIL_TYPE_CLR[k] || MAIL_TYPE_CLR.other;
+        var pw = lbl.length * 6.4 + 14, y = Math.max(padT + 2, top - 22 - j * 19);
+        out += '<g><title>' + esc(lbl + ' \u00b7 ' + d + ' \u00b7 ' + fmt(t[k]) + ' verzonden') + '</title>'
+          + '<rect x="' + (x - pw / 2).toFixed(1) + '" y="' + y.toFixed(1) + '" width="' + pw.toFixed(1) + '" height="16" rx="8" fill="' + clr + '" fill-opacity=".18" stroke="' + clr + '" stroke-width="1"/>'
+          + '<text x="' + x.toFixed(1) + '" y="' + (y + 11.5).toFixed(1) + '" text-anchor="middle" font-size="10.5" font-weight="700" fill="' + clr + '">' + esc(lbl) + '</text></g>';
+      });
+    });
+    if(out) svg.insertAdjacentHTML('beforeend', out);
+    if(leg) leg.innerHTML = Object.keys(used).map(function(k){
+      return '<span><i style="background:' + (MAIL_TYPE_CLR[k] || MAIL_TYPE_CLR.other) + ';border-radius:50%"></i>' + esc(MAIL_TYPE_SHORT[k] || k) + '</span>';
+    }).join('');
+  }
   function renderMailTypes(c){
       // ---- MAILINGS PER TYPE (BREVO CAMPAGNES) ----
       // Zelfde campagnes als hierboven, alleen uitgesplitst per mailing-type en taal.
@@ -2473,13 +2514,14 @@
 
   // Verwachte vertraging per bron (dagen): ~1 dag voor GA4/Shopify/Meta/Brevo, 1-2 voor Pinterest.
   var FRESH_SRC = {
-    shopify:     { lbl: 'Shopify',   lag: 1, zone: 'shop' },
-    meta_ads:    { lbl: 'Meta Ads',  lag: 1, zone: 'meta' },
-    google:      { lbl: 'Google Ads', lag: 1, zone: 'google' },
-    ga4:         { lbl: 'GA4',       lag: 1, zone: 'stats' },
-    brevo:       { lbl: 'Brevo',     lag: 1, zone: 'stats' },
-    meta_social: { lbl: 'IG/FB',     lag: 1, zone: 'stats' },
-    pinterest:   { lbl: 'Pinterest', lag: 2, zone: 'stats' }
+    // at = ophaaltijd (Madrid) + marge; daarvoor mag de bron 1 dag extra achterlopen (17-10)
+    shopify:     { lbl: 'Shopify',   lag: 1, zone: 'shop',   at: '00:45' },
+    meta_ads:    { lbl: 'Meta Ads',  lag: 1, zone: 'meta',   at: '07:50' },
+    google:      { lbl: 'Google Ads', lag: 1, zone: 'google', at: '07:20' },
+    ga4:         { lbl: 'GA4',       lag: 1, zone: 'stats',  at: '06:50' },
+    brevo:       { lbl: 'Brevo',     lag: 1, zone: 'stats',  at: '08:05' },
+    meta_social: { lbl: 'IG/FB',     lag: 1, zone: 'stats',  at: '07:35' },
+    pinterest:   { lbl: 'Pinterest', lag: 2, zone: 'stats',  at: '07:50' }
   };
   // laatste kpi-datum per bron + oordeel (ok / stale / none)
   function freshness(c){
@@ -2487,13 +2529,14 @@
     (c.kpi || []).forEach(function(r){ if(!last[r.source] || r.kpi_date > last[r.source]) last[r.source] = r.kpi_date; });
     var pin = c.pinRes && !c.pinRes.error && c.pinRes.data && c.pinRes.data[0];
     last.pinterest = pin ? String(pin.metric_date).slice(0, 10) : null;
-    var today = madDayIso(0), out = {};
+    var today = madDayIso(0), out = {}, clock = madClockNow();
     Object.keys(FRESH_SRC).forEach(function(k){
       var f = FRESH_SRC[k], d = last[k] || null;
       var behind = d ? isoDiff(today, d) : null;
-      out[k] = { src: k, lbl: f.lbl, lag: f.lag, zone: f.zone, last: d, behind: behind,
-                 state: (c.kpiRes && c.kpiRes.error && k !== 'pinterest') ? 'none' : (!d ? 'none' : (behind > f.lag ? 'stale' : 'ok')),
-                 expect: isoShift(today, -f.lag) };
+      var lag = f.lag + ((f.at && clock < f.at) ? 1 : 0);   // nog vóór de ophaalrun van vandaag
+      out[k] = { src: k, lbl: f.lbl, lag: lag, zone: f.zone, last: d, behind: behind,
+                 state: (c.kpiRes && c.kpiRes.error && k !== 'pinterest') ? 'none' : (!d ? 'none' : (behind > lag ? 'stale' : 'ok')),
+                 expect: isoShift(today, -lag) };
     });
     return out;
   }
@@ -3776,6 +3819,7 @@
       guardAsync('stats', 'Pinterest',        loadPinterest);
     }
     loadAll();
+    (function(){ var a = $('mail-bdlink'); if(a) a.addEventListener('click', function(ev){ ev.preventDefault(); gotoZone('stats', 'mailbd-when'); }); })();
     // deeplink vanaf een andere pagina: kpi.html#z-<zone>[~<element-id>]
     var hm = /^#z-([a-z]+)(?:~([\w-]+))?$/.exec(location.hash || '');
     if(hm) setTimeout(function(){ gotoZone(hm[1], hm[2]); }, 350);
