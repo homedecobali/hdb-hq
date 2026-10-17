@@ -130,14 +130,20 @@
   - Geluid (knop, standaard uit, localStorage 'dewi.office2.sound'): WebAudio-gamelan (pelog), zachte regen
     bij rood weer, gong bij een order. Geen audiobestanden.
   Reduced motion: geen animaties, wel de stilstaande lichtstand en aankleding.
-  Muren op volle hoogte (17-10): WALL_H 112. Achtermuren (N/W) met raamband (windowBand: ruiten tonen de lucht van nu
-  via #gSky / --skyT/--skyB) en een dichte dubbele deur in de doorgang (backDoor); lijsten en wall of fame hangen hoger
-  en groter. Voorkant (S/E) = glazen pui (frontGlass, .fglass, ná de bureaus getekend). Extra werkplekken en de
-  overleghoek komen alleen nog vóór de afdeling (subSpot: S/E, 5 plekken langs de wand x 2 afstanden, nooit op het
-  scherm achter een andere afdeling). Bij de loopbrug komt tijdelijk een glazen deur in de pui (makeDoor); walkDoors
-  laat de loper tot vlak voor de deur lopen, deur open, erdoor, deur dicht — terug net zo. Self-Heal gaat ook door de
-  pui (exitOf: S/E) en loopt om afdelingen heen (around). Gong: rood-gouden standaard rechts voor het brein (gongInner),
-  slingert bij een nieuwe online order; klik = slaan.
+  Muren op volle hoogte (17-10): WALL_H 112. Achtermuren (N/W) met losse ramen in wisselende maten (windowsOn: 0-2 per
+  wandstuk, smal+hoog of breed+laag; ruiten tonen de lucht via #gSky / --skyT/--skyB) en een dichte dubbele deur in de
+  doorgang (backDoor); lijsten en wall of fame hangen hoger en groter. Voorkant (S/E) = glazen pui (frontGlass, .fglass,
+  ná de bureaus getekend). Extra werkplekken en de overleghoek alleen vóór de afdeling (subSpot: S/E, 5 plekken x 2
+  afstanden, nooit op het scherm achter een andere afdeling). Bij de loopbrug tijdelijk een glazen deur (makeDoor);
+  walkDoors: tot de deur, open, erdoor, dicht — terug net zo.
+  Oordeel van de dag (17-10): breed schoolbord aan de N-muur van MARKETING (chalkBoardWall + chalkWallFill; grote
+  dagscore), niets ervoor geplaatst; klik = kpi.html#review. De gong (object) is weer weg; het gong-geluid bij een
+  online order blijft (alleen met ♪ aan).
+  Looproute tussen afdelingen (Self-Heal, 17-10): eigen deur -> buitenom naar de eigen pipe (perimeter) -> over de pipe
+  naar het brein -> om het brein -> over de pipe van de doelafdeling -> vlak ervoor buitenom naar de pui -> deur. Buiten
+  de afdelingen bepaalt placeAny de diepte (achter een afdeling/het brein = in de tekenvolgorde ervóór).
+  Looprichtingen: walker-v4 heeft alleen de twee iso-diagonalen; walkRow kiest bij WALK8 (walker-v5, 5 rijen) ook opzij,
+  recht naar voren en recht weg. Zet WALK8 = "walker-v5" zodra die bestanden er staan.
 -->
 <html lang="nl">
 <head>
@@ -540,7 +546,8 @@
   .ag.away .m-screen{opacity:.05} .ag.away .m-glow{display:none}
   .walls .wof{pointer-events:auto;cursor:default}
   .chalk{cursor:pointer;outline:none}
-  .chalk text{font-family:"Segoe Print","Bradley Hand","Comic Sans MS",cursive;fill:#eef3ea;text-anchor:middle}
+  .chalk text{font-family:"Segoe Print","Bradley Hand","Comic Sans MS",cursive;fill:#eef3ea}
+  .walls .cwall{pointer-events:auto}
   .chalk:hover .ck-board,.chalk:focus-visible .ck-board{stroke:#ffd166;stroke-width:1.2}
   .dx{pointer-events:none}
   /* glazen pui (voorkant) + tijdelijke deuren */
@@ -554,14 +561,6 @@
   .door .dr-frame{fill:none;stroke:#e8f4ff;stroke-opacity:.75;stroke-width:1.4}
   .door .dr-leaf{fill:#cfe8ff;fill-opacity:.16;stroke:#e8f4ff;stroke-opacity:.85;stroke-width:1}
   .door .dr-knob{fill:#ffd166}
-  /* gong bij het brein */
-  .gong{cursor:pointer;outline:none}
-  .gg-swing{transform-box:view-box}
-  .gong.hit .gg-swing{animation:gswing 2.8s cubic-bezier(.3,.6,.3,1)}
-  @keyframes gswing{0%{transform:rotate(0)}10%{transform:rotate(10deg)}28%{transform:rotate(-7deg)}46%{transform:rotate(4deg)}66%{transform:rotate(-2deg)}100%{transform:rotate(0)}}
-  .gg-shine{opacity:0} .gong.hit .gg-shine{animation:gshine 2.8s ease-out}
-  @keyframes gshine{0%{opacity:.85}100%{opacity:0}}
-  .gong:hover .gg-disc,.gong:focus-visible .gg-disc{stroke:#ffd166;stroke-width:1.4}
   .smoke circle{fill:#a7b0ba;opacity:0;animation:puff 2.6s ease-out infinite;transform-box:fill-box;transform-origin:center}
   .smoke circle:nth-child(2){animation-delay:.85s} .smoke circle:nth-child(3){animation-delay:1.7s}
   @keyframes puff{0%{opacity:0;transform:translate(0,0) scale(.45)}22%{opacity:.6}100%{opacity:0;transform:translate(5px,-17px) scale(1.7)}}
@@ -589,7 +588,7 @@
   .scene.replay .hint{opacity:0}
   @media (max-width:880px){ .rpbar{right:60px;left:60px;gap:6px} .rpbar .rpn{display:none} .skyc .tx{display:none} }
   @media (prefers-reduced-motion:reduce){
-    .smoke circle,.canang .wisp,.rp-ring,.sparks line,.gong.hit .gg-swing,.gong.hit .gg-shine{animation:none}
+    .smoke circle,.canang .wisp,.rp-ring,.sparks line{animation:none}
     .smoke circle:first-child{opacity:.4}
     .toast{transition:none}
   }
@@ -665,7 +664,6 @@
             <!-- 17-10: gloed in het donker (lampen, schermen, brein) -->
             <!-- 17-10: lucht in de ramen; kleuren volgen dag/nacht (applySky zet --skyT/--skyB) -->
             <linearGradient id="gSky" x1="0" y1="1" x2="0" y2="0"><stop offset="0" style="stop-color:var(--skyT,#7fb8f0)"/><stop offset="1" style="stop-color:var(--skyB,#cfe6fa)"/></linearGradient>
-            <radialGradient id="gGong" cx=".38" cy=".35" r=".75"><stop offset="0" stop-color="#f3cf7a"/><stop offset=".55" stop-color="#c08a32"/><stop offset="1" stop-color="#7a4f1c"/></radialGradient>
             <radialGradient id="gGlowWarm"><stop offset="0" stop-color="#ffcf7a" stop-opacity=".55"/><stop offset=".45" stop-color="#ffb85c" stop-opacity=".18"/><stop offset="1" stop-color="#ffb85c" stop-opacity="0"/></radialGradient>
             <radialGradient id="gGlowCyan"><stop offset="0" stop-color="#00d4ff" stop-opacity=".32"/><stop offset=".55" stop-color="#00d4ff" stop-opacity=".08"/><stop offset="1" stop-color="#00d4ff" stop-opacity="0"/></radialGradient>
             <radialGradient id="gGlow-working"><stop offset="0" stop-color="#00d4ff" stop-opacity=".6"/><stop offset="1" stop-color="#00d4ff" stop-opacity="0"/></radialGradient>
@@ -1102,6 +1100,11 @@
     if (S.agents && S.agents.length) patchAgents();
   }, function () {});
   loadPair("walk", "walker-v4", 640, 480, "walk").catch(function () {});
+  /* 17-10: 8 looprichtingen. Zet WALK8 op de bestandsnaam zodra walker-v5.webp + walker-v5-map.webp in office-v2-assets
+     staan (5 rijen x 4 frames van 256 x 384 = 1024 x 1920): 0 schuin naar voren-rechts, 1 schuin weg-rechts,
+     2 opzij naar rechts, 3 recht naar de kijker, 4 recht van de kijker af. Links = gespiegeld. Zonder: 4 richtingen. */
+  var WALK8 = null;
+  if (WALK8) loadPair("walk8", WALK8, 1024, 1920, "walk8").catch(function () {});
   loadPair("stand", "desk-stand-v3", STAND_W * STAND_N, STAND_H, "stand").catch(function () {});
   loadImg(EMPTY).catch(function () {});   /* voorladen */
   function tinted(kind, cloth, hair) {
@@ -1600,28 +1603,52 @@
     return h + "</g>";
   }
   /* wandsegment in het frame van u0 tot u1 */
-  function wallSeg(F, u0, u1, d) {
+  function wallSeg(F, u0, u1, d, avoid) {
     if (u1 - u0 < 0.05) return "";
     var base = mix(d.color || "#8aa0b5", "#141c29", 0.14);
     var h = wbox(F, u0, u1, -WALL_T, 0, SLAB, WALL_H, base) + face(F, u0, 0.002, SLAB);
     for (var x = Math.ceil(u0) - u0; x < u1 - u0; x += 1) h += rc(x, 0, 0.02, WIN_Z0 - 5, "#000", ' fill-opacity=".28"');   /* naden onder de ramen */
-    h += windowBand(u1 - u0, d);
+    h += windowsOn(u1 - u0, d, F.side, u0, (avoid || []).map(function (a) { return [a[0] - u0, a[1] - u0]; }));
     h += rc(0, WALL_H - 2.4, u1 - u0, 1.3, d.color, ' class="wled"') + rc(0, 0, u1 - u0, 2.2, "#000", ' fill-opacity=".35"') + "</g>";
     return h;
   }
-  /* 17-10: raamband in de achtermuur — kozijn, ruiten met de lucht van nu (#gSky, kleuren via --skyT/--skyB in
-     applySky), kalf, reflectie en vensterbank. Getekend in het wandframe (x in cellen, y in px omhoog). */
-  function windowBand(L, d) {
-    if (L < 0.7) return "";
-    var fr = mix(d.color || "#8aa0b5", "#2a3342", 0.22), n = Math.max(1, Math.round((L - 0.2) / 0.95)), pw = (L - 0.2) / n;
-    var h = rc(0.07, WIN_Z0 - 3, L - 0.14, WIN_H + 6, fr);
-    for (var i = 0; i < n; i++) {
-      var x = 0.1 + i * pw;
-      h += rc(x + 0.035, WIN_Z0, pw - 0.07, WIN_H, "url(#gSky)")
-        + '<polygon fill="#fff" fill-opacity=".1" points="' + [[x + 0.1, WIN_Z0 + 3], [x + 0.2, WIN_Z0 + 3], [x + 0.42, WIN_Z0 + WIN_H - 3], [x + 0.32, WIN_Z0 + WIN_H - 3]].map(function (q) { return q[0].toFixed(3) + "," + q[1].toFixed(1); }).join(" ") + '"/>'
-        + rc(x + 0.035, WIN_Z0 + WIN_H * 0.64, pw - 0.07, 1.2, fr);
+  /* 17-10: ramen in de achtermuur — af en toe (0, 1 of 2 per wandstuk), verschillend van maat: smal en hoog of
+     breed en laag. Ruiten tonen de lucht van nu (#gSky, kleuren via --skyT/--skyB in applySky). Vaste keuze per
+     afdeling/wandstuk (seed). Wandframe: x in cellen, y in px omhoog; onderkant boven de hoogste kast. */
+  function windowsOn(L, d, side, u0, avoid) {
+    if (L < 0.9) return "";
+    var R = rng(hash(d.name + "|ramen|" + side + "|" + u0.toFixed(2))), r0 = R(), n = r0 < 0.3 ? 0 : r0 < 0.78 ? 1 : 2;
+    var fr = mix(d.color || "#8aa0b5", "#2a3342", 0.22), WID = [0.5, 0.7, 1.05, 1.5, 2.2], spots = [], h = "", tries = 0;
+    while (spots.length < n && tries++ < 14) {
+      var w = WID[(R() * WID.length) | 0];
+      if (w > L - 0.35) w = L - 0.35;
+      if (w < 0.45) break;
+      var x = 0.17 + R() * Math.max(0, L - 0.34 - w);
+      var bad = spots.concat(avoid).some(function (q) { return x < q[1] + 0.2 && x + w > q[0] - 0.2; });
+      if (!bad) spots.push([x, x + w]);
     }
-    return h + rc(0.04, WIN_Z0 - 4.5, L - 0.08, 2.6, shade(fr, 1.25));
+    spots.forEach(function (sp) {
+      var x = sp[0], w = sp[1] - sp[0], hh = w < 0.8 ? 38 : w < 1.3 ? 32 : 26, z = WIN_Z0 + (38 - hh) / 2;
+      var np = Math.max(1, Math.round(w / 0.62)), pw = w / np;
+      h += rc(x - 0.045, z - 2.5, w + 0.09, hh + 5, fr);
+      for (var i = 0; i < np; i++) {
+        var px = x + i * pw;
+        h += rc(px + 0.03, z, pw - 0.06, hh, "url(#gSky)")
+          + '<polygon fill="#fff" fill-opacity=".1" points="' + [[px + 0.08, z + 3], [px + 0.16, z + 3], [px + Math.min(pw - 0.06, 0.36), z + hh - 3], [px + Math.min(pw - 0.14, 0.28), z + hh - 3]].map(function (q) { return q[0].toFixed(3) + "," + q[1].toFixed(1); }).join(" ") + '"/>';
+      }
+      if (hh > 30) h += rc(x + 0.03, z + hh * 0.62, w - 0.06, 1.2, fr);
+      h += rc(x - 0.08, z - 4, w + 0.16, 2.4, shade(fr, 1.25));
+    });
+    return h;
+  }
+  /* 17-10: Oordeel van de dag op een breed schoolbord aan de achtermuur (N) van MARKETING; de inhoud (#chalkWall)
+     vult chalkWallFill() zodra het oordeel binnen is (alleen met ingelogde sessie). Klik = kpi.html#review. */
+  function chalkBoardWall(F, u, W) {
+    var z0 = 12, H = 88, k = 1 / EDGE;
+    return face(F, u, 0.004, SLAB) + '<g class="cwall chalk" role="link" aria-label="Oordeel van de dag"><title id="chalkTip">Oordeel van de dag</title>'
+      + rc(0, z0, W, H, "#6b4a33") + rc(0.05, z0 + 2.2, W - 0.1, H - 4.4, "#1d2a23", ' class="ck-board"') + rc(0.08, z0 - 2.6, W - 0.16, 2.6, "#8a6a4a")
+      + rc(0.25, z0 - 1.4, 0.12, 1.2, "#f2f2ea") + rc(0.5, z0 - 1.4, 0.08, 1.2, "#f2d36b")
+      + '<g transform="translate(0.05,' + (z0 + H - 2.2).toFixed(1) + ") scale(" + k.toFixed(5) + ',1)"><g transform="scale(1,-1)"><g id="chalkWall" data-w="' + ((W - 0.1) * EDGE).toFixed(1) + '" data-h="' + (H - 4.4) + '"></g></g></g></g></g>';
   }
   /* 17-10: dichte deur in de doorgang van de achtermuur (niemand loopt meer door de achterwand) + latei erboven */
   function backDoor(F, d0, d1, d) {
@@ -1656,8 +1683,14 @@
     var labels = d.lanes.filter(function (l) { return l.name; }).map(function (l) { return d.y + l.y0 + 0.62; });
     ["W", "N"].forEach(function (side) {
       var F = wallFrame(d, side), L = F.L, dm = L / 2, door = L >= DOOR_MIN, d0 = door ? dm - DOOR / 2 : dm, d1 = door ? dm + DOOR / 2 : dm;
-      var start = side === "N" ? WALL_T : 0, end = side === "N" ? L : L - WALL_T;
-      walls += wallSeg(F, start, d0, d) + wallSeg(F, d1, end, d);
+      var start = side === "N" ? WALL_T : 0, end = side === "N" ? L : L - WALL_T, board = null;
+      if (side === "N" && /MARKETING/i.test(d.name)) {   /* 17-10: breed schoolbord met het Oordeel van de dag */
+        var sgA = door ? [0.12, d0 - 0.1] : [0.12, L - 0.12], sgB = door ? [d1 + 0.1, L - 0.12] : [0, 0];
+        var sg = (sgB[1] - sgB[0]) > (sgA[1] - sgA[0]) ? sgB : sgA, bw = Math.min(4.4, sg[1] - sg[0] - 0.3);
+        if (bw >= 1.4) { var bc = (sg[0] + sg[1]) / 2; board = [bc - bw / 2, bc + bw / 2]; }
+      }
+      walls += wallSeg(F, start, d0, d, board ? [board] : []) + wallSeg(F, d1, end, d, board ? [board] : []);
+      if (board) walls += chalkBoardWall(F, board[0], board[1] - board[0]);
       /* deurpost-accenten */
       if (door) walls += backDoor(F, d0, d1, d);
       (door ? [d0, d1] : []).forEach(function (u) { walls += wbox(F, u - 0.05, u + 0.05, -WALL_T - 0.02, 0.03, SLAB, WALL_H + 2, mix(d.color || "#8aa0b5", "#1b2433", 0.3)); });
@@ -1672,6 +1705,7 @@
           else kind = pool[(R() * pool.length) | 0];
           if (kind === last || (kind === "coffee" && cnt.coffee) || (kind === "cooler" && cnt.cooler) || (kind === "lamp" && cnt.lamp > 1) || (kind === "board" && cnt.board > 1)) kind = PLANTS[(R() * PLANTS.length) | 0];
           var it = FURN[kind], W = it.w;
+          if (board && u < board[1] + 0.1 && u + W > board[0] - 0.1) { u = board[1] + 0.15; continue; }   /* niets voor het schoolbord */
           if (u + W > sg[1]) {               /* past niet: probeer een kleine plant */
             kind = W > 0.5 ? (R() < 0.5 ? "cactus" : "snake") : kind; it = FURN[kind]; W = it.w;
             if (u + W > sg[1]) break;
@@ -1695,6 +1729,7 @@
       });
       /* wanddecoratie in vrije stukken of boven lage meubels */
       var free = [], cur = 0.15;
+      if (board) placed.push([board[0] - 0.08, board[1] + 0.08, 999]);
       placed.sort(function (a, b) { return a[0] - b[0]; });
       (door ? [[d0 - 0.05, d1 + 0.05, 999]] : []).concat(placed).sort(function (a, b) { return a[0] - b[0]; }).forEach(function (p) {
         if (p[0] - cur > 0.3) free.push([cur, p[0] - 0.04, 0]);
@@ -1750,7 +1785,7 @@
     items.sort(function (p, q) { return p.k - q.k; });
     var di = 0;
     items.forEach(function (it) {
-      if (it.brain) { h += '<g class="brain" style="--i:' + (di++) + '">' + brainInner() + '<g id="chalk">' + chalkInner() + '</g><g id="gongG">' + gongInner() + "</g></g>"; return; }
+      if (it.brain) { h += '<g class="brain" style="--i:' + (di++) + '">' + brainInner() + "</g>"; return; }
       var d = it.d, x0 = d.x, y0 = d.y, x1 = d.x + d.w, y1 = d.y + d.d;
       h += '<g class="dept" data-dept="' + esc(d.name) + '" style="--c:' + esc(d.color) + ";--i:" + (di++) + '">';
       var cc = iso((x0 + x1) / 2, (y0 + y1) / 2, 0);
@@ -1803,7 +1838,7 @@
     h += '<g id="linksLayer">' + linksInner() + "</g>";
 
     elWorld.innerHTML = h;
-    FX.glowSig = ""; applySky(); renderGlows(); updateFame();
+    FX.glowSig = ""; applySky(); renderGlows(); updateFame(); updateChalk();
     $("loading").style.display = "none";
     computeFit();
     setCam(S.fitBox, false);
@@ -2215,12 +2250,18 @@
       setTimeout(function () { if (!q.busy) nextTrip(fid); }, 600);
     });
   }
+  /* rij in de loopsheet voor een schermrichting (dx, dy); links = gespiegeld (zie walkAlong/faceTo) */
+  function walkRow(dx, dy, eight) {
+    if (!eight) return dy < 0 ? 1 : 0;
+    var a = Math.atan2(dy, Math.abs(dx)) * 180 / Math.PI;
+    return a < -67.5 ? 4 : a < -13 ? 1 : a <= 13 ? 2 : a <= 67.5 ? 0 : 3;
+  }
   function makeWalker(color, cloth, hair) {
-    var w = document.createElementNS(SVGNS, "g");
-    w.setAttribute("class", "walker"); w.setAttribute("style", "--c:" + color);
+    var w = document.createElementNS(SVGNS, "g"), e8 = !!AV.walk8;
+    w.setAttribute("class", "walker"); w.setAttribute("style", "--c:" + color); w._e8 = e8;
     w.innerHTML = AV.walk
       ? '<ellipse class="w-sh" rx="15" ry="6"/><svg class="w-spr" x="' + f1(-WALK_W / 2) + '" y="' + f1(-WALK_H * 0.96) + '" width="' + f1(WALK_W) + '" height="' + f1(WALK_H)
-        + '" viewBox="0 0 256 384" preserveAspectRatio="none" overflow="hidden"><image href="' + tinted("walk", cloth, hair) + '" width="' + (256 * WALK_COLS) + '" height="768" preserveAspectRatio="none"/></svg>'
+        + '" viewBox="0 0 256 384" preserveAspectRatio="none" overflow="hidden"><image href="' + tinted(e8 ? "walk8" : "walk", cloth, hair) + '" width="' + (256 * WALK_COLS) + '" height="' + (e8 ? 1920 : 768) + '" preserveAspectRatio="none"/></svg>'
       : '<g transform="scale(' + HOLO_SCALE + ')"><ellipse class="w-sh" rx="5.5" ry="2.4"/><g class="w-up"><ellipse class="w-glow" cx="0" cy="-12" rx="8" ry="13"/>'
         + '<g class="w-legs"><line class="w-leg" x1="-1.6" y1="-8" x2="-1.6" y2="-1"/><line class="w-leg" x1="1.6" y1="-8" x2="1.6" y2="-1"/></g>'
         + '<rect class="w-body" x="-4.2" y="-19" width="8.4" height="12" rx="3.6"/><circle class="w-body" cx="0" cy="-23.5" r="3.6"/></g></g>';
@@ -2245,7 +2286,7 @@
         place(w, wx, wy);
         w.setAttribute("transform", "translate(" + x.toFixed(1) + "," + y.toFixed(1) + ") scale(" + (dx < 0 ? -1 : 1) + ",1)");
         w._sx = x; w._sy = y;
-        if (spr) { row = dy < 0 ? 1 : 0; var fr = Math.floor((now - t0) / 1000 * WALK_FPS) % WALK_ROW_FR[row]; spr.setAttribute("viewBox", (fr * 256) + " " + (row * 384) + " 256 384"); }
+        if (spr) { row = walkRow(dx, dy, w._e8); var fr = Math.floor((now - t0) / 1000 * WALK_FPS) % 4; spr.setAttribute("viewBox", (fr * 256) + " " + (row * 384) + " 256 384"); }
         if (f < 1) requestAnimationFrame(step); else { if (spr) spr.setAttribute("viewBox", "0 " + (row * 384) + " 256 384"); res(); }
       })(t0);
     });
@@ -2254,7 +2295,7 @@
   function faceTo(w, tx, ty) {
     if (w._sx == null) return;
     w.setAttribute("transform", "translate(" + w._sx.toFixed(1) + "," + w._sy.toFixed(1) + ") scale(" + (tx < w._sx ? -1 : 1) + ",1)");
-    var spr = w.querySelector(".w-spr"); if (spr) spr.setAttribute("viewBox", "0 " + (ty < w._sy ? 384 : 0) + " 256 384");
+    var spr = w.querySelector(".w-spr"); if (spr) spr.setAttribute("viewBox", "0 " + (walkRow(tx - w._sx, ty - w._sy, w._e8) * 384) + " 256 384");
   }
   /* route van de eigen stoel via de gangpaden en de brug tot op het platform (eindpunt end), zelfde lijnen als runTrip */
   function routeToPlatform(fr, d, b, mid, SL, end) {
@@ -2537,15 +2578,7 @@
     /* dubbele punten eruit (lengte 0) */
     var route = R.filter(function (r, i) { return !i || Math.hypot(r[0][0] - R[i - 1][0][0], r[0][1] - R[i - 1][0][1]) > 0.02 || r[1] !== R[i - 1][1]; });
 
-    var w = document.createElementNS(NS, "g");
-    w.setAttribute("class", "walker"); w.setAttribute("style", "--c:" + d.color);
-    var useSheet = AV.walk;
-    w.innerHTML = useSheet
-      ? '<ellipse class="w-sh" rx="15" ry="6"/><svg class="w-spr" x="' + f1(-WALK_W / 2) + '" y="' + f1(-WALK_H * 0.96) + '" width="' + f1(WALK_W) + '" height="' + f1(WALK_H)
-        + '" viewBox="0 0 256 384" preserveAspectRatio="none" overflow="hidden"><image href="' + tinted("walk", cloth, hair) + '" width="' + (256 * WALK_COLS) + '" height="768" preserveAspectRatio="none"/></svg>'
-      : '<g transform="scale(' + HOLO_SCALE + ')"><ellipse class="w-sh" rx="5.5" ry="2.4"/><g class="w-up"><ellipse class="w-glow" cx="0" cy="-12" rx="8" ry="13"/>'
-        + '<g class="w-legs"><line class="w-leg" x1="-1.6" y1="-8" x2="-1.6" y2="-1"/><line class="w-leg" x1="1.6" y1="-8" x2="1.6" y2="-1"/></g>'
-        + '<rect class="w-body" x="-4.2" y="-19" width="8.4" height="12" rx="3.6"/><circle class="w-body" cx="0" cy="-23.5" r="3.6"/></g></g>';
+    var w = makeWalker(d.color, cloth, hair);
     var spr = null;
     function alive() { return g.isConnected; }
     /* tekenvolgorde: in de afdeling tussen de bureaus (x + y), op het sub-platform voor/achter het bureau */
@@ -3152,7 +3185,6 @@
   elFloor.addEventListener("click", function (e) {
     if (suppressClick) return;
     if (closest(e.target, ".chalk")) { location.href = "kpi.html#review"; return; }
-    if (closest(e.target, ".gong")) { gongHit(true); return; }
     var ag = closest(e.target, ".ag");
     if (ag) { if (!window.matchMedia("(hover: hover)").matches) hideTip(); var id = ag.getAttribute("data-id"); setFocus(same(S.focus, "agent", id) ? null : { type: "agent", id: id }, true); return; }
     var sl = closest(e.target, ".slab,.card");
@@ -3164,7 +3196,7 @@
   });
   elFloor.addEventListener("keydown", function (e) {
     if (e.key !== "Enter" && e.key !== " ") return;
-    var t = closest(e.target, ".ag,.slab,.card,.chalk,.gong"); if (!t) return;
+    var t = closest(e.target, ".ag,.slab,.card,.chalk"); if (!t) return;
     e.preventDefault(); t.dispatchEvent(new MouseEvent("click", { bubbles: true }));
   });
   elFloor.addEventListener("pointerover", function (e) { if (drag && drag.moved) return; var ag = closest(e.target, ".ag"); if (ag) tipFor(ag); });
@@ -3326,11 +3358,8 @@
     var sig = FX.lamps.length + "|" + seated.map(function (a) { return a.agent_id + ":" + st(a); }).join(",");
     if (sig === FX.glowSig) return;
     FX.glowSig = sig;
-    var c = iso(0, 0, 0), ck = iso(-BRAIN / 2 + 0.55, BRAIN / 2 + 0.55, 0);
-    var h = '<ellipse cx="' + f1(c[0]) + '" cy="' + f1(c[1] - 40) + '" rx="230" ry="140" fill="url(#gGlowCyan)"/>'
-      + '<ellipse cx="' + f1(ck[0]) + '" cy="' + f1(ck[1] - 28) + '" rx="34" ry="30" fill="url(#gGlowWarm)"/>';
-    var gp = iso(GONG_AT[0], GONG_AT[1], 0);
-    h += '<ellipse cx="' + f1(gp[0]) + '" cy="' + f1(gp[1] - 30) + '" rx="36" ry="32" fill="url(#gGlowWarm)"/>';
+    var c = iso(0, 0, 0);
+    var h = '<ellipse cx="' + f1(c[0]) + '" cy="' + f1(c[1] - 40) + '" rx="230" ry="140" fill="url(#gGlowCyan)"/>';
     FX.lamps.forEach(function (l) {
       h += '<ellipse cx="' + f1(l[0]) + '" cy="' + f1(l[1] + 30 * l[2]) + '" rx="' + f1(80 * l[2]) + '" ry="' + f1(50 * l[2]) + '" fill="url(#gGlowWarm)"/>'
         + '<ellipse cx="' + f1(l[0]) + '" cy="' + f1(l[1]) + '" rx="' + f1(20 * l[2]) + '" ry="' + f1(16 * l[2]) + '" fill="url(#gGlowWarm)"/>';
@@ -3416,57 +3445,24 @@
 
   /* ---- krijtbord bij het brein: Oordeel van de dag ------------------------------------------------ */
   var VCOL = { groen: "#3ee08f", oranje: "#ffb547", rood: "#ff5d5d" };
-  function chalkInner() {
-    var p = iso(-BRAIN / 2 + 0.55, BRAIN / 2 + 0.55, 0), x = p[0], y = p[1], W = 44, H = 33, top = y - 47, rv = FX.review;
+  function chalkWallFill() {
+    var g = $("chalkWall"); if (!g) return;
+    var W = Number(g.getAttribute("data-w")) || 70, H = Number(g.getAttribute("data-h")) || 37, rv = FX.review, h = "";
     var tip = rv ? "Oordeel van de dag " + abs2(rv.review_date) + ": " + rv.verdict + ", score " + rv.score + (rv.headline ? "\n" + rv.headline : "") + "\nKlik voor het hele oordeel in de Cockpit."
       : FX.authed ? "Nog geen oordeel gevonden." : "Oordeel van de dag: zichtbaar als je ingelogd bent (Cockpit).";
-    var h = '<g class="chalk" tabindex="0" role="link" aria-label="' + esc(rv ? "Oordeel van de dag: " + rv.verdict + ", score " + rv.score : "Oordeel van de dag") + '"><title>' + esc(tip) + "</title>"
-      + '<ellipse cx="' + f1(x) + '" cy="' + f1(y + 1) + '" rx="22" ry="6" fill="#000" fill-opacity=".35"/>'
-      + '<line x1="' + f1(x - 15) + '" y1="' + f1(top + H - 2) + '" x2="' + f1(x - 18) + '" y2="' + f1(y) + '" stroke="#5a4030" stroke-width="2"/>'
-      + '<line x1="' + f1(x + 15) + '" y1="' + f1(top + H - 2) + '" x2="' + f1(x + 18) + '" y2="' + f1(y) + '" stroke="#5a4030" stroke-width="2"/>'
-      + '<rect class="ck-board" x="' + f1(x - W / 2) + '" y="' + f1(top) + '" width="' + W + '" height="' + H + '" rx="2.5" fill="#7a5638"/>'
-      + '<rect x="' + f1(x - W / 2 + 2.4) + '" y="' + f1(top + 2.4) + '" width="' + (W - 4.8) + '" height="' + (H - 4.8) + '" rx="1.5" fill="#1f2b25"/>'
-      + '<text x="' + f1(x) + '" y="' + f1(top + 9) + '" font-size="5.2" letter-spacing=".6" opacity=".8">OORDEEL</text>';
-    if (rv) {
-      h += '<text x="' + f1(x) + '" y="' + f1(top + 22.5) + '" font-size="13" font-weight="700" style="fill:' + (VCOL[rv.verdict] || "#eef3ea") + '">' + esc(rv.score == null ? "–" : rv.score) + "</text>"
-        + '<text x="' + f1(x) + '" y="' + f1(top + 29) + '" font-size="4.6" opacity=".75">' + esc(abs2(rv.review_date) + " · " + rv.verdict) + "</text>";
-    } else h += '<text x="' + f1(x) + '" y="' + f1(top + 21) + '" font-size="9" opacity=".7">–</text>';
-    return h + "</g>";
+    var tl = $("chalkTip"); if (tl) tl.textContent = tip;
+    h += '<text x="7" y="13" font-size="7.4" letter-spacing=".7" opacity=".85">OORDEEL VAN DE DAG</text>';
+    if (!rv) return void (g.innerHTML = h + '<text x="5" y="22" font-size="5" opacity=".6">' + (FX.authed ? "nog geen oordeel" : "log in via de Cockpit") + "</text>");
+    var col = VCOL[rv.verdict] || "#eef3ea", sx = 64;
+    h += '<text x="' + f1(W - 5) + '" y="' + f1(H - 6) + '" font-size="6.4" text-anchor="end" opacity=".7">' + esc(abs2(rv.review_date)) + "</text>"
+      + '<text x="6" y="' + f1(H - 14) + '" font-size="46" font-weight="700" style="fill:' + col + '">' + esc(rv.score == null ? "–" : rv.score) + "</text>"
+      + '<text x="' + sx + '" y="30" font-size="9" font-weight="700" style="fill:' + col + '">' + esc(String(rv.verdict || "").toUpperCase()) + "</text>";
+    var words = String(rv.headline || "").split(/\s+/), lines = [""], max = Math.max(12, Math.floor((W - sx - 6) / 3.1));
+    words.forEach(function (wd) { var l = lines[lines.length - 1]; if ((l + " " + wd).trim().length > max && l) { if (lines.length < 3) lines.push(wd); else lines[2] += "…"; } else lines[lines.length - 1] = (l + " " + wd).trim(); });
+    lines.slice(0, 3).forEach(function (l, i) { h += '<text x="' + sx + '" y="' + f1(42 + i * 8) + '" font-size="6.2" opacity=".9">' + esc(l.length > max + 1 ? l.slice(0, max) + "…" : l) + "</text>"; });
+    g.innerHTML = h;
   }
-  function updateChalk() { var g = $("chalk"); if (g) g.innerHTML = chalkInner(); }
-  /* ---- de gong (17-10): Balinese gong op een rood-gouden standaard, rechts voor het brein (spiegelbeeld van het
-     krijtbord). Slingert en glanst bij een nieuwe online bestelling; klik = slaan (geluid als ♪ aan staat). ---- */
-  var GONG_AT = [BRAIN / 2 + 0.55, -BRAIN / 2 + 0.55];
-  function gongInner() {
-    var p = iso(GONG_AT[0], GONG_AT[1], 0), x = p[0], y = p[1], top = y - 58, gy = y - 31, R0 = 13.5;
-    var last = ORD.last ? "\nLaatste: " + (ORD.last.order_name || "") + " om " + fmtHM.format(new Date(ms(ORD.last.order_created_at))) : "";
-    var tip = "Gong · klinkt bij een nieuwe online bestelling (webshop)." + (SND.on ? "" : "\nGeluid staat uit: zet ♪ aan om hem te horen.") + last;
-    return '<g class="gong" tabindex="0" role="button" aria-label="Gong"><title>' + esc(tip) + "</title>"
-      + '<ellipse cx="' + f1(x) + '" cy="' + f1(y + 1) + '" rx="26" ry="7" fill="#000" fill-opacity=".35"/>'
-      + '<rect x="' + f1(x - 22) + '" y="' + f1(y - 3) + '" width="44" height="4" rx="1.5" fill="#5a1d17"/>'
-      + '<rect x="' + f1(x - 19) + '" y="' + f1(top) + '" width="4" height="' + f1(y - top) + '" fill="#8e2a20"/><rect x="' + f1(x + 15) + '" y="' + f1(top) + '" width="4" height="' + f1(y - top) + '" fill="#7a2219"/>'
-      + '<rect x="' + f1(x - 19) + '" y="' + f1(top + 6) + '" width="4" height="1.6" fill="#d9a441"/><rect x="' + f1(x + 15) + '" y="' + f1(top + 6) + '" width="4" height="1.6" fill="#d9a441"/>'
-      + '<path d="M' + f1(x - 25) + "," + f1(top + 1) + " Q" + f1(x) + "," + f1(top - 7) + " " + f1(x + 25) + "," + f1(top + 1) + " L" + f1(x + 25) + "," + f1(top + 5) + " Q" + f1(x) + "," + f1(top - 3) + " " + f1(x - 25) + "," + f1(top + 5) + 'Z" fill="#9b2f22" stroke="#d9a441" stroke-width=".8"/>'
-      + '<circle cx="' + f1(x - 25) + '" cy="' + f1(top + 2) + '" r="2.4" fill="#d9a441"/><circle cx="' + f1(x + 25) + '" cy="' + f1(top + 2) + '" r="2.4" fill="#d9a441"/>'
-      + '<path d="M' + f1(x - 4) + "," + f1(top - 3.5) + " L" + f1(x) + "," + f1(top - 10) + " L" + f1(x + 4) + "," + f1(top - 3.5) + 'Z" fill="#d9a441"/>'
-      + '<g class="gg-swing" style="transform-origin:' + f1(x) + "px " + f1(top + 3) + 'px">'
-      + '<line x1="' + f1(x - 5) + '" y1="' + f1(top + 3) + '" x2="' + f1(x - 3) + '" y2="' + f1(gy - R0 + 1) + '" stroke="#3a2a1e" stroke-width=".8"/><line x1="' + f1(x + 5) + '" y1="' + f1(top + 3) + '" x2="' + f1(x + 3) + '" y2="' + f1(gy - R0 + 1) + '" stroke="#3a2a1e" stroke-width=".8"/>'
-      + '<circle class="gg-disc" cx="' + f1(x) + '" cy="' + f1(gy) + '" r="' + R0 + '" fill="url(#gGong)" stroke="#6b4416" stroke-width="1"/>'
-      + '<circle cx="' + f1(x) + '" cy="' + f1(gy) + '" r="' + (R0 - 4) + '" fill="none" stroke="#7a5420" stroke-opacity=".6" stroke-width=".8"/>'
-      + '<circle cx="' + f1(x) + '" cy="' + f1(gy) + '" r="4.2" fill="#e8b85a" stroke="#8a5a1e" stroke-width=".7"/><circle cx="' + f1(x - 1.2) + '" cy="' + f1(gy - 1.3) + '" r="1.3" fill="#fff3c8" fill-opacity=".8"/>'
-      + '<circle class="gg-shine" cx="' + f1(x) + '" cy="' + f1(gy) + '" r="' + (R0 + 3) + '" fill="url(#gGlowWarm)"/></g>'
-      + '<line x1="' + f1(x + 14) + '" y1="' + f1(y - 1) + '" x2="' + f1(x + 23) + '" y2="' + f1(y - 17) + '" stroke="#6b4a33" stroke-width="1.4" stroke-linecap="round"/>'
-      + '<ellipse cx="' + f1(x + 23.5) + '" cy="' + f1(y - 18.5) + '" rx="2.6" ry="2.2" fill="#c9a27a"/></g>';
-  }
-  function gongHit(click) {
-    var g = elWorld.querySelector("#gongG .gong");
-    if (g && !REDUCED) { g.classList.remove("hit"); void g.getBoundingClientRect(); g.classList.add("hit"); }
-    if (click) {
-      if (SND.on) { if (SND.ctx) gong(SND.ctx.currentTime + 0.03, 0.14); }
-      else toast("🛎  De gong klinkt bij een nieuwe online bestelling — zet ♪ aan om hem te horen", 4500);
-    }
-  }
-
+  function updateChalk() { chalkWallFill(); }
   /* ---- ingelogde extra's: oordeel (weer) en online orders (gong) ---------------------------------- */
   var ORD = { seen: null, rows: [] };
   try { var so = JSON.parse(localStorage.getItem("dewi.office2.orders") || "null"); if (so && typeof so === "object") ORD.seen = so; } catch (e) {}
@@ -3512,8 +3508,6 @@
   }
   function celebrateOrder(o, more, quiet) {
     var n = Number(o.line_item_count) || 0;
-    if (!quiet) { ORD.last = o; var gg = $("gongG"); if (gg) gg.innerHTML = gongInner(); }
-    gongHit(false);
     toast("🛎  Nieuwe online bestelling " + (o.order_name || "") + (n ? " · " + n + (n === 1 ? " artikel" : " artikelen") : "")
       + (more ? " · +" + more + " meer" : "") + (quiet ? " (replay)" : ""), quiet ? 3200 : 7000);
     confetti(quiet ? 28 : 70);
@@ -3693,8 +3687,8 @@
   }
   function deskToExit(a, d) {
     var sp = spotOf(a, d), ex = exitOf(d), R = [[sp.start, SLAB], [[sp.ax, sp.start[1]], SLAB]];
-    if (ex.side === "S") R.push([[sp.ax, d.y + d.d - 1.0], SLAB], [[ex.x, d.y + d.d - 1.0], SLAB], [[ex.x, d.y + d.d - 0.25], SLAB], [[ex.x, d.y + d.d + 0.6], 0]);
-    else R.push([[sp.ax, sp.row], SLAB], [[d.x + d.w - 0.4, sp.row], SLAB], [[d.x + d.w - 0.4, ex.y], SLAB], [[d.x + d.w - 0.25, ex.y], SLAB], [[d.x + d.w + 0.6, ex.y], 0]);
+    if (ex.side === "S") R.push([[sp.ax, d.y + d.d - 1.0], SLAB], [[ex.x, d.y + d.d - 1.0], SLAB], [[ex.x, d.y + d.d - 0.25], SLAB], [[ex.x, d.y + d.d + ROUND], 0]);
+    else R.push([[sp.ax, sp.row], SLAB], [[d.x + d.w - 0.4, sp.row], SLAB], [[d.x + d.w - 0.4, ex.y], SLAB], [[d.x + d.w - 0.25, ex.y], SLAB], [[d.x + d.w + ROUND, ex.y], 0]);
     return R;
   }
   function ringPath(p, q) {                          /* over de vloer om het brein heen (kortste kant) */
@@ -3704,26 +3698,32 @@
     for (var i = 0; i <= n; i++) { var a = a0 + da * i / n; out.push([[RAD * Math.cos(a), RAD * Math.sin(a)], 0]); }
     return out;
   }
-  /* raakt het lijnstuk p-q de rechthoek d (iets vergroot)? Liang-Barsky */
-  function segHits(p, q, d, m) {
-    var x0 = d.x - m, x1 = d.x + d.w + m, y0 = d.y - m, y1 = d.y + d.d + m, t0 = 0, t1 = 1, dx = q[0] - p[0], dy = q[1] - p[1];
-    var P = [-dx, dx, -dy, dy], Q = [p[0] - x0, x1 - p[0], p[1] - y0, y1 - p[1]];
-    for (var i = 0; i < 4; i++) {
-      if (P[i] === 0) { if (Q[i] < 0) return false; continue; }
-      var r = Q[i] / P[i];
-      if (P[i] < 0) { if (r > t1) return false; if (r > t0) t0 = r; } else { if (r < t0) return false; if (r < t1) t1 = r; }
-    }
-    return t1 - t0 > 1e-4;
+  /* 17-10 (2): looproute tussen afdelingen = over de pipes. Eigen bureau -> deur in de pui -> buitenom de eigen
+     afdeling naar de pipe -> over de pipe naar het brein -> om het brein (ring) -> over de pipe van de doelafdeling
+     -> vlak voor die afdeling zichtbaar buitenom naar de pui -> deur -> naast het bureau. */
+  var ROUND = 0.6;                                   /* afstand van de buitenmuur bij het omlopen */
+  function portOut(d) {                              /* waar de pipe de afdeling raakt, op ROUND buiten de muur */
+    var p = d._port, e = 1e-6;
+    var n = Math.abs(p[1] - (d.y + d.d)) < e ? [0, 1] : Math.abs(p[0] - (d.x + d.w)) < e ? [1, 0] : Math.abs(p[1] - d.y) < e ? [0, -1] : [-1, 0];
+    return [p[0] + n[0] * ROUND, p[1] + n[1] * ROUND];
   }
-  /* over de vloer van p naar q zonder over afdeling d te lopen: via één of twee buitenhoeken */
-  function around(p, q, d) {
-    if (!segHits(p, q, d, 0.3)) return [];
-    var m = 0.6, C = [[d.x - m, d.y - m], [d.x + d.w + m, d.y - m], [d.x + d.w + m, d.y + d.d + m], [d.x - m, d.y + d.d + m]], best = null, bl = 1e9;
-    function len(arr) { var l = 0, a = p; arr.concat([q]).forEach(function (b) { l += Math.hypot(b[0] - a[0], b[1] - a[1]); a = b; }); return l; }
-    function ok(arr) { var a = p; return arr.concat([q]).every(function (b) { var r = !segHits(a, b, d, 0.3); a = b; return r; }); }
-    C.forEach(function (c) { if (ok([c]) && len([c]) < bl) { bl = len([c]); best = [c]; } });
-    if (!best) C.forEach(function (c, i) { [C[(i + 1) % 4], C[(i + 3) % 4]].forEach(function (c2) { if (ok([c, c2]) && len([c, c2]) < bl) { bl = len([c, c2]); best = [c, c2]; } }); });
-    return (best || []).map(function (c) { return [c, 0]; });
+  /* buitenom rechthoek d (vergroot met ROUND) van a naar b, langs de kortste kant; geeft de tussenhoeken + b */
+  function perimeter(d, a, b) {
+    var x0 = d.x - ROUND, y0 = d.y - ROUND, x1 = d.x + d.w + ROUND, y1 = d.y + d.d + ROUND, W = x1 - x0, H = y1 - y0, P = 2 * (W + H);
+    function t(p) {
+      var dd = [Math.abs(p[1] - y0), Math.abs(p[0] - x1), Math.abs(p[1] - y1), Math.abs(p[0] - x0)], k = dd.indexOf(Math.min.apply(null, dd));
+      if (k === 0) return Math.max(0, Math.min(W, p[0] - x0));
+      if (k === 1) return W + Math.max(0, Math.min(H, p[1] - y0));
+      if (k === 2) return W + H + Math.max(0, Math.min(W, x1 - p[0]));
+      return 2 * W + H + Math.max(0, Math.min(H, y1 - p[1]));
+    }
+    var C = [[0, [x0, y0]], [W, [x1, y0]], [W + H, [x1, y1]], [2 * W + H, [x0, y1]]], ta = t(a), tb = t(b);
+    var fwd = ((tb - ta) % P + P) % P, dir = fwd <= P / 2 ? 1 : -1, out = [];
+    var order = C.map(function (c) { return { d: ((dir > 0 ? c[0] - ta : ta - c[0]) % P + P) % P, p: c[1] }; })
+      .filter(function (c) { return c.d > 1e-6 && c.d < (dir > 0 ? fwd : P - fwd) - 1e-6; }).sort(function (p, q) { return p.d - q.d; });
+    order.forEach(function (c) { out.push([c.p, 0]); });
+    out.push([b, 0]);
+    return out;
   }
   function healRoute(me, dA, tg, dB) {
     var sa = spotOf(me, dA), sb = spotOf(tg, dB), stand = [sb.ax, sb.start[1]];
@@ -3732,9 +3732,8 @@
       return [[sa.start, SLAB], [[sa.ax, sa.start[1]], SLAB], [[sa.ax, mid], SLAB], [[sb.ax, mid], SLAB], [stand, SLAB]];
     }
     var A = deskToExit(me, dA), B = deskToExit(tg, dB).slice(1).reverse();
-    var pa = A[A.length - 1][0], pb = B[0][0], ring = ringPath(pa, pb);
-    var r0 = ring[0][0], r1 = ring[ring.length - 1][0];
-    return A.concat(around(pa, r0, dA)).concat(ring).concat(around(r1, pb, dB)).concat(B);
+    var oa = A[A.length - 1][0], ob = B[0][0], pa = portOut(dA), pb = portOut(dB);
+    return A.concat(perimeter(dA, oa, pa)).concat(ringPath(pa, pb)).concat([[pb, 0]]).concat(perimeter(dB, pb, ob).slice(0, -1)).concat(B);
   }
   /* ---- deuren in de glazen pui (17-10): openen naar buiten, lopen, dicht ---------------------------- */
   var DOOR_W = 0.95;
@@ -3801,6 +3800,12 @@
         if (w.parentNode !== de || w.nextSibling !== before) de.insertBefore(w, before);
         return;
       }
+    }
+    /* 17-10 (2): buiten: vóór de eerste afdeling (of het brein) waar hij geometrisch achter staat, anders bovenop */
+    var els = elWorld.querySelectorAll(":scope > .dept:not(.dcard), :scope > .brain");
+    for (var k2 = 0; k2 < els.length; k2++) {
+      var e2 = els[k2], bx = e2.classList.contains("brain") ? S.brain : deptByName(e2.getAttribute("data-dept"));
+      if (bx && wx < bx.x + bx.w && wy < bx.y + bx.d) { if (w.parentNode !== elWorld || w.nextSibling !== e2) elWorld.insertBefore(w, e2); return; }
     }
     var sl = subLayer(); if (w.parentNode !== sl) sl.appendChild(w);
   }
