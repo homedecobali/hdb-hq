@@ -2204,8 +2204,22 @@
   }
   /* 21-10: ballonnen ~1,4x groter voor leesbaarheid (geldt voor ALLE ballonnen: agents, lopers, sub-workflows, klusjesman) */
   var BUB_FS = 12, BUB_H = 26, BUB_TAIL = 9;
+  /* 21-10: ballon sluit passend om de tekst — breedte gemeten met canvas i.p.v. geschat per teken */
+  var bubCtx = null, bubCache = {};
+  function bubTextW(text) {
+    if (bubCache[text] != null) return bubCache[text];
+    try {
+      if (!bubCtx) {
+        bubCtx = document.createElement("canvas").getContext("2d");
+        var ff = getComputedStyle(document.documentElement).getPropertyValue("--font").trim() || "sans-serif";
+        bubCtx.font = "600 " + BUB_FS + "px " + ff;
+      }
+      return (bubCache[text] = bubCtx.measureText(text).width);
+    } catch (e) { return text.length * BUB_FS * 0.58; }
+  }
+  try { document.fonts && document.fonts.ready.then(function () { bubCtx = null; bubCache = {}; if (S.agents.length && elWorld.firstChild) renderBubbles(); }); } catch (e) {}
   function bubbleSvg(x, y, text, color) {
-    var w = Math.max(56, text.length * BUB_FS * 0.58 + 44), h = BUB_H, cy = -BUB_TAIL - h / 2, x0 = -w / 2;
+    var w = Math.max(56, Math.ceil(bubTextW(text)) + 33 + 13), h = BUB_H, cy = -BUB_TAIL - h / 2, x0 = -w / 2;
     return '<g class="bub" style="--c:' + esc(color) + '" transform="translate(' + f1(x) + "," + f1(y) + ')"><g class="b-k"><g class="b-pop"><g class="b-in">'
       + '<rect x="' + f1(x0) + '" y="' + f1(-BUB_TAIL - h) + '" width="' + f1(w) + '" height="' + h + '" rx="' + f1(h / 2) + '"/>'
       + '<path d="M-5.5,' + f1(-BUB_TAIL - 0.8) + ' L0,0 L6.5,' + f1(-BUB_TAIL - 0.8) + ' Z"/>'
