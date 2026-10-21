@@ -372,8 +372,8 @@
   #bubbleLayer{pointer-events:none}
   .bub .b-pop{animation:bubIn .35s cubic-bezier(.2,.8,.2,1.2) both}
   .bub .b-in{animation:bubFloat 3.2s ease-in-out infinite}
-  .bub rect,.bub path{fill:#f4fbff;stroke:var(--c,#00d4ff);stroke-width:1.2}
-  .bub text{font:600 8.5px var(--font);fill:#0b1220}
+  .bub rect,.bub path{fill:#f4fbff;stroke:var(--c,#00d4ff);stroke-width:1.5}
+  .bub text{font:600 12px var(--font);fill:#0b1220}
   .bub .dots circle{fill:var(--c,#00d4ff);animation:dot 1.2s ease-in-out infinite}
   .bub .dots circle:nth-child(2){animation-delay:.2s} .bub .dots circle:nth-child(3){animation-delay:.4s}
   @keyframes bubIn{from{opacity:0;transform:translateY(6px) scale(.6)}to{opacity:1;transform:none}}
@@ -427,9 +427,9 @@
   #floor.has-hl .dept:not(.hl-d) .slab,#floor.has-hl .dept:not(.hl-d) .card,#floor.has-hl .dept:not(.hl-d) .pipe,#floor.has-hl .dept:not(.hl-d) .walls,#floor.has-hl .dept:not(.hl-d) .fglass,#floor.has-hl .dept:not(.hl-d) .pp{opacity:.35}
 
   #tip{position:absolute;z-index:5;pointer-events:none;display:none;transform:translate(-50%,-100%);white-space:nowrap;
-    background:#0b1220;border:1px solid var(--line);border-radius:8px;padding:5px 9px;font-size:12px;box-shadow:0 6px 18px rgba(0,0,0,.5)}
+    background:#0b1220;border:1px solid var(--line);border-radius:9px;padding:7px 12px;font-size:14px;box-shadow:0 6px 18px rgba(0,0,0,.5)}
   #tip b{display:block;font-weight:700}
-  #tip span{color:var(--dim);font-size:11.5px;font-family:var(--mono)}
+  #tip span{color:var(--dim);font-size:13px;font-family:var(--mono)}
   #msg{position:absolute;left:16px;right:calc(var(--pw,420px) + 28px);bottom:16px;z-index:6;display:none;background:#2a1216;border:1px solid var(--red);
     color:#ffd9d9;border-radius:10px;padding:9px 12px;font-size:12.5px}
   /* Motion-knop in de kop (14-10) */
@@ -2199,13 +2199,15 @@
     if (!t || t.length < 4) t = a.agent_name + " aan het werk";
     return t.length > 34 ? t.slice(0, 33) + "…" : t;
   }
+  /* 21-10: ballonnen ~1,4x groter voor leesbaarheid (geldt voor ALLE ballonnen: agents, lopers, sub-workflows, klusjesman) */
+  var BUB_FS = 12, BUB_H = 26, BUB_TAIL = 9;
   function bubbleSvg(x, y, text, color) {
-    var w = Math.max(40, text.length * 5.0 + 30), h = 18;
+    var w = Math.max(56, text.length * BUB_FS * 0.58 + 44), h = BUB_H, cy = -BUB_TAIL - h / 2, x0 = -w / 2;
     return '<g class="bub" style="--c:' + esc(color) + '" transform="translate(' + f1(x) + "," + f1(y) + ')"><g class="b-pop"><g class="b-in">'
-      + '<rect x="' + f1(-w / 2) + '" y="' + (-h - 7) + '" width="' + f1(w) + '" height="' + h + '" rx="9"/>'
-      + '<path d="M-4,-7.6 L0,0 L5,-7.6 Z"/>'
-      + '<g class="dots"><circle cx="' + f1(-w / 2 + 9) + '" cy="-16" r="1.6"/><circle cx="' + f1(-w / 2 + 13.5) + '" cy="-16" r="1.6"/><circle cx="' + f1(-w / 2 + 18) + '" cy="-16" r="1.6"/></g>'
-      + '<text x="' + f1(-w / 2 + 23) + '" y="-13">' + esc(text) + "</text></g></g></g>";
+      + '<rect x="' + f1(x0) + '" y="' + f1(-BUB_TAIL - h) + '" width="' + f1(w) + '" height="' + h + '" rx="' + f1(h / 2) + '"/>'
+      + '<path d="M-5.5,' + f1(-BUB_TAIL - 0.8) + ' L0,0 L6.5,' + f1(-BUB_TAIL - 0.8) + ' Z"/>'
+      + '<g class="dots"><circle cx="' + f1(x0 + 12) + '" cy="' + f1(cy) + '" r="2.2"/><circle cx="' + f1(x0 + 18.5) + '" cy="' + f1(cy) + '" r="2.2"/><circle cx="' + f1(x0 + 25) + '" cy="' + f1(cy) + '" r="2.2"/></g>'
+      + '<text x="' + f1(x0 + 33) + '" y="' + f1(cy + BUB_FS * 0.36) + '">' + esc(text) + "</text></g></g></g>";
   }
   function renderBubbles() {
     var g = $("bubbleLayer");
