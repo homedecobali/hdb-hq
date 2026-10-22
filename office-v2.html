@@ -142,6 +142,15 @@
   Looproute tussen afdelingen (Self-Heal, 17-10): eigen deur -> buitenom naar de eigen pipe (perimeter) -> over de pipe
   naar het brein -> om het brein -> over de pipe van de doelafdeling -> vlak ervoor buitenom naar de pui -> deur. Buiten
   de afdelingen bepaalt placeAny de diepte (achter een afdeling/het brein = in de tekenvolgorde ervóór).
+  Pijpdeur (22-10): de pijpleiding sluit altijd aan op een deur (pipeDoor -> d._door, d._port = de deur). Wand =
+  de kant die naar het brein kijkt; plek = waar de lijn naar het brein de rand raakt, binnen het bruikbare stuk van
+  de wand (doorRange: niet in een hoek; kantine niet voor keuken/koelkast/bar/klussenkast), anders de andere wand
+  richting brein. Achterwand (N/W): de doorgang verhuist van het midden naar de pijp en wordt een dubbele deur die
+  opendraait (backDoor pipe, .bdoor.open); meubels, ramen en decoratie schuiven eromheen, wat niet past vervalt
+  (kantine: monstera). Voorkant (S/E): vaste glazen deur met drempel in afdelingskleur (frontGlass .door.fixed),
+  makeDoor() neemt hem over. Uitgang (exitOf), portOut en outsideDoor = die deur: lopen gaat bureau -> pijpdeur ->
+  over de pijp -> brein -> pijp van het doel -> pijpdeur; niet meer buitenom de afdeling. Extra werkplekken komen
+  niet voor de pijpdeur (subSpot).
   Looprichtingen: walker-v4 heeft alleen de twee iso-diagonalen; walkRow kiest bij WALK8 (walker-v5, 5 rijen) ook opzij,
   recht naar voren en recht weg. Zet WALK8 = "walker-v5" zodra die bestanden er staan.
 -->
@@ -571,6 +580,12 @@
   .door .dr-frame{fill:none;stroke:#e8f4ff;stroke-opacity:.75;stroke-width:1.4}
   .door .dr-leaf{fill:#cfe8ff;fill-opacity:.16;stroke:#e8f4ff;stroke-opacity:.85;stroke-width:1}
   .door .dr-knob{fill:#ffd166}
+  /* 22-10: pijpdeuren — vast in de pui (drempel in afdelingskleur) of als dubbele deur in de achterwand */
+  .door.fixed .dr-frame{stroke:var(--c);stroke-opacity:.8;stroke-width:1.6}
+  .door .dr-sill{fill:none;stroke:var(--c);stroke-width:2.4;stroke-linecap:round;stroke-opacity:.85}
+  .bdoor .bd-leaf{transform-box:fill-box;transition:transform .38s ease-in-out}
+  .bdoor .bd-0{transform-origin:0 50%} .bdoor .bd-1{transform-origin:100% 50%}
+  .bdoor.open .bd-leaf{transform:scaleX(.12)}
   .smoke circle{fill:#a7b0ba;opacity:0;animation:puff 2.6s ease-out infinite;transform-box:fill-box;transform-origin:center}
   .smoke circle:nth-child(2){animation-delay:.85s} .smoke circle:nth-child(3){animation-delay:1.7s}
   @keyframes puff{0%{opacity:0;transform:translate(0,0) scale(.45)}22%{opacity:.6}100%{opacity:0;transform:translate(5px,-17px) scale(1.7)}}
@@ -1070,10 +1085,10 @@
       d.subs.forEach(function (a) { a._p = null; a._lx = a._ly = null; });
       var c = iso(d.x + d.w / 2, d.y + d.d / 2, 0);
       d._c = c;
-      /* aanhechtpunt van de pijp: het punt op de platformrand richting de Brain */
-      d._port = edgePoint(d, [0, 0]);
+      /* 22-10: de pijp komt altijd uit bij de pijpdeur van de afdeling (pipeDoor) */
+      pipeDoor(d);
     });
-    C._c = iso(C.x + C.w / 2, C.y + C.d / 2, 0); C._port = edgePoint(C, [0, 0]);
+    C._c = iso(C.x + C.w / 2, C.y + C.d / 2, 0); pipeDoor(C);
     /* tekenvolgorde van achter naar voor (op x+y van het middelpunt) */
     S.paint = S.depts.slice().sort(function (p, q) { return (p.x + p.w / 2 + p.y + p.d / 2) - (q.x + q.w / 2 + q.y + q.d / 2); });
     S.sceneSize = [cw, ch];
@@ -1084,6 +1099,51 @@
     if (!dx && !dy) return [cx, cy];
     var tx = dx ? (d.w / 2) / Math.abs(dx) : 1e9, ty = dy ? (d.d / 2) / Math.abs(dy) : 1e9, t = Math.min(tx, ty);
     return [cx + dx * t, cy + dy * t];
+  }
+  /* 22-10: pijpdeur. De pijp sluit aan op een vaste deur in de wand die naar het brein kijkt; agents die via de
+     pijpleiding komen of gaan, gebruiken alleen die deur (geen omweg buitenom meer). Achterwand (N/W): de doorgang
+     schuift naar de pijp en wordt een deur die opengaat; meubels, ramen en decoratie wijken (furnish/canteenG).
+     Voorkant (S/E): een vaste glazen deur in de pui. Plek = waar de lijn naar het brein de rand raakt, binnen het
+     bruikbare stuk van die wand (niet in een hoek, in de kantine niet voor keuken, koelkast, bar of klussenkast);
+     past hij daar niet, dan de andere wand die naar het brein kijkt. d._door = { side, along, x, y }, d._port = de
+     deur op de platformrand (daar eindigt de pijp). along = wereld-x voor N/S, wereld-y voor W/E. */
+  function doorRange(d, side) {
+    var x0 = d.x, y0 = d.y, x1 = d.x + d.w, y1 = d.y + d.d, r;
+    if (d.room) {
+      var K1 = Math.round(d.w * 0.62 * 10) / 10, cu0 = d.d - 3.2;
+      r = side === "N" ? [x0 + K1 + 1.8, x1 - 0.9] : side === "W" ? [y1 - (cu0 - 0.85), y1 - 1.95]
+        : side === "S" ? [x0 + 1.2, x1 - 0.9] : [y0 + 2.6, y1 - 0.9];
+    } else {
+      if ((side === "N" && d.w < DOOR_MIN) || (side === "W" && d.d < DOOR_MIN)) return null;
+      r = side === "N" ? [x0 + 1.6, x1 - 0.95] : side === "W" ? [y0 + 1.6, y1 - 0.95]
+        : side === "S" ? [x0 + WALL + 0.6, x1 - 0.9] : [y0 + WALL + 0.6, y1 - 0.9];
+    }
+    return r[1] >= r[0] ? r : null;
+  }
+  function pipeDoor(d) {
+    var x0 = d.x, y0 = d.y, x1 = d.x + d.w, y1 = d.y + d.d, p = edgePoint(d, [0, 0]), e = 1e-6;
+    var first = Math.abs(p[1] - y0) < e ? "N" : Math.abs(p[0] - x0) < e ? "W" : Math.abs(p[1] - y1) < e ? "S" : "E";
+    var facing = { N: y0 > 0, W: x0 > 0, S: y1 < 0, E: x1 < 0 };
+    var order = [first].concat(["N", "W", "S", "E"].filter(function (s) { return s !== first && facing[s]; }));
+    for (var i = 0; i < order.length; i++) {
+      var side = order[i], r = doorRange(d, side); if (!r) continue;
+      var want = side === "N" || side === "S" ? p[0] : p[1];
+      if (side !== first) want = side === "N" || side === "S" ? (x0 + x1) / 2 : (y0 + y1) / 2;
+      var a = Math.min(r[1], Math.max(r[0], want));
+      var pt = side === "N" ? [a, y0] : side === "S" ? [a, y1] : side === "W" ? [x0, a] : [x1, a];
+      d._door = { side: side, along: a, x: pt[0], y: pt[1] };
+      d._port = pt;
+      return;
+    }
+    /* geen bruikbare wand: dan de oude aanhechting op de voorkant die het dichtst bij het brein ligt */
+    var sd = Math.hypot((x0 + x1) / 2, y1) <= Math.hypot(x1, (y0 + y1) / 2) ? "S" : "E";
+    var a2 = sd === "S" ? (x0 + x1) / 2 : (y0 + y1) / 2, q = sd === "S" ? [a2, y1] : [x1, a2];
+    d._door = { side: sd, along: a2, x: q[0], y: q[1] }; d._port = q;
+  }
+  /* along (wereld) -> u in het wandframe van de achterwand (N: vanaf x0, W: vanaf de voorkant y1) */
+  function doorU(d, side) {
+    var dr = d._door; if (!dr || dr.side !== side) return null;
+    return side === "N" ? dr.along - d.x : side === "W" ? d.y + d.d - dr.along : null;
   }
 
   /* ---------------------------------------------------------------- tekenen */
@@ -1691,38 +1751,62 @@
       + '<g transform="translate(0.05,' + (z0 + H - 2.2).toFixed(1) + ") scale(" + k.toFixed(5) + ',1)"><g transform="scale(1,-1)"><g id="chalkWall" data-w="' + ((W - 0.1) * EDGE).toFixed(1) + '" data-h="' + (H - 4.4) + '"></g></g></g></g></g>';
   }
   /* 17-10: dichte deur in de doorgang van de achtermuur (niemand loopt meer door de achterwand) + latei erboven */
-  function backDoor(F, d0, d1, d) {
+  /* 22-10: pipe = true -> de pijpdeur: donkere opening met twee vleugels die opendraaien (.bdoor.open), drempel in
+     afdelingskleur; hier komt de pijpleiding binnen */
+  function backDoor(F, d0, d1, d, pipe) {
     var base = mix(d.color || "#8aa0b5", "#141c29", 0.14), wood = "#5a4231", W = d1 - d0 - 0.12, half = W / 2;
     var h = wbox(F, d0, d1, -WALL_T, 0, SLAB + DOOR_H, WALL_H - DOOR_H, base)
-      + wbox(F, d0 + 0.06, d1 - 0.06, -WALL_T * 0.75, -WALL_T * 0.35, SLAB, DOOR_H, wood) + face(F, d0 + 0.06, -WALL_T * 0.35 + 0.001, SLAB);
+      + wbox(F, d0 + 0.06, d1 - 0.06, -WALL_T * 0.75, -WALL_T * 0.35, SLAB, DOOR_H, pipe ? "#0b1018" : wood);
+    if (pipe) {
+      var th = F.w(d0 + 0.06, 0.02), tq = F.w(d1 - 0.06, 0.16), xa = Math.min(th[0], tq[0]), xb = Math.max(th[0], tq[0]), ya = Math.min(th[1], tq[1]), yb = Math.max(th[1], tq[1]);
+      h += '<polygon fill="' + (d.color || "#8aa0b5") + '" fill-opacity=".55" points="' + pts([iso(xa, ya, SLAB + 0.4), iso(xb, ya, SLAB + 0.4), iso(xb, yb, SLAB + 0.4), iso(xa, yb, SLAB + 0.4)]) + '"/>';
+      h += '<g class="bdoor" data-side="' + F.side + '">';
+    }
+    h += face(F, d0 + 0.06, -WALL_T * 0.35 + 0.001, SLAB);
     for (var i = 0; i < 2; i++) {
       var x = i * half;
+      if (pipe) h += '<g class="bd-leaf bd-' + i + '">' + rc(x + 0.01, 0, half - 0.02, DOOR_H, wood);
       h += rc(x + 0.05, 8, half - 0.1, 30, shade(wood, 0.82)) + rc(x + 0.05, 44, half - 0.1, 40, shade(wood, 0.82))
         + rc(x + 0.09, 50, half - 0.18, 28, "url(#gSky)", ' fill-opacity=".55"')
         + rc(i ? x + 0.05 : half - 0.09, 40, 0.04, 6, "#d8c08a");
+      if (pipe) h += "</g>";
     }
-    return h + rc(half - 0.006, 0, 0.012, DOOR_H, "#2a1f17") + "</g>";
+    return h + (pipe ? "" : rc(half - 0.006, 0, 0.012, DOOR_H, "#2a1f17")) + "</g>" + (pipe ? "</g>" : "");
   }
   /* 17-10: voorkant (S + E) = glazen pui op volle hoogte: het kantoor blijft zichtbaar; deuren komen er tijdelijk in (makeDoor) */
   function frontGlass(d) {
     var x0 = d.x, y0 = d.y, x1 = d.x + d.w, y1 = d.y + d.d, Z = SLAB, H = WALL_H, h = "", v;
     function quad(a, b, z0, z1) { return pts([iso(a[0], a[1], z0), iso(b[0], b[1], z0), iso(b[0], b[1], z1), iso(a[0], a[1], z1)]); }
     function ln(a, b, z0, z1, cls) { var p = iso(a[0], a[1], z0), q = iso(b[0], b[1], z1); return '<line class="' + cls + '" x1="' + f1(p[0]) + '" y1="' + f1(p[1]) + '" x2="' + f1(q[0]) + '" y2="' + f1(q[1]) + '"/>'; }
+    var pd = d._door && (d._door.side === "S" || d._door.side === "E") ? d._door : null;
+    function inDoor(sd, v) { return pd && pd.side === sd && Math.abs(v - pd.along) < DOOR_W / 2 + 0.12; }
     h += '<polygon class="fg-pane" points="' + quad([x0, y1], [x1, y1], Z, Z + H) + '"/><polygon class="fg-pane" points="' + quad([x1, y0], [x1, y1], Z, Z + H) + '"/>';
-    for (v = x0 + 1.6; v < x1 - 0.4; v += 1.6) h += ln([v, y1], [v, y1], Z, Z + H, "fg-mul");
-    for (v = y0 + 1.6; v < y1 - 0.4; v += 1.6) h += ln([x1, v], [x1, v], Z, Z + H, "fg-mul");
+    for (v = x0 + 1.6; v < x1 - 0.4; v += 1.6) if (!inDoor("S", v)) h += ln([v, y1], [v, y1], Z, Z + H, "fg-mul");
+    for (v = y0 + 1.6; v < y1 - 0.4; v += 1.6) if (!inDoor("E", v)) h += ln([x1, v], [x1, v], Z, Z + H, "fg-mul");
     for (v = x0 + 0.8; v < x1 - 0.6; v += 3.2) h += '<polygon class="fg-ref" points="' + pts([iso(v, y1, Z + 8), iso(v + 0.35, y1, Z + 8), iso(v + 0.95, y1, Z + H - 8), iso(v + 0.6, y1, Z + H - 8)]) + '"/>';
     h += '<polyline class="fg-bot" points="' + pts([iso(x0, y1, Z + 1.5), iso(x1, y1, Z + 1.5), iso(x1, y0, Z + 1.5)]) + '"/>'
       + '<polyline class="fg-top" points="' + pts([iso(x0, y1, Z + H), iso(x1, y1, Z + H), iso(x1, y0, Z + H)]) + '"/>'
       + ln([x1, y1], [x1, y1], Z, Z + H, "fg-post") + ln([x0, y1], [x0, y1], Z, Z + H, "fg-post") + ln([x1, y0], [x1, y0], Z, Z + H, "fg-post");
-    return '<g class="fglass">' + h + '<g class="doors"></g></g>';
+    var fixed = "";
+    if (pd) {   /* 22-10: vaste glazen pijpdeur (dicht); makeDoor() neemt hem over als er iemand doorheen loopt */
+      var a0 = pd.along - DOOR_W / 2, a1 = pd.along + DOOR_W / 2;
+      var f0 = pd.side === "S" ? [a0, y1] : [x1, a0], fe = pd.side === "S" ? [a1, y1] : [x1, a1];
+      var kp = iso(f0[0] + (fe[0] - f0[0]) * 0.86, f0[1] + (fe[1] - f0[1]) * 0.86, Z + DOOR_H * 0.47);
+      fixed = '<g class="door fixed" data-side="' + pd.side + '" data-along="' + pd.along.toFixed(3) + '">'
+        + '<polyline class="dr-sill" points="' + pts([iso(f0[0], f0[1], Z + 0.5), iso(fe[0], fe[1], Z + 0.5)]) + '"/>'
+        + '<polyline class="dr-frame" points="' + pts([iso(f0[0], f0[1], Z), iso(f0[0], f0[1], Z + DOOR_H), iso(fe[0], fe[1], Z + DOOR_H), iso(fe[0], fe[1], Z)]) + '"/>'
+        + '<polygon class="dr-leaf" points="' + pts([iso(f0[0], f0[1], Z), iso(fe[0], fe[1], Z), iso(fe[0], fe[1], Z + DOOR_H - 2), iso(f0[0], f0[1], Z + DOOR_H - 2)]) + '"/>'
+        + '<circle class="dr-knob" r="1.3" cx="' + kp[0].toFixed(1) + '" cy="' + kp[1].toFixed(1) + '"/></g>';
+    }
+    return '<g class="fglass">' + h + '<g class="doors">' + fixed + '</g></g>';
   }
   /* alles voor één afdeling: wanden (los) en meubels (met dieptesleutel k) */
   function furnish(d) {
     var R = rng(hash(d.name + "|inrichting")), walls = "", items = [], pool = furnPool(d.name), last = "", cnt = {};
     var labels = d.lanes.filter(function (l) { return l.name; }).map(function (l) { return d.y + l.y0 + 0.62; });
     ["W", "N"].forEach(function (side) {
-      var F = wallFrame(d, side), L = F.L, dm = L / 2, door = L >= DOOR_MIN, d0 = door ? dm - DOOR / 2 : dm, d1 = door ? dm + DOOR / 2 : dm;
+      /* 22-10: op de wand van de pijp staat de doorgang op de pijpdeur (i.p.v. in het midden); de rest wijkt */
+      var F = wallFrame(d, side), L = F.L, pu = doorU(d, side), dm = pu != null ? pu : L / 2, door = pu != null || L >= DOOR_MIN, d0 = door ? dm - DOOR / 2 : dm, d1 = door ? dm + DOOR / 2 : dm;
       var start = side === "N" ? WALL_T : 0, end = side === "N" ? L : L - WALL_T, board = null;
       if (side === "N" && /MARKETING/i.test(d.name)) {   /* 17-10: breed schoolbord met het Oordeel van de dag */
         var sgA = door ? [0.12, d0 - 0.1] : [0.12, L - 0.12], sgB = door ? [d1 + 0.1, L - 0.12] : [0, 0];
@@ -1738,7 +1822,7 @@
       });
       if (board) walls += chalkBoardWall(F, board[0], board[1] - board[0]);
       /* deurpost-accenten */
-      if (door) walls += backDoor(F, d0, d1, d);
+      if (door) walls += backDoor(F, d0, d1, d, pu != null);
       (door ? [d0, d1] : []).forEach(function (u) { walls += wbox(F, u - 0.05, u + 0.05, -WALL_T - 0.02, 0.03, SLAB, WALL_H + 2, mix(d.color || "#8aa0b5", "#1b2433", 0.3)); });
       /* meubels langs de wand */
       var segs = door ? [[0.12, d0 - 0.1], [d1 + 0.1, side === "W" ? L - 0.8 : L - 0.12]] : [[0.12, side === "W" ? L - 0.8 : L - 0.12]], placed = [];   /* hoek achter = N-wand */
@@ -1824,7 +1908,14 @@
     var FN = wallFrame(C, "N"), FW = wallFrame(C, "W"), K0 = 0.65, K1 = Math.round(C.w * 0.62 * 10) / 10, B0 = 1.25, B1 = K1 + 0.45;
     var cu0 = FW.L - 3.2, cu1 = FW.L - 2.3;
     /* muren: boven de keuken en de kast geen raam */
-    walls += wallSeg(FN, WALL_T, FN.L, C, [[K0 - 0.15, K1 + 0.15]]) + wallSeg(FW, 0, FW.L - WALL_T, C, [[cu0 - 0.15, cu1 + 0.15]]);
+    /* 22-10: pijpdeur in de N- of W-muur (doorRange houdt hem vrij van keuken, koelkast, bar en klussenkast) */
+    function cWall(F, u0, u1, avoid) {
+      var pu = doorU(C, F.side); if (pu == null) return wallSeg(F, u0, u1, C, avoid);
+      var a = pu - DOOR / 2, b = pu + DOOR / 2, av = avoid.concat([[a - 0.1, b + 0.1]]);
+      return wallSeg(F, u0, a, C, av) + wallSeg(F, b, u1, C, av) + backDoor(F, a, b, C, true)
+        + [a, b].map(function (u) { return wbox(F, u - 0.05, u + 0.05, -WALL_T - 0.02, 0.03, SLAB, WALL_H + 2, mix(C.color, "#1b2433", 0.3)); }).join("");
+    }
+    walls += cWall(FN, WALL_T, FN.L, [[K0 - 0.15, K1 + 0.15]]) + cWall(FW, 0, FW.L - WALL_T, [[cu0 - 0.15, cu1 + 0.15]]);
     /* keuken: onderkasten + stenen werkblad */
     walls += wbox(FN, K0, K1, 0, 0.62, SLAB, 24, "#ece6da") + face(FN, K0, 0.62, SLAB);
     var nd = Math.max(2, Math.round((K1 - K0) / 0.55)), dw = (K1 - K0) / nd;
@@ -1879,6 +1970,7 @@
     /* planten: voorin bij de pui en achterin de hoek */
     [[FW, "palm", 0.35], [FW, "frangi", FW.L - 1.35], [FN, "monstera", K1 + 1.2]].forEach(function (o) {
       var F = o[0], it = FURN[o[1]]; if (o[2] + it.w > F.L - 0.1) return;
+      var pu = doorU(C, F.side); if (pu != null && o[2] < pu + DOOR / 2 + 0.1 && o[2] + it.w > pu - DOOR / 2 - 0.1) return;   /* 22-10: wijkt voor de pijpdeur */
       var mk = F.w(o[2] + it.w / 2, it.d / 2), kk = (mk[0] - x0) + (mk[1] - y0);
       items.push({ k: kk, h: '<g class="pp" data-k="' + kk.toFixed(2) + '">' + drawFurn(F, o[1], o[2], R, C.color) + "</g>" });
     });
@@ -2643,7 +2735,8 @@
       var sd = sides[i], gap = GAPS[gi], b;
       if (sd === "S") { var ax = Math.min(d.x + d.w - 0.9, Math.max(d.x + 0.9, d.x + d.w * FR[k])); b = { x: ax - SW / 2, y: d.y + d.d + gap, w: SW, d: SD }; }
       else { var ay = Math.min(d.y + d.d - 0.9, Math.max(d.y + 0.9, d.y + d.d * FR[k])); b = { x: d.x + d.w + gap, y: ay - SD / 2, w: SW, d: SD }; }
-      var clash = rooms().some(function (q) { return overlaps(b, q, 0.4); }) || overlaps(b, S.brain, 0.6)
+      var pdr = d._door, onPipe = pdr && pdr.side === sd && (sd === "S" ? b.x < pdr.along + 1.2 && b.x + b.w > pdr.along - 1.2 : b.y < pdr.along + 1.2 && b.y + b.d > pdr.along - 1.2);   /* 22-10: niet voor de pijpdeur */
+      var clash = onPipe || rooms().some(function (q) { return overlaps(b, q, 0.4); }) || overlaps(b, S.brain, 0.6)
         || taken.some(function (t) { return overlaps(b, t, 0.3); });
       if (!clash) {
         var c = [iso(b.x, b.y, 0), iso(b.x + b.w, b.y, 0), iso(b.x + b.w, b.y + b.d, 0), iso(b.x, b.y + b.d, 0)];
@@ -3854,17 +3947,19 @@
   }
   /* uitgang naar de vloer (17-10): altijd door een deur in de glazen pui (S of E); ligt de poort richting het brein
      aan de achterkant, dan de voorkant die het dichtst bij het brein ligt */
+  /* 22-10: uitgang = de pijpdeur (pipeDoor): daar komt de pijpleiding binnen, ook als die in de achterwand zit */
   function exitOf(d) {
-    var p = d._port, e = 1e-6, side = Math.abs(p[1] - (d.y + d.d)) < e ? "S" : Math.abs(p[0] - (d.x + d.w)) < e ? "E" : null, onPort = !!side;
-    if (!side) side = Math.hypot(d.x + d.w / 2, d.y + d.d) <= Math.hypot(d.x + d.w, d.y + d.d / 2) ? "S" : "E";
-    var x = side === "S" ? Math.min(d.x + d.w - 0.9, Math.max(d.x + WALL + 0.6, onPort ? p[0] : d.x + d.w / 2)) : d.x + d.w;
-    var y = side === "E" ? Math.min(d.y + d.d - 0.9, Math.max(d.y + WALL + 0.6, onPort ? p[1] : d.y + d.d / 2)) : d.y + d.d;
-    return { side: side, x: x, y: y, along: side === "S" ? x : y };
+    var dr = d._door;
+    if (!dr) { pipeDoor(d); dr = d._door; }
+    return { side: dr.side, x: dr.x, y: dr.y, along: dr.along };
   }
   function deskToExit(a, d) {
     var sp = spotOf(a, d), ex = exitOf(d), R = [[sp.start, SLAB], [[sp.ax, sp.start[1]], SLAB]];
-    if (ex.side === "S") R.push([[sp.ax, d.y + d.d - 1.0], SLAB], [[ex.x, d.y + d.d - 1.0], SLAB], [[ex.x, d.y + d.d - 0.25], SLAB], [[ex.x, d.y + d.d + ROUND], 0]);
-    else R.push([[sp.ax, sp.row], SLAB], [[d.x + d.w - 0.4, sp.row], SLAB], [[d.x + d.w - 0.4, ex.y], SLAB], [[d.x + d.w - 0.25, ex.y], SLAB], [[d.x + d.w + ROUND, ex.y], 0]);
+    if (ex.side === "S") R.push([[sp.ax, d.y + d.d - 1.0], SLAB], [[ex.x, d.y + d.d - 1.0], SLAB], [[ex.x, d.y + d.d - 0.25], SLAB]);
+    else if (ex.side === "E") R.push([[sp.ax, sp.row], SLAB], [[d.x + d.w - 0.4, sp.row], SLAB], [[d.x + d.w - 0.4, ex.y], SLAB], [[d.x + d.w - 0.25, ex.y], SLAB]);
+    else if (ex.side === "N") R.push([[sp.ax, d.y + WALK_BACK], SLAB], [[ex.x, d.y + WALK_BACK], SLAB], [[ex.x, d.y + 0.25], SLAB]);
+    else R.push([[sp.ax, sp.row], SLAB], [[d.x + WALK_BACK, sp.row], SLAB], [[d.x + WALK_BACK, ex.y], SLAB], [[d.x + 0.25, ex.y], SLAB]);
+    R.push([outsideDoor(d), 0]);
     return R;
   }
   function ringPath(p, q) {                          /* over de vloer om het brein heen (kortste kant) */
@@ -3878,10 +3973,10 @@
      afdeling naar de pipe -> over de pipe naar het brein -> om het brein (ring) -> over de pipe van de doelafdeling
      -> vlak voor die afdeling zichtbaar buitenom naar de pui -> deur -> naast het bureau. */
   var ROUND = 0.6;                                   /* afstand van de buitenmuur bij het omlopen */
-  function portOut(d) {                              /* waar de pipe de afdeling raakt, op ROUND buiten de muur */
-    var p = d._port, e = 1e-6;
-    var n = Math.abs(p[1] - (d.y + d.d)) < e ? [0, 1] : Math.abs(p[0] - (d.x + d.w)) < e ? [1, 0] : Math.abs(p[1] - d.y) < e ? [0, -1] : [-1, 0];
-    return [p[0] + n[0] * ROUND, p[1] + n[1] * ROUND];
+  function portOut(d) { return outsideDoor(d); }     /* 22-10: pijp en deur vallen samen: net buiten de pijpdeur */
+  function outsideDoor(d) {
+    var ex = exitOf(d);
+    return ex.side === "S" ? [ex.x, d.y + d.d + ROUND] : ex.side === "E" ? [d.x + d.w + ROUND, ex.y] : ex.side === "N" ? [ex.x, d.y - ROUND] : [d.x - ROUND, ex.y];
   }
   /* buitenom rechthoek d (vergroot met ROUND) van a naar b, langs de kortste kant; geeft de tussenhoeken + b */
   function perimeter(d, a, b) {
@@ -3914,16 +4009,33 @@
   /* ---- deuren in de glazen pui (17-10): openen naar buiten, lopen, dicht ---------------------------- */
   var DOOR_W = 0.95;
   function makeDoor(d, side, along) {
-    if (!d || (side !== "S" && side !== "E")) return null;
-    var de = elWorld.querySelector('.dept[data-dept="' + CSS.escape(d.name) + '"]:not(.dcard)'), host = de && de.querySelector(".fglass .doors");
+    if (!d) return null;
+    var de = elWorld.querySelector('.dept[data-dept="' + CSS.escape(d.name) + '"]:not(.dcard)');
+    if (side === "N" || side === "W") {   /* 22-10: pijpdeur in de achterwand: de twee vleugels draaien open (.bdoor.open) */
+      var bd = de && de.querySelector('.walls .bdoor[data-side="' + side + '"]');
+      if (!bd) return null;
+      var users = 0;
+      return { d: d, side: side,
+        open: function () { users++; bd.classList.add("open"); return sleep(REDUCED ? 0 : 380); },
+        close: function () { users = Math.max(0, users - 1); if (!users) bd.classList.remove("open"); return Promise.resolve(); },
+        remove: function () { users = 0; bd.classList.remove("open"); } };
+    }
+    if (side !== "S" && side !== "E") return null;
+    var host = de && de.querySelector(".fglass .doors");
     if (!host) return null;
     var Z = SLAB, a0 = along - DOOR_W / 2, a1 = along + DOOR_W / 2, xw = d.x + d.w, yw = d.y + d.d;
     function P(a, n) { return side === "S" ? [a, yw + n] : [xw + n, a]; }
-    var f0 = P(a0, 0), f1p = P(a1, 0), g = document.createElementNS(SVG_NS, "g");
-    g.setAttribute("class", "door");
-    g.innerHTML = '<polyline class="dr-frame" points="' + pts([iso(f0[0], f0[1], Z), iso(f0[0], f0[1], Z + DOOR_H), iso(f1p[0], f1p[1], Z + DOOR_H), iso(f1p[0], f1p[1], Z)]) + '"/>'
-      + '<polygon class="dr-leaf"/><circle class="dr-knob" r="1.3"/>';
-    host.appendChild(g);
+    var f0 = P(a0, 0), f1p = P(a1, 0), g = null, fixed = false;
+    /* 22-10: valt hij samen met de vaste pijpdeur, dan die gebruiken (en bij remove alleen weer dichtdoen) */
+    var fx = host.querySelectorAll('.door.fixed[data-side="' + side + '"]');
+    for (var fi = 0; fi < fx.length; fi++) if (Math.abs(parseFloat(fx[fi].getAttribute("data-along")) - along) < 0.05) { g = fx[fi]; fixed = true; }
+    if (!g) {
+      g = document.createElementNS(SVG_NS, "g");
+      g.setAttribute("class", "door");
+      g.innerHTML = '<polyline class="dr-frame" points="' + pts([iso(f0[0], f0[1], Z), iso(f0[0], f0[1], Z + DOOR_H), iso(f1p[0], f1p[1], Z + DOOR_H), iso(f1p[0], f1p[1], Z)]) + '"/>'
+        + '<polygon class="dr-leaf"/><circle class="dr-knob" r="1.3"/>';
+      host.appendChild(g);
+    }
     var leaf = g.querySelector(".dr-leaf"), knob = g.querySelector(".dr-knob"), ang = 0;
     function set(t) {
       ang = t;
@@ -3943,7 +4055,8 @@
         })(t0);
       });
     }
-    return { d: d, side: side, open: function () { return anim(Math.PI * 0.47, 420); }, close: function () { return anim(0, 520); }, remove: function () { g.remove(); } };
+    return { d: d, side: side, open: function () { return anim(Math.PI * 0.47, 420); }, close: function () { return anim(0, 520); },
+      remove: function () { if (fixed) set(0); else g.remove(); } };
   }
   function insideRect(p, d) { return p[0] > d.x + 1e-6 && p[0] < d.x + d.w - 1e-6 && p[1] > d.y + 1e-6 && p[1] < d.y + d.d - 1e-6; }
   /* lopen langs rt; waar de route de pui van een deur kruist: tot vlak voor de deur, deur open, erdoor, deur dicht */
@@ -3952,7 +4065,8 @@
     for (var i = 0; i < rt.length - 1; i++) for (var j = 0; j < doors.length; j++) {
       var dr = doors[j], d = dr.d, a = rt[i], b = rt[i + 1];
       if (insideRect(a[0], d) === insideRect(b[0], d)) continue;
-      var t = dr.side === "S" ? (d.y + d.d - a[0][1]) / ((b[0][1] - a[0][1]) || 1e-9) : (d.x + d.w - a[0][0]) / ((b[0][0] - a[0][0]) || 1e-9);
+      var wy = dr.side === "S" ? d.y + d.d : dr.side === "N" ? d.y : null, wx = dr.side === "E" ? d.x + d.w : dr.side === "W" ? d.x : null;
+      var t = wy != null ? (wy - a[0][1]) / ((b[0][1] - a[0][1]) || 1e-9) : (wx - a[0][0]) / ((b[0][0] - a[0][0]) || 1e-9);
       t = Math.max(0, Math.min(1, t));
       var seg = Math.hypot(b[0][0] - a[0][0], b[0][1] - a[0][1]) || 1, inward = insideRect(a[0], d);
       var ti = Math.max(0, t - (inward ? 0.4 : 0.75) / seg), to = Math.min(1, t + (inward ? 0.75 : 0.4) / seg);
@@ -3992,12 +4106,14 @@
     var C = S.canteen;
     return C && C._port && C._cab && elWorld.querySelector('.dept.room[data-dept="' + CSS.escape(C.name) + '"]') ? C : null;
   }
-  function outsideDoor(d) { var ex = exitOf(d); return ex.side === "S" ? [ex.x, d.y + d.d + ROUND] : [d.x + d.w + ROUND, ex.y]; }
-  /* van buiten de deur van de kantine naar punt tg binnen (via een vrije baan langs de pui, dan naar de bar-rij) */
+  /* van buiten de deur van de kantine naar punt tg binnen (via een vrije baan langs de wand, dan naar de bar-rij);
+     22-10: de deur is de pijpdeur, meestal in de N- of W-muur */
   function roomIn(C, tg) {
     var ex = exitOf(C), R = [[outsideDoor(C), 0]];
     if (ex.side === "S") R.push([[ex.x, C.y + C.d - 0.25], SLAB], [[ex.x, C.y + C.d - 0.6], SLAB], [[ex.x, tg[1]], SLAB]);
-    else R.push([[C.x + C.w - 0.25, ex.y], SLAB], [[C.x + C.w - 0.6, ex.y], SLAB], [[C.x + C.w - 0.6, tg[1]], SLAB]);
+    else if (ex.side === "E") R.push([[C.x + C.w - 0.25, ex.y], SLAB], [[C.x + C.w - 0.6, ex.y], SLAB], [[C.x + C.w - 0.6, tg[1]], SLAB]);
+    else if (ex.side === "N") R.push([[ex.x, C.y + 0.25], SLAB], [[ex.x, tg[1]], SLAB]);
+    else R.push([[C.x + 0.25, ex.y], SLAB], [[C.x + 1.0, ex.y], SLAB], [[C.x + 1.0, tg[1]], SLAB]);
     R.push([tg, SLAB]);
     return R;
   }
