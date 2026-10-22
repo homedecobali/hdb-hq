@@ -197,6 +197,13 @@ a{color:inherit}
 /* ?id= op een ingeplande/tegengehouden organic post (opt-out pijplijn) */
 .review .frame .lb-slides{padding:10px 10px 6px}
 .review .frame .lb-meta{padding:2px 12px 10px}
+/* ?id= op een nieuwsbrief/mailing: mail inline met taal-tabs */
+.review.mail{max-width:680px}
+.review .frame.mailbox{background:var(--panel);padding:10px}
+.review .frame.mailbox .lb-links{margin:0 0 10px}
+.review .frame.mailbox .lb-links a.on{border-color:var(--accent);color:#fff}
+.review .frame.mailbox .mailframe{height:70vh;max-height:none}
+.review .mailsubj{white-space:pre-wrap;font-size:12.5px;color:var(--muted);margin:10px 2px 0}
 .pstat{margin:12px 2px 0;font-size:14px;font-weight:600;color:var(--txt)}
 .pstat.sched{color:var(--stills)}
 .pstat.held{color:var(--no)}
@@ -877,6 +884,7 @@ function renderApproval(){
     stage.innerHTML=`<div class="state"><div class="ico">✓</div><h2>Niet meer in de pijplijn</h2>
       <p>Al gepost, afgekeurd of verlopen. <a class="nav" href="social-studio.html">→ naar het naslagwerk</a></p></div>`; return; }
   countEl.textContent='1 goedkeuring';
+  if(isMail(p)){ renderMailApproval(p); return; }
   const isVid=p.media_type==='video'&&p.video_url;
   const cov=isVid?null:(carouselCover(p.carousel_json)||p.image_url);
   const media=isVid?`<video src="${esc(p.video_url)}" controls playsinline></video>`
@@ -892,6 +900,37 @@ function renderApproval(){
     </div>
     <div class="state" style="padding:22px 0 0"><p style="font-size:12px">Goedkeuring geldt voor Meta / Merchant. Organic social loopt automatisch — zie het <a class="nav" href="social-studio.html">naslagwerk</a>.</p></div>
   </div>`;
+  document.getElementById('btnUp').onclick=()=>decideSingle('approve');
+  document.getElementById('btnDown').onclick=()=>decideSingle('skip');
+}
+// ?id= op een nieuwsbrief/mailing: toon de mail zelf (taal-tabs) i.p.v. een beeld-placeholder.
+function renderMailApproval(p){
+  const cre=(Array.isArray(p.mail_creative)?p.mail_creative:[]).filter(c=>c&&c.html);
+  stage.innerHTML=`<div class="review mail">
+    <div class="frame mailbox" id="apMail"></div>
+    <div class="ctitle">${esc(p.title||p.origin_label||'Nieuwsbrief')}</div>
+    <div class="cmeta">${esc(p.kind||'')}${p.origin_label&&p.origin_label!==p.title?' · '+esc(p.origin_label):''}</div>
+    ${p.preview?`<div class="mailsubj">${esc(p.preview)}</div>`:''}
+    <div class="thumbs">
+      <button class="tbtn up" id="btnUp" title="Goedkeuren">👍</button>
+      <button class="tbtn down" id="btnDown" title="Afkeuren">👎</button>
+    </div>
+    <div class="state" style="padding:22px 0 0"><p style="font-size:12px">Goedkeuren = mailing gaat naar verzending. Niets doen = vervalt.</p></div>
+  </div>`;
+  const box=document.getElementById('apMail');
+  if(cre.length){
+    const tabs=document.createElement('div'); tabs.className='lb-links';
+    const frame=document.createElement('iframe'); frame.className='mailframe';
+    frame.setAttribute('sandbox','allow-same-origin'); frame.setAttribute('title','mail-preview');
+    const show=k=>{ frame.srcdoc=cre[k].html||''; [...tabs.children].forEach((a,j)=>a.classList.toggle('on',j===k)); };
+    cre.forEach((c,k)=>{ const a=document.createElement('a'); a.href='#';
+      a.textContent=(c.lang?String(c.lang).toUpperCase():'')||langOf(c.html)||('Variant '+(k+1));
+      a.onclick=e=>{e.preventDefault();show(k);}; tabs.appendChild(a); });
+    if(cre.length>1) box.appendChild(tabs);
+    box.appendChild(frame); show(0);
+  } else {
+    box.innerHTML='<div class="noimg" style="aspect-ratio:auto;padding:40px 0;font-size:14px">Geen mail-preview beschikbaar.</div>';
+  }
   document.getElementById('btnUp').onclick=()=>decideSingle('approve');
   document.getElementById('btnDown').onclick=()=>decideSingle('skip');
 }
