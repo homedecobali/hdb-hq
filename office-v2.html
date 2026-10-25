@@ -164,6 +164,13 @@
   - SOCIAL: drie grote posters (4:5) met productfoto's = de best bereikte beeldposts (v_dewi_feed media_type=image,
     eigen query -> FX.posters; .wof.poster, faalt een beeld dan de volgende). Niets ervoor, geen raam erboven.
   - Kantine: waterdispenser (FURN cooler + bekertjeshouder) aan de W-muur tussen palm en klussenkast.
+  25-10 (2):
+  - Looppaden i.p.v. datapijpen: pipeInner tekent een stenen pad (PATH_W 1,9 cel) van het plein om het brein
+    (plazaInner, PLAZA_R) tot de pijpdeur, lichtranden in de afdelingskleur, lopende lichtjes in het midden (snelheid =
+    runs 24 u). Zelfde middellijn als de oude pijp: lopers volgen hem, powerballen vliegen erboven (fireBall z 10-14).
+  - Indeling compacter: vier compacteer-rondes in stappen van 1,5% en per eiland ook ±0,1/0,2 rad opzij draaien.
+  - Kantine = GEEN afdeling: houten vlonder (planken), houten randen, neonbord "☕ KANTINE · PAUZE · GEEN AFDELING"
+    in de kaartlaag (canteenSign, CSIGN_*; telt mee in screenBoxOf/computeFit), pad zonder lichtjes, gestippelde rand.
 -->
 <html lang="nl">
 <head>
@@ -279,8 +286,16 @@
   .ground-tex{opacity:.9}
   .grid{stroke:#0e1521;stroke-width:1}
   /* 17-10: kantine */
-  .room .ct-floor{fill:color-mix(in srgb,#e0a458 14%,#151b24)}
-  .room .ct-tile{stroke:#000;stroke-opacity:.18;stroke-width:.7}
+  /* 25-10: kantine is GEEN afdeling — houten vlonder, houten randen, eigen neonbord i.p.v. een kaartje */
+  .room .ct-floor{fill:#8a6243}
+  .room .ct-tile{stroke:#3a2416;stroke-opacity:.45;stroke-width:.7}
+  .room .cslab .slab-l{fill:#5a3d28}.room .cslab .slab-r{fill:#4a3220}
+  .room .cslab .slab-lip{stroke:#ffcf8a;stroke-opacity:.5}
+  .csign{pointer-events:none}
+  .csign .cs-bg{fill:#1b140f;fill-opacity:.95;stroke:#ffb35c;stroke-width:1.8}
+  .csign .cs-t{font:800 22px "Segoe UI",system-ui,sans-serif;fill:#ffd9a0;letter-spacing:3px;filter:drop-shadow(0 0 4px #ff9a3d)}
+  .csign .cs-s{font:700 9.5px "Segoe UI",system-ui,sans-serif;fill:#e0a458;letter-spacing:2.4px}
+  .csign .stem{stroke:#ffb35c;stroke-opacity:.55;stroke-width:1.2;stroke-dasharray:2 2}
   .neon .neon-bg{fill:#1b140f;stroke:#ffb35c;stroke-width:1.3}
   .neon text{font:800 11px "Segoe UI",system-ui,sans-serif;fill:#ffd9a0;letter-spacing:1.4px;filter:drop-shadow(0 0 3px #ff9a3d)}
   .tc-lbl{font:800 5.4px "Segoe UI",system-ui,sans-serif;fill:#2a2a2a;letter-spacing:.3px}
@@ -336,7 +351,18 @@
   .card .fv{font:700 11.5px "Segoe UI",system-ui,sans-serif;fill:#fff;font-variant-numeric:tabular-nums}
   .card .fv.d{fill:var(--c)}
 
-  /* datapijpen Brain -> afdeling */
+  /* 25-10: looppaden Brain -> afdeling (vervangen de datapijpen): brede stenen paden met lichtranden in de
+     afdelingskleur en lopende lichtjes in het midden; agents lopen eroverheen, powerballen vliegen erboven */
+  .walk-base{fill:#2a3242;stroke:#0a0f17;stroke-width:1.2;stroke-linejoin:round}
+  .walk-tex{fill:url(#pGround);opacity:.35}
+  .walk-tile{stroke:#000;stroke-opacity:.28;stroke-width:.8}
+  .walk-edge{fill:none;stroke:var(--c);stroke-width:1.6;stroke-opacity:.75;stroke-linecap:round}
+  .walk-flow{fill:none;stroke:var(--c);stroke-width:2.2;stroke-linecap:round;stroke-dasharray:2 14;animation:flow var(--t,6s) linear infinite;opacity:.85}
+  .walk-flow.quiet{opacity:.22;animation-duration:calc(var(--t,6s)*3)}
+  .plaza-base{fill:#2a3242;stroke:#0a0f17;stroke-width:1.2}
+  .plaza-ring{fill:none;stroke:#00d4ff;stroke-opacity:.45;stroke-width:1.4;stroke-dasharray:4 6}
+  .pipe.room .walk-edge{stroke-dasharray:5 5;stroke-opacity:.55}
+  /* oude datapijpen (niet meer getekend) */
   .pipe-base{fill:none;stroke:#0d1522;stroke-width:7;stroke-linecap:round}
   .pipe-edge{fill:none;stroke:color-mix(in srgb,var(--c) 30%,#0d1522);stroke-width:5;stroke-linecap:round}
   .pipe-core{fill:none;stroke:color-mix(in srgb,var(--c) 40%,transparent);stroke-width:1.2}
@@ -1052,7 +1078,7 @@
   /* Schermrechthoek van platform + zwevend kaartje: [links, boven, rechts, onder]. */
   function screenBoxOf(d) {
     var a = iso(d.x, d.y + d.d, 0), b = iso(d.x + d.w, d.y, 0), t = iso(d.x, d.y, SLAB), u = iso(d.x + d.w, d.y + d.d, 0);
-    if (d.room) return [a[0], t[1] - WALL_H - 24, b[0], u[1] + 8];   /* kantine: geen zwevend kaartje */
+    if (d.room) { var sx = iso(d.x + d.w * 0.35, d.y, SLAB)[0]; return [Math.min(a[0], sx - CSIGN_W / 2), t[1] - CSIGN_LIFT - CSIGN_H - 6, Math.max(b[0], sx + CSIGN_W / 2), u[1] + 8]; }   /* kantine: neonbord i.p.v. kaartje */
     var cw = cardWidth(d) / 2;
     return [Math.min(a[0], t[0] - cw), t[1] - CARD_LIFT - cardHeight(d), Math.max(b[0], t[0] + cw), u[1] + 8];
   }
@@ -1097,10 +1123,19 @@
     }
     function placeAt(d, cx, cy) { var w = unIso(cx, cy); d.x = w[0] - d.w / 2; d.y = w[1] - d.d / 2; d._sc = [cx, cy]; d._sb = screenBoxOf(d); }
     var order = LST.map(function (d, i) { return i; }).sort(function (a, b) { return (LST[b].w * LST[b].d) - (LST[a].w * LST[a].d); });
-    for (var pass = 0; pass < 2; pass++) order.forEach(function (i) {
-      var d = LST[i], base = d._sc.slice(), best = 1;
-      for (var t = 0.97; t >= 0.35; t -= 0.03) { placeAt(d, base[0] * t, base[1] * t); if (clashFree(i)) best = t; else break; }
-      placeAt(d, base[0] * best, base[1] * best);
+    /* 25-10: compacter — fijnere stappen, vier rondes, en per eiland ook een klein stukje opzij draaien
+       (±6°/12°) als recht naar binnen iets raakt; Rick: genoeg ruimte voor de looppaden, niet meer. */
+    for (var pass = 0; pass < 4; pass++) order.forEach(function (i) {
+      var d = LST[i], base = d._sc.slice(), bestP = base, bestR = Math.hypot(base[0], base[1]);
+      [0, 0.1, -0.1, 0.2, -0.2].forEach(function (da) {
+        var ca = Math.cos(da), sa = Math.sin(da), bx = base[0] * ca - base[1] * sa, by = base[0] * sa + base[1] * ca;
+        for (var t = 1; t >= 0.3; t -= 0.015) {
+          placeAt(d, bx * t, by * t);
+          if (!clashFree(i)) break;
+          var r = Math.hypot(bx * t, by * t); if (r < bestR - 0.5) { bestR = r; bestP = [bx * t, by * t]; }
+        }
+      });
+      placeAt(d, bestP[0], bestP[1]);
     });
     S.brain = brain;
     S.depts.forEach(function (d) {
@@ -1384,14 +1419,31 @@
   }
   function stColor(k) { return { working: "#00d4ff", ok: "#3ee08f", error: "#ff5d5d", silent: "#ffb547", paused: "#8aa0b5", idle: "#3a4a5c" }[k] || "#8aa0b5"; }
 
+  /* 25-10: breed looppad van het plein om het brein tot aan de pijpdeur (PATH_W cellen breed). Zelfde lijn als
+     voorheen de pijp: lopers volgen het midden, powerballen vliegen erboven. Tegelnaden dwars op het pad. */
+  var PATH_W = 1.9, PLAZA_R = BRAIN / 2 + 2.3;
   function pipeInner(d) {
-    var a = iso(0, 0, 0), b = iso(d._port[0], d._port[1], 0);
+    var P = d._port, L = Math.hypot(P[0], P[1]) || 1, ux = P[0] / L, uy = P[1] / L, nx = -uy * PATH_W / 2, ny = ux * PATH_W / 2;
+    var A = [ux * (PLAZA_R - 0.4), uy * (PLAZA_R - 0.4)], B = [P[0] + ux * 0.15, P[1] + uy * 0.15];
     var s = deptStats(d), t = Math.max(1.6, Math.min(10, 10 - Math.log10(1 + s.runs) * 3.2));
-    var ln = 'x1="' + f1(a[0]) + '" y1="' + f1(a[1]) + '" x2="' + f1(b[0]) + '" y2="' + f1(b[1]) + '"';
-    return '<line class="pipe-base" ' + ln + "/>"
-      + '<line class="pipe-edge" ' + ln + "/>"
-      + '<line class="pipe-core" ' + ln + "/>"
-      + '<line class="pipe-flow' + (s.runs ? "" : " quiet") + '" style="--t:' + t.toFixed(1) + 's" ' + ln + "/>";
+    var poly = pts([iso(A[0] + nx, A[1] + ny), iso(B[0] + nx, B[1] + ny), iso(B[0] - nx, B[1] - ny), iso(A[0] - nx, A[1] - ny)]);
+    var h = '<polygon class="walk-base" points="' + poly + '"/><polygon class="walk-tex" points="' + poly + '"/>';
+    for (var k = 0.8; k < L - PLAZA_R; k += 0.8) {
+      var m = [A[0] + ux * k, A[1] + uy * k], p1 = iso(m[0] + nx, m[1] + ny), p2 = iso(m[0] - nx, m[1] - ny);
+      h += '<line class="walk-tile" x1="' + f1(p1[0]) + '" y1="' + f1(p1[1]) + '" x2="' + f1(p2[0]) + '" y2="' + f1(p2[1]) + '"/>';
+    }
+    var e = function (sg, cls, extra) {
+      var a = iso(A[0] + nx * sg, A[1] + ny * sg), b = iso(B[0] + nx * sg, B[1] + ny * sg);
+      return '<line class="' + cls + '"' + (extra || "") + ' x1="' + f1(a[0]) + '" y1="' + f1(a[1]) + '" x2="' + f1(b[0]) + '" y2="' + f1(b[1]) + '"/>';
+    };
+    return h + e(0.9, "walk-edge") + e(-0.9, "walk-edge")
+      + (d.room ? "" : e(0, "walk-flow" + (s.runs ? "" : " quiet"), ' style="--t:' + t.toFixed(1) + 's"'));
+  }
+  /* 25-10: rond plein om het brein waar alle looppaden op uitkomen (de ring van de lopers ligt erop) */
+  function plazaInner() {
+    var a, ring = [], rim = [];
+    for (var i = 0; i < 64; i++) { a = i / 64 * Math.PI * 2; ring.push(iso(PLAZA_R * Math.cos(a), PLAZA_R * Math.sin(a))); rim.push(iso((BRAIN / 2 + 1.5) * Math.cos(a), (BRAIN / 2 + 1.5) * Math.sin(a))); }
+    return '<polygon class="plaza-base" points="' + pts(ring) + '"/><polygon class="walk-tex" points="' + pts(ring) + '"/><polygon class="plaza-ring" points="' + pts(rim) + '"/>';
   }
 
   /* Brain = gerenderde sprite (platform + lichtpilaar); de ademende halo eromheen blijft code zodat hij
@@ -1959,6 +2011,16 @@
   /* 17-10: de kantine — zelfde platform, muren (met een paar ramen) en glazen pui als een afdeling; achterin een
      keuken met koffiemachines, ervoor een bar waar het overleg plaatsvindt; in de zaal alleen hoge statafels; aan de
      W-wand de gereedschapskast van de klusjesman (C._cab = sta-plek ervoor). Geen klik/focus: de vloer heet .cslab. */
+  /* 25-10: neonbord boven de kantine (kaartlaag) — maakt duidelijk dat dit geen afdeling is */
+  var CSIGN_K = 1.7, CSIGN_W = 236 * CSIGN_K, CSIGN_H = 62 * CSIGN_K, CSIGN_LIFT = WALL_H + 34;
+  function canteenSign(C) {
+    var tp = iso(C.x + C.w * 0.35, C.y, SLAB);
+    return '<g class="csign" transform="translate(' + f1(tp[0]) + "," + f1(tp[1] - CSIGN_LIFT) + ')">'
+      + '<line class="stem" x1="0" y1="0" x2="0" y2="' + (CSIGN_LIFT - 40) + '"/>'
+      + '<g transform="scale(' + CSIGN_K + ')"><rect class="cs-bg" x="-118" y="-62" width="236" height="62" rx="14"/>'
+      + '<text class="cs-t" x="0" y="-32" text-anchor="middle">\u2615 KANTINE</text>'
+      + '<text class="cs-s" x="0" y="-13" text-anchor="middle">PAUZE · GEEN AFDELING</text></g></g>';
+  }
   function canteenG(C) {
     var x0 = C.x, y0 = C.y, x1 = C.x + C.w, y1 = C.y + C.d, R = rng(hash("kantine|inrichting")), h = "", walls = "", items = [], i, x;
     var cc = iso((x0 + x1) / 2, (y0 + y1) / 2, 0);
@@ -1968,8 +2030,9 @@
       + '<polygon class="slab-r" points="' + pts([iso(x1, y1, SLAB), iso(x1, y0, SLAB), iso(x1, y0), iso(x1, y1)]) + '"/>';
     var topPoly = pts([iso(x0, y0, SLAB), iso(x1, y0, SLAB), iso(x1, y1, SLAB), iso(x0, y1, SLAB)]);
     h += '<polygon class="ct-floor" points="' + topPoly + '"/>';
-    for (x = x0 + 1; x < x1 - 0.01; x += 1) { var a1 = iso(x, y0, SLAB), b1 = iso(x, y1, SLAB); h += '<line class="ct-tile" x1="' + f1(a1[0]) + '" y1="' + f1(a1[1]) + '" x2="' + f1(b1[0]) + '" y2="' + f1(b1[1]) + '"/>'; }
-    for (x = y0 + 1; x < y1 - 0.01; x += 1) { var a2 = iso(x0, x, SLAB), b2 = iso(x1, x, SLAB); h += '<line class="ct-tile" x1="' + f1(a2[0]) + '" y1="' + f1(a2[1]) + '" x2="' + f1(b2[0]) + '" y2="' + f1(b2[1]) + '"/>'; }
+    /* 25-10: houten vlonder — planken in één richting met verspringende kopse naden */
+    for (x = y0 + 0.36; x < y1 - 0.01; x += 0.36) { var a2 = iso(x0, x, SLAB), b2 = iso(x1, x, SLAB); h += '<line class="ct-tile" x1="' + f1(a2[0]) + '" y1="' + f1(a2[1]) + '" x2="' + f1(b2[0]) + '" y2="' + f1(b2[1]) + '"/>'; }
+    for (x = y0, i = 0; x < y1 - 0.01; x += 0.36, i++) for (var px2 = x0 + (i % 3) * 0.9 + 0.6; px2 < x1 - 0.2; px2 += 2.7) { var a1 = iso(px2, x, SLAB), b1 = iso(px2, Math.min(y1, x + 0.36), SLAB); h += '<line class="ct-tile" x1="' + f1(a1[0]) + '" y1="' + f1(a1[1]) + '" x2="' + f1(b1[0]) + '" y2="' + f1(b1[1]) + '"/>'; }
     h += '<polygon class="slab-top" fill="none" points="' + topPoly + '"/><polyline class="slab-lip" points="' + pts([iso(x0, y1, SLAB), iso(x1, y1, SLAB), iso(x1, y0, SLAB)]) + '"/>';
     var pp = iso(x0 + 0.3, y1, 0);
     h += '<text class="plate" transform="matrix(.894,.447,0,1,' + f1(pp[0]) + "," + f1(pp[1] - 6.5) + ')">KANTINE</text></g>';
@@ -2096,8 +2159,9 @@
 
     /* laag 1: pijpen op de vloer (onder alles) */
     rooms().forEach(function (d) {
-      h += '<g class="pipe" data-pipe="' + esc(d.name) + '" style="--c:' + esc(d.color) + '">' + pipeInner(d) + "</g>";
+      h += '<g class="pipe' + (d.room ? " room" : "") + '" data-pipe="' + esc(d.name) + '" style="--c:' + esc(d.color) + '">' + pipeInner(d) + "</g>";
     });
+    h += '<g class="plaza">' + plazaInner() + "</g>";
 
     /* laag 2: platforms + bureaus + Brain, van achter naar voor */
     var cards = "";
@@ -2108,7 +2172,7 @@
     var di = 0;
     items.forEach(function (it) {
       if (it.brain) { h += '<g class="brain" style="--i:' + (di++) + '">' + brainInner() + "</g>"; return; }
-      if (it.room) { h += canteenG(it.room); return; }
+      if (it.room) { h += canteenG(it.room); cards += canteenSign(it.room); return; }
       var d = it.d, x0 = d.x, y0 = d.y, x1 = d.x + d.w, y1 = d.y + d.d;
       h += '<g class="dept" data-dept="' + esc(d.name) + '" style="--c:' + esc(d.color) + ";--i:" + (di++) + '">';
       var cc = iso((x0 + x1) / 2, (y0 + y1) / 2, 0);
@@ -2238,8 +2302,9 @@
     ys.push(iso(0, 0, 0)[1] - LIVE_LIFT - LIVE_H - 10);   /* bovenkant van het zwevende brein */
     var C = S.canteen;
     if (C && C._port) [iso(C.x, C.y, SLAB + WALL_H + 10), iso(C.x + C.w, C.y, SLAB), iso(C.x + C.w, C.y + C.d, 0), iso(C.x, C.y + C.d, 0)].forEach(function (p) { xs.push(p[0]); ys.push(p[1]); });
+    if (C && C._sb) { xs.push(C._sb[0], C._sb[2]); ys.push(C._sb[1]); }   /* 25-10: neonbord */
     var x0 = Math.min.apply(null, xs), x1 = Math.max.apply(null, xs), y0 = Math.min.apply(null, ys), y1 = Math.max.apply(null, ys);
-    S.fitBox = boxFor([[x0 - 24, y0 - 20], [x1 + 24, y1 + 24]], 0);
+    S.fitBox = boxFor([[x0 - 24, y0 - 20], [x1 + 24, y1 + 70]], 0);   /* 25-10: onderaan ruimte voor schaduw + hint */
     var bs = $("brainSub"); if (bs) bs.textContent = brainSub();
   }
   function viewScale() { /* viewBox-eenheden per schermpixel (meet) */
@@ -2339,7 +2404,7 @@
     if (document.hidden) return;
     var a = S.byId[id], d = at ? at.d : (a && deptOf(a)), p0 = at ? at.p : (a && a._p);
     if (!a || !d || !p0 || !d._port) return;
-    var c = iso(0, 0, 0), ps = iso(d._port[0], d._port[1], SLAB), pf = iso(d._port[0], d._port[1], 0);
+    var c = iso(0, 0, 0), ps = iso(d._port[0], d._port[1], SLAB + 10), pf = iso(d._port[0], d._port[1], 14);   /* 25-10: boven het looppad */
     var pts = [[p0[0], p0[1] - 30], [p0[0], p0[1] - 6], ps, pf, [c[0], c[1] - 20], [c[0], c[1] - LIVE_LIFT - LIVE_H * 0.42]];
     var segs = [], tot = 0;
     for (var i = 1; i < pts.length; i++) { var l = Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]); segs.push(l); tot += l; }
