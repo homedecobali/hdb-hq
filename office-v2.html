@@ -161,8 +161,8 @@
     bureau (setOwnPose) en bij reduced motion stil.
   - Afdelingskaartjes x CARD_K (2,2) groter: cardWidth/cardHeight geven de geschaalde maat (layout, fit, zoom),
     cardInner tekent op de oude maat in een scale-groep.
-  - SOCIAL: drie grote posters (4:5) met de best bereikte posts aan de langste achtermuur (socialPosters; vult
-    updateFame via .wof.poster, eerst de toppers; de wall-of-fame-lijstjes schuiven door). Niets ervoor, geen raam erboven.
+  - SOCIAL: drie grote posters (4:5) met productfoto's = de best bereikte beeldposts (v_dewi_feed media_type=image,
+    eigen query -> FX.posters; .wof.poster, faalt een beeld dan de volgende). Niets ervoor, geen raam erboven.
   - Kantine: waterdispenser (FURN cooler + bekertjeshouder) aan de W-muur tussen palm en klussenkast.
 -->
 <html lang="nl">
@@ -3894,10 +3894,11 @@
     if (video) u = u.replace(/\.(mp4|mov|webm|m4v)(\?.*)?$/i, ".jpg");
     return u;
   }
-  /* 25-10: staande uitsnede (4:5) voor de SOCIAL-posters */
+  /* 25-10: staande uitsnede (4:5) voor de SOCIAL-posters. Geen g_auto (gaf lege posters); alleen beeldposts
+     (productfoto's), de best bereikte eerst — reels leveren geen productbeeld. */
   function posterThumb(u, video) {
     var t = fameThumb(u, video);
-    return /res\.cloudinary\.com/.test(String(u || "")) ? t.replace("c_fill,w_220,h_220", "c_fill,g_auto,w_400,h_500") : t;
+    return /res\.cloudinary\.com/.test(String(u || "")) ? t.replace("c_fill,w_220,h_220", "c_fill,w_400,h_500") : t;
   }
   function loadFame() {
     var since = new Date(Date.now() - 60 * 864e5).toISOString();
@@ -3907,25 +3908,50 @@
       (rows || []).forEach(function (r) {
         var vid = /video/i.test(r.media_type || "") || /\.(mp4|mov|webm|m4v)(\?|$)/i.test(r.media_url || "");
         var u = fameThumb(r.media_url, vid); if (!u || seenU[u]) return; seenU[u] = 1;
-        list.push({ u: u, p: posterThumb(r.media_url, vid), t: (r.title || "Post") + " · bereik " + (Number(r.reach) || 0).toLocaleString("nl-NL") + (r.views ? " · " + Number(r.views).toLocaleString("nl-NL") + " views" : "") + " · " + abs(r.posted_at).slice(0, 5) });
+        list.push({ u: u, t: (r.title || "Post") + " · bereik " + (Number(r.reach) || 0).toLocaleString("nl-NL") + (r.views ? " · " + Number(r.views).toLocaleString("nl-NL") + " views" : "") + " · " + abs(r.posted_at).slice(0, 5) });
       });
-      FX.fame = list.slice(0, 16); FX.fameRaw = rows || []; updateFame();
+      FX.fame = list.slice(0, 16); updateFame();
+    }, function () {});
+    rest("v_dewi_feed?select=title,media_type,media_url,reach,posted_at&posted_at=gte." + encodeURIComponent(since)
+      + "&media_url=not.is.null&media_type=eq.image&order=reach.desc.nullslast&limit=12").then(function (rows) {
+      var list = [], seenU = {};
+      (rows || []).forEach(function (r) {
+        var u = posterThumb(r.media_url, false); if (!u || seenU[u]) return; seenU[u] = 1;
+        list.push({ u: u, t: (r.title || "Post") + " · bereik " + (Number(r.reach) || 0).toLocaleString("nl-NL") + " · " + abs(r.posted_at).slice(0, 5) });
+      });
+      FX.posters = list; updateFame();
     }, function () {});
   }
   function updateFame() {
-    var imgs = elWorld.querySelectorAll(".wof"), L = FX.fame;
-    if (!L.length) return;
-    var np = FX.posterSlots || 0;
+    var imgs = elWorld.querySelectorAll(".wof"), L = FX.fame || [], PL = FX.posters || [];
     Array.prototype.forEach.call(imgs, function (im) {
-      /* 25-10: posters (SOCIAL) krijgen de toppers in staand formaat; de lijstjes schuiven door */
-      var ps = im.getAttribute("data-pslot"), it = ps != null ? L[Number(ps) % L.length] : L[(Number(im.getAttribute("data-slot")) + np) % L.length];
-      if (ps != null && it.p) it = { u: it.p, t: it.t };
+      var ps = im.getAttribute("data-pslot");
+      if (ps != null) {
+        /* 25-10: SOCIAL-posters = productfoto's (beeldposts op bereik); lukt een beeld niet, dan de volgende */
+        if (!PL.length) return;
+        var np = Math.max(1, FX.posterSlots || 1), own = PL.filter(function (x, j) { return j % np === Number(ps) % np; });   /* eigen rij eerst: geen dubbele bij een fout */
+        var cand = own.concat(PL.filter(function (x) { return own.indexOf(x) < 0; }));
+        if (im._pk === cand[0].u) return;
+        im._pk = cand[0].u;
+        var i = 0, tryNext = function () {
+          var it = cand[i++]; if (!it) { im.setAttribute("visibility", "hidden"); return; }
+          im.setAttribute("visibility", "hidden");
+          im.onload = function () { im.setAttribute("visibility", "visible"); };
+          im.onerror = tryNext;
+          im.setAttribute("href", it.u);
+          var tl = im.querySelector("title"); if (tl) tl.textContent = "Top-post · " + it.t;
+        };
+        tryNext();
+        return;
+      }
+      if (!L.length) return;
+      var it = L[Number(im.getAttribute("data-slot")) % L.length];
       if (im.getAttribute("href") === it.u) return;
       im.setAttribute("visibility", "hidden");
       im.onload = function () { im.setAttribute("visibility", "visible"); };
       im.onerror = function () { im.setAttribute("visibility", "hidden"); };
       im.setAttribute("href", it.u);
-      var tl = im.querySelector("title"); if (tl) tl.textContent = (ps != null ? "Top-post · " : "Wall of fame · ") + it.t;
+      var tl = im.querySelector("title"); if (tl) tl.textContent = "Wall of fame · " + it.t;
     });
   }
 
