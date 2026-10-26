@@ -183,7 +183,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
   :root{
-    --bg:#06090f; --ground:#080c14; --slab:#101826; --line:#1c2636; --panel:#0b1019; --panel2:#0f1623;
+    --bg:#06090f; --ground:#444b5d; --slab:#101826; --line:#1c2636; --panel:#0b1019; --panel2:#0f1623;
     --text:#cfe2ec; --dim:#7590a3; --cyan:#00d4ff; --green:#3ee08f; --amber:#ffb547; --red:#ff5d5d;
     --grey:#8aa0b5; --violet:#b58cff; --gold:#ffd166;
     --font:'Segoe UI',system-ui,-apple-system,sans-serif;
@@ -265,7 +265,7 @@
   .tool.on .ic{background:rgba(0,0,0,.55);color:var(--tc,#fff);box-shadow:none}
 
   .scene{flex:1;min-height:0;position:relative;overflow:hidden;background:
-    radial-gradient(ellipse 70% 60% at 50% 48%,rgba(0,212,255,.06),transparent 70%),var(--ground);touch-action:none}
+    radial-gradient(ellipse 75% 65% at 50% 45%,#4f5669,transparent 72%),radial-gradient(ellipse 120% 100% at 50% 50%,transparent 55%,rgba(10,13,22,.55)),var(--ground);touch-action:none}
   #floor{display:block;width:100%;height:100%;font-family:var(--font);cursor:grab;user-select:none;-webkit-user-select:none}
   #floor.drag{cursor:grabbing}
   #wires{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:hidden}
@@ -282,9 +282,12 @@
   .hint.off{opacity:0}
 
   /* vloer */
+  /* 26-10: achtergrond naar The Bridge — leisteengrijze vloer, lichte looppaden, zachte slagschaduw onder de afdelingen */
   .ground{fill:var(--ground)}
-  .ground-tex{opacity:.9}
-  .grid{stroke:#0e1521;stroke-width:1}
+  .ground-tex{opacity:.12;mix-blend-mode:multiply}
+  .grid{stroke:#fff;stroke-opacity:.025;stroke-width:1}
+  .vignette{pointer-events:none}
+  .dropsh{fill:#1a1e2a;fill-opacity:.6;filter:url(#fDrop)}
   /* 17-10: kantine */
   /* 25-10: kantine is GEEN afdeling — houten vlonder, houten randen, eigen neonbord i.p.v. een kaartje */
   .room .ct-floor{fill:#8a6243}
@@ -312,7 +315,7 @@
   #floor.intro .dept,#floor.intro .brain{animation:rise .55s cubic-bezier(.2,.7,.2,1) both;animation-delay:calc(var(--i)*55ms)}
   @keyframes rise{from{opacity:0;transform:translateY(18px)}}
   .slab{cursor:pointer;outline:none;transition:opacity .2s}
-  .shadow{fill:#000;fill-opacity:.45}
+  .shadow{fill:#0d1019;fill-opacity:.35}
   .slab-top{fill:var(--slab);stroke:color-mix(in srgb,var(--c) 65%,transparent);stroke-width:1.1;stroke-linejoin:round}
   /* 25-10: afdelingsvloer in de kledingkleur (= afdelingskleur), textuur vermenigvuldigd erover */
   .slab-col{fill:var(--c)}
@@ -353,13 +356,13 @@
 
   /* 25-10: looppaden Brain -> afdeling (vervangen de datapijpen): brede stenen paden met lichtranden in de
      afdelingskleur en lopende lichtjes in het midden; agents lopen eroverheen, powerballen vliegen erboven */
-  .walk-base{fill:#2a3242;stroke:#0a0f17;stroke-width:1.2;stroke-linejoin:round}
-  .walk-tex{fill:url(#pGround);opacity:.35}
-  .walk-tile{stroke:#000;stroke-opacity:.28;stroke-width:.8}
+  .walk-base{fill:#606b7d;stroke:#3d4454;stroke-width:1.2;stroke-linejoin:round}
+  .walk-tex{fill:url(#pGround);opacity:.1;mix-blend-mode:multiply}
+  .walk-tile{stroke:#000;stroke-opacity:.1;stroke-width:.8}
   .walk-edge{fill:none;stroke:var(--c);stroke-width:1.6;stroke-opacity:.75;stroke-linecap:round}
   .walk-flow{fill:none;stroke:var(--c);stroke-width:2.2;stroke-linecap:round;stroke-dasharray:2 14;animation:flow var(--t,6s) linear infinite;opacity:.85}
   .walk-flow.quiet{opacity:.22;animation-duration:calc(var(--t,6s)*3)}
-  .plaza-base{fill:#2a3242;stroke:#0a0f17;stroke-width:1.2}
+  .plaza-base{fill:#606b7d;stroke:#3d4454;stroke-width:1.2}
   .plaza-ring{fill:none;stroke:#00d4ff;stroke-opacity:.45;stroke-width:1.4;stroke-dasharray:4 6}
   .pipe.room .walk-edge{stroke-dasharray:5 5;stroke-opacity:.55}
   /* oude datapijpen (niet meer getekend) */
@@ -703,6 +706,7 @@
             <linearGradient id="gBeam" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#00d4ff" stop-opacity=".0"/><stop offset=".35" stop-color="#00d4ff" stop-opacity=".35"/><stop offset="1" stop-color="#b58cff" stop-opacity=".0"/></linearGradient>
             <radialGradient id="gBrainGlow"><stop offset="0" stop-color="#00d4ff" stop-opacity=".30"/><stop offset=".5" stop-color="#00d4ff" stop-opacity=".07"/><stop offset="1" stop-color="#00d4ff" stop-opacity="0"/></radialGradient>
             <filter id="fSoft" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="2.4"/></filter>
+            <filter id="fDrop" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="14"/></filter>
             <filter id="fPanel" x="-35%" y="-35%" width="170%" height="180%">
               <feDropShadow dx="0" dy="3" stdDeviation="3.5" flood-color="#000" flood-opacity=".42"/>
             </filter>
@@ -2176,6 +2180,7 @@
       var d = it.d, x0 = d.x, y0 = d.y, x1 = d.x + d.w, y1 = d.y + d.d;
       h += '<g class="dept" data-dept="' + esc(d.name) + '" style="--c:' + esc(d.color) + ";--i:" + (di++) + '">';
       var cc = iso((x0 + x1) / 2, (y0 + y1) / 2, 0);
+      h += '<polygon class="dropsh" points="' + pts([iso(x0 + 0.6, y0 + 2.2), iso(x1 + 0.6, y0 + 2.2), iso(x1 + 0.6, y1 + 2.8), iso(x0 + 0.6, y1 + 2.8)]) + '"/>';
       h += '<ellipse class="shadow" cx="' + f1(cc[0]) + '" cy="' + f1(cc[1] + 6) + '" rx="' + f1((d.w + d.d) * HW * 0.55) + '" ry="' + f1((d.w + d.d) * HH * 0.55) + '"/>';
       h += '<ellipse class="slab-glow" cx="' + f1(cc[0]) + '" cy="' + f1(cc[1] - SLAB) + '" rx="' + f1((d.w + d.d) * HW * 0.5) + '" ry="' + f1((d.w + d.d) * HH * 0.5) + '"/>';
       h += '<g class="slab" tabindex="0" role="button" aria-label="Afdeling ' + esc(d.name) + ", " + d.agents.length + ' agents">';
@@ -3751,7 +3756,7 @@
   function awaySig() { return S.agents.filter(function (a) { return a._p && isAway(a); }).map(function (a) { return a.agent_id; }).join(","); }
   function applySky() {
     var n = $("nightRect"), g = $("goldRect"), gl = $("glowLayer");
-    if (n) n.setAttribute("fill-opacity", (FX.dark * 0.6).toFixed(3));
+    if (n) n.setAttribute("fill-opacity", (FX.dark * 0.18).toFixed(3));   /* 26-10: was 0.6 — lichte vloer blijft leesbaar */
     if (g) g.setAttribute("fill-opacity", (FX.gold * 0.09).toFixed(3));
     if (gl) gl.setAttribute("opacity", Math.min(1, FX.dark * 1.15).toFixed(3));
     elFloor.style.setProperty("--nb", (1 - FX.dark * 0.42).toFixed(3));
