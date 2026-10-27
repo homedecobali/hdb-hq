@@ -51,7 +51,8 @@
       { id: "st-social",    label: "Social-studio",    pane: "social",    url: "social-studio.html",    ic: "\u2726", c: "#ff9f40", kw: "social goedkeuring posts reels nieuwsbrief mail studio" },
       { id: "st-meta",      label: "Meta-studio",      pane: "meta",      url: "meta-studio.html",      ic: "M", c: "#ff3f9a", kw: "creatives ads studio" },
       { id: "st-google",    label: "Google-studio",    pane: "google",    url: "google-studio.html",    ic: "G", c: "#4285f4", kw: "pmax studio" },
-      { id: "st-pinterest", label: "Pinterest-studio", pane: "pinterest", url: "pinterest-studio.html", ic: "P", c: "#e60023", kw: "pins shop the look trends studio" }
+      { id: "st-pinterest", label: "Pinterest-studio", pane: "pinterest", url: "pinterest-studio.html", ic: "P", c: "#e60023", kw: "pins shop the look trends studio" },
+      { id: "st-seo",       label: "SEO-studio",       url: "seo-studio.html",       ic: "\u2315", c: "#4fd1a1", kw: "seo google search console gsc organisch zoekopdrachten producten populariteit ctr positie vertoningen" }
     ]},
     { id: "views", label: "Views", items: [
       { id: "office2", label: "Office v2", url: "office-v2.html", ic: "\u25C7", c: "#a37bff", kw: "office v2 kantoor brain pijpen bureaus zoom gerenderd isometrisch afdelingen agents" },
